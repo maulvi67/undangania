@@ -1,0 +1,31 @@
+{
+  "name": "wedding-system-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @wedding/web",
+    "build": "npm run build -ws --if-present",
+    "lint": "npm run lint -ws --if-present",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "test": "npm run test -ws --if-present",
+    "test:e2e": "playwright test",
+    "validate:repo": "node scripts/validate-repo.mjs",
+    "test:a11y": "playwright test tests/accessibility",
+    "test:responsive": "playwright test tests/responsive",
+    "test:ui-performance": "playwright test tests/performance"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0",
+    "@axe-core/playwright": "^4.10.0"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  }
+}

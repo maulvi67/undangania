@@ -1,0 +1,10 @@
+agent,mandatory_skills,mcp
+orchestrator,"mvp-bootstrap;understand-codebase;impact-analysis;implementation-plan;mvp-release-readiness",next-devtools
+ui-ux,"ui-ux-brief;ui-quality-gate",playwright
+frontend,"ui-implementation;nextjs-runtime-diagnostics;test-feature",next-devtools;playwright
+backend,"api-development;tenant-isolation-review;test-feature",context7-local
+database,"database-migration;tenant-isolation-review",none-by-default
+template,"template-create-validate;public-invitation-performance;ui-quality-gate",next-devtools;playwright
+payment,"provider-contract-review;payment-integration;pii-telemetry-review",context7-local
+security,"tenant-isolation-review;pii-telemetry-review;cost-guardrail-review",github-readonly-local
+qa,"test-feature;ui-quality-gate;mvp-release-readiness",playwright;next-devtools

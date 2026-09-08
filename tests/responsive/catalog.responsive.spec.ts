@@ -1,0 +1,2 @@
+import {test,expect} from "@playwright/test";
+for(const viewport of [{width:320,height:568},{width:375,height:812},{width:390,height:844},{width:768,height:1024},{width:1440,height:900}]){test(`catalog fits ${viewport.width}x${viewport.height}`,async({page})=>{await page.setViewportSize(viewport);await page.goto("/templates");const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);expect(overflow).toBe(false)})}
