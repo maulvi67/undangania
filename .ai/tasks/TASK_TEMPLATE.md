@@ -1,16 +1,21 @@
-# Task <ID>
+# Task <TASK-ID>
 
-## Objective/value
-## Actor/JTBD
+## Objective and value
+## Requirement IDs
+## Actor and user journey
 ## In scope
 ## Out of scope
-## Context/domain owner
+## Context and domain owner
+## Current behavior/evidence
+## Business rules
 ## Acceptance criteria
-## Data/API/event/cache/jobs
+## Data/API/event impact
 ## Security/privacy/permission
 ## UI states/accessibility
-## Allowed/prohibited files
+## Dependencies and risks
+## Allowed files
+## Prohibited files/actions
 ## Test plan
-## Rollout/rollback
-## Reviewers/approvals
-## Evidence
+## Feature flag, deployment, rollback
+## Required reviewers and human approvals
+## Completion evidence

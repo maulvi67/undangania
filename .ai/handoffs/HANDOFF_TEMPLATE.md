@@ -1,3 +1,3 @@
-# Handoff
+# Agent Handoff
 
-Task; from/to; status; context; changes; schema/API/events; UI/UX; security/privacy; tests/results; screenshots/traces; decisions; risks; blockers; next action; rollback.
+Task ID; from/to agent; status; objective; context read; decisions; files changed; schema/API/event changes; security/privacy impact; commands/tests/results; generated artifacts; unresolved risks; blockers; approvals; precise next action; rollback notes.

@@ -1,17 +1,27 @@
 ---
 name: implementation-plan
-description: Wedding System MVP workflow for implementation plan.
+description: Produce an approval-ready implementation plan. Use for Wedding System tasks that match this workflow.
 ---
-# Procedure
-1. Restate scope.
-2. List atomic steps and exact files.
-3. Define tests, rollout, rollback and approvals.
 
-## Required context
-Read AGENTS, project context, active task, owning domain and relevant rules.
+# Purpose
+
+Produce an approval-ready implementation plan.
+
+## Preconditions
+
+Read `AGENTS.md`, active task, codebase map, owning domain, and relevant security/testing contracts. Stop if scope, ownership, source license, or approval is missing.
+
+## Procedure
+
+1. Restate scope.
+2. Break into atomic steps.
+3. List files, migrations, tests, flags, rollback.
+4. Mark human approvals.
 
 ## Guardrails
-Local/approved staging only; least privilege; no production credentials/deploy/destructive data; human approval for auth, payment, production migration/infrastructure, messaging activation and public AI output.
+
+Least privilege; no production secrets or deployment; no destructive database action; no fabricated business data; no copied third-party template promotion; request human approval for high-risk changes.
 
 ## Output
-Task IDs, plan/findings, files, evidence, tests, risks, approvals and handoff.
+
+Task/requirement IDs, context read, plan or findings, files, evidence, tests, risks, approvals, follow-up, and handoff target.

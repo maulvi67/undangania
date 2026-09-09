@@ -1,0 +1,2 @@
+import type { TemplateRenderer } from "./index";
+export class TemplateRegistry<T> { private readonly items = new Map<string, TemplateRenderer<T>>(); register(item: TemplateRenderer<T>) { const key=`${item.manifest.id}@${item.manifest.version}`; if(this.items.has(key)) throw new Error(`Duplicate template ${key}`); this.items.set(key,item); } get(id:string,version:string){ const item=this.items.get(`${id}@${version}`); if(!item) throw new Error("Template not found"); return item; } }

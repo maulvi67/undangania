@@ -1,0 +1,12 @@
+openapi: 3.1.0
+info: { title: Wedding System API, version: 0.1.0 }
+servers: [{ url: /api/v1 }]
+paths:
+  /templates: { get: { summary: List active templates, responses: { '200': { description: OK } } } }
+  /orders: { post: { summary: Create order, responses: { '201': { description: Created } } } }
+  /payments/webhook/{provider}: { post: { summary: Verified payment webhook, responses: { '200': { description: Acknowledged } } } }
+  /weddings/{weddingId}/invitations/publish: { post: { summary: Publish snapshot, responses: { '200': { description: Published } } } }
+  /public/invitations/{slug}: { get: { summary: Get public invitation, responses: { '200': { description: OK }, '410': { description: Expired } } } }
+  /public/rsvp: { post: { summary: Submit RSVP with opaque token, responses: { '200': { description: Accepted }, '423': { description: Locked } } } }
+  /printing-orders: { post: { summary: Create printing order, responses: { '201': { description: Created } } } }
+  /notifications: { post: { summary: Enqueue approved notification, responses: { '202': { description: Queued } } } }

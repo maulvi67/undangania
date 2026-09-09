@@ -1,31 +1,42 @@
 {
-  "name": "wedding-system-mvp",
+  "name": "wedding-system",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
     "apps/*",
+    "services/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @wedding/web",
-    "build": "npm run build -ws --if-present",
-    "lint": "npm run lint -ws --if-present",
-    "typecheck": "npm run typecheck -ws --if-present",
-    "test": "npm run test -ws --if-present",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:integration": "vitest run --passWithNoTests --config tests/integration/vitest.config.ts",
     "test:e2e": "playwright test",
-    "validate:repo": "node scripts/validate-repo.mjs",
-    "test:a11y": "playwright test tests/accessibility",
-    "test:responsive": "playwright test tests/responsive",
-    "test:ui-performance": "playwright test tests/performance"
+    "test:a11y": "playwright test --grep @a11y",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "npm run generate -w @wedding/database",
+    "db:validate": "npm run validate -w @wedding/database",
+    "db:migrate:dev": "npm run migrate:dev -w @wedding/database",
+    "validate:repo": "node scripts/validate-repository.mjs",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.6.0",
+    "turbo": "^2.5.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0",
-    "@axe-core/playwright": "^4.10.0"
+    "yaml": "^2.8.0"
   },
   "engines": {
-    "node": ">=20",
-    "npm": ">=10"
-  }
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@11.5.0"
 }

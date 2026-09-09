@@ -1,17 +1,27 @@
 ---
 name: impact-analysis
-description: Wedding System MVP workflow for impact analysis.
+description: Assess direct, indirect, data, API, event, security, operational and migration impact. Use for Wedding System tasks that match this workflow.
 ---
-# Procedure
-1. Trace modules, schema, API, events, cache, jobs and UI.
-2. Identify compatibility/security/operations.
-3. List reviewers.
 
-## Required context
-Read AGENTS, project context, active task, owning domain and relevant rules.
+# Purpose
+
+Assess direct, indirect, data, API, event, security, operational and migration impact.
+
+## Preconditions
+
+Read `AGENTS.md`, active task, codebase map, owning domain, and relevant security/testing contracts. Stop if scope, ownership, source license, or approval is missing.
+
+## Procedure
+
+1. Map requirement to modules.
+2. Trace consumers and events.
+3. Identify compatibility and rollout risk.
+4. Return impacted files and reviewers.
 
 ## Guardrails
-Local/approved staging only; least privilege; no production credentials/deploy/destructive data; human approval for auth, payment, production migration/infrastructure, messaging activation and public AI output.
+
+Least privilege; no production secrets or deployment; no destructive database action; no fabricated business data; no copied third-party template promotion; request human approval for high-risk changes.
 
 ## Output
-Task IDs, plan/findings, files, evidence, tests, risks, approvals and handoff.
+
+Task/requirement IDs, context read, plan or findings, files, evidence, tests, risks, approvals, follow-up, and handoff target.

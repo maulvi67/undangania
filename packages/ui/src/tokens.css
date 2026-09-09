@@ -1,0 +1,78 @@
+/*
+ * Wedding System — semantic design tokens.
+ * Contrast ratios verified WCAG 2.2 AA (text >= 4.5:1, UI/graphic >= 3:1);
+ * see .ai/reports/MVP-UI-001-verification.md.
+ */
+:root {
+  /* Palet dasar */
+  --color-ink: #24342f; /* teks utama — 12.86:1 di atas Paper */
+  --color-ink-soft: #4c5b55; /* teks sekunder — 7.04:1 di atas Paper */
+  --color-olive: #596e5f; /* aksi utama — teks Paper 5.41:1 */
+  --color-olive-hover: #4c5e50;
+  --color-olive-active: #415243;
+  --color-sage: #a9b9a7; /* dekoratif — garis lembut, isian */
+  --color-mist: #e8eee7; /* permukaan lembut */
+  --color-ivory: #fbf8f2; /* latar aplikasi */
+  --color-paper: #fffdf9; /* permukaan kartu */
+  --color-clay: #b7785b; /* aksen dekoratif — 3.53:1 (grafis) */
+  --color-clay-deep: #9a5a3f; /* aksen teks — 5.29:1 di atas Paper */
+  --color-blush: #e8d7cf; /* isian terpilih — teks Ink 9.37:1 */
+  --color-gold: #b69a5e; /* latar lencana — teks Ink 4.84:1 */
+  --color-danger: #a34834; /* teks galat — 5.85:1 di atas Paper */
+  --color-danger-bg: #f8ece6; /* latar galat — teks Danger 5.13:1 */
+  --color-border: #c9d4c7; /* garis hairline dekoratif */
+  --color-border-input: #6e8173; /* batas kontrol — 4.09:1 di atas Paper */
+  --color-disabled-bg: #edf1ec;
+  --color-disabled-text: #77827c; /* 3.76:1 — hanya kontrol nonaktif */
+
+  /* Semantik */
+  --color-bg: var(--color-ivory);
+  --color-surface: var(--color-paper);
+  --color-text: var(--color-ink);
+  --color-text-muted: var(--color-ink-soft);
+  --color-primary: var(--color-olive);
+  --color-on-primary: var(--color-paper);
+  --color-focus: var(--color-ink);
+
+  /* Tipografi — editorial: serif display, sans untuk UI */
+  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua",
+    "Times New Roman", serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-display: clamp(2.125rem, 1.6rem + 2vw, 3rem);
+  --leading-tight: 1.2;
+  --leading-normal: 1.6;
+
+  /* Ruang — basis 4px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Sudut — tidak ada pembulatan universal */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* Bayangan — lembut, bernada Ink */
+  --shadow-sm: 0 1px 2px rgba(36, 52, 47, 0.07);
+  --shadow-md: 0 2px 8px rgba(36, 52, 47, 0.08);
+  --shadow-lg: 0 12px 32px rgba(36, 52, 47, 0.14);
+
+  --z-header: 20;
+  --z-toast: 60;
+}

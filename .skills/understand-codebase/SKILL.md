@@ -1,17 +1,27 @@
 ---
 name: understand-codebase
-description: Wedding System MVP workflow for understand codebase.
+description: Map repository boundaries, ownership, contracts and relevant runtime paths before changing code. Use for Wedding System tasks that match this workflow.
 ---
-# Procedure
-1. Map ownership and runtime paths.
-2. Identify relevant contracts and tests.
-3. Return unknowns without edits.
 
-## Required context
-Read AGENTS, project context, active task, owning domain and relevant rules.
+# Purpose
+
+Map repository boundaries, ownership, contracts and relevant runtime paths before changing code.
+
+## Preconditions
+
+Read `AGENTS.md`, active task, codebase map, owning domain, and relevant security/testing contracts. Stop if scope, ownership, source license, or approval is missing.
+
+## Procedure
+
+1. Read root context.
+2. Inspect CODEBASE_MAP and package manifests.
+3. Locate owning domain and tests.
+4. Return concise map and unknowns.
 
 ## Guardrails
-Local/approved staging only; least privilege; no production credentials/deploy/destructive data; human approval for auth, payment, production migration/infrastructure, messaging activation and public AI output.
+
+Least privilege; no production secrets or deployment; no destructive database action; no fabricated business data; no copied third-party template promotion; request human approval for high-risk changes.
 
 ## Output
-Task IDs, plan/findings, files, evidence, tests, risks, approvals and handoff.
+
+Task/requirement IDs, context read, plan or findings, files, evidence, tests, risks, approvals, follow-up, and handoff target.

@@ -1,14 +1,13 @@
 # Validation Report
 
-- Files before manifest: 88
-- Agents: 15
-- Skills: 20
-- Claude rules: 9
-- Shared MCP: Next.js DevTools and isolated Playwright
-- Credentialed MCP examples: Context7 and GitHub read-oriented
+- Date: 2026-08-28
+- Required main documents: 21 present and non-empty
+- Agent definitions: 21
+- Reusable skills: 22
+- Domain documents: 24
+- JSON files parsed successfully: 39
 - Empty files: 0
-- JSON parse: passed
-- Required path check: passed
-- Production credentials/database MCP/deployment: excluded
-
-After extraction run `npm install`, `npm run validate:repo`, `npm run typecheck`, `npm test`, and `npm run build`.
+- Internal workspace dependency references: valid
+- Prisma schema: present for offline structural review; run `npm install` and `npm run db:validate` in a connected environment for Prisma engine validation
+- OpenAPI and YAML: present; provider-specific credentials intentionally absent
+- Production deployment: intentionally disabled pending human provider decisions

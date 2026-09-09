@@ -1,0 +1,10 @@
+* @platform-owner
+/apps/customer-web/ @frontend-owner @product-owner
+/apps/admin-dashboard/ @admin-owner @security-owner
+/apps/vendor-dashboard/ @vendor-owner
+/apps/backend-api/ @backend-owner
+/packages/database/ @database-owner @security-owner
+/packages/payments/ @payment-owner @security-owner
+/infrastructure/ @devops-owner @security-owner
+/.agents/ @architecture-owner
+/.skills/ @architecture-owner

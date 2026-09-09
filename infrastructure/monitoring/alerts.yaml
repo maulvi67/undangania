@@ -1,0 +1,13 @@
+alerts:
+  - name: payment-entitlement-mismatch
+    severity: critical
+    condition: mismatch_count > 0 for 5m
+    runbook: docs/operations/runbooks.md
+  - name: rsvp-error-rate
+    severity: high
+    condition: error_rate > 1% for 10m
+    runbook: docs/operations/runbooks.md
+  - name: outbox-oldest-age
+    severity: high
+    condition: oldest_pending_seconds > 300
+    runbook: docs/operations/runbooks.md

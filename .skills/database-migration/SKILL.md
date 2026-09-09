@@ -1,18 +1,27 @@
 ---
 name: database-migration
-description: Wedding System MVP workflow for database migration.
+description: Create safe Prisma/PostgreSQL migration. Use for Wedding System tasks that match this workflow.
 ---
-# Procedure
-1. Assess data and lock risk.
+
+# Purpose
+
+Create safe Prisma/PostgreSQL migration.
+
+## Preconditions
+
+Read `AGENTS.md`, active task, codebase map, owning domain, and relevant security/testing contracts. Stop if scope, ownership, source license, or approval is missing.
+
+## Procedure
+
+1. Inspect query and data impact.
 2. Use expand/backfill/switch/contract.
-3. Review constraints/indexes.
+3. Review constraints/indexes/locks.
 4. Document forward recovery.
 
-## Required context
-Read AGENTS, project context, active task, owning domain and relevant rules.
-
 ## Guardrails
-Local/approved staging only; least privilege; no production credentials/deploy/destructive data; human approval for auth, payment, production migration/infrastructure, messaging activation and public AI output.
+
+Least privilege; no production secrets or deployment; no destructive database action; no fabricated business data; no copied third-party template promotion; request human approval for high-risk changes.
 
 ## Output
-Task IDs, plan/findings, files, evidence, tests, risks, approvals and handoff.
+
+Task/requirement IDs, context read, plan or findings, files, evidence, tests, risks, approvals, follow-up, and handoff target.
