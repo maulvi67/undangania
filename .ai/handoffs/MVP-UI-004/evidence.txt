@@ -1,0 +1,48 @@
+== Detail screenshots ==
+320x568: saved, overflow=0px
+375x667: saved, overflow=0px
+390x844: saved, overflow=0px
+768x1024: saved, overflow=0px
+1024x768: saved, overflow=0px
+1440x900: saved, overflow=0px
+
+== Device switch ==
+desktop frame width=532px (phone max is 360px)
+
+== Demo ==
+RSVP validation shown=true, success shown=true
+
+== Retired template ==
+recovery page shown=true
+
+== /demo redirect ==
+landed on /templates/seruni-klasik/demo
+
+== Reduced motion ==
+.tpl-device__frame transitionDuration=0s (expect 0s)
+
+== Keyboard tab order (1440px, detail) ==
+Tab 1: <a> "Langsung ke konten utama"
+Tab 2: <a> "Wedding System"
+Tab 3: <a> "Katalog"
+Tab 4: <a> "Cara kerja"
+Tab 5: <a> "Harga"
+Tab 6: <a> "FAQ"
+Tab 7: <a> "Lihat koleksi desain"
+Tab 8: <a> "← Kembali ke katalog desain"
+Tab 9: <input> ""
+Tab 10: <a> "Lihat demo undangan"
+Tab 11: <a> "Pilih desain"
+Tab 12: <a> "Katalog desain"
+Tab 13: <a> "Demo undangan"
+Tab 14: <a> "Pertanyaan umum"
+Tab 15: (body)
+
+== Sticky bar (375px) ==
+bar visible=true, focus always clear of bar=true
+
+== Console errors ==
+none
+
+== Network failures ==
+none

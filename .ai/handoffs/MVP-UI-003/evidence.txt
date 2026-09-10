@@ -1,0 +1,66 @@
+== Catalog screenshots (default) ==
+320x568: saved, overflow=0px
+375x667: saved, overflow=0px
+390x844: saved, overflow=0px
+768x1024: saved, overflow=0px
+1024x768: saved, overflow=0px
+1440x900: saved, overflow=0px
+
+== Filtered state (q=klasik&harga=eksklusif&urutkan=harga-terendah) ==
+tokens=3, count text="Menampilkan 1 desain"
+
+== Empty search state ==
+empty state shown=true
+
+== Collapsed filter panel (320px) ==
+collapsed overflow=0px
+
+== 200% zoom equivalent (640px) ==
+overflow=0px
+
+== Search interaction ==
+url=/templates?q=nara&kategori=&harga=&urutkan=terbaru, count="Menampilkan 1 desain"
+
+== Tier filter ==
+url=/templates?q=&kategori=&harga=eksklusif&urutkan=terbaru, count="Menampilkan 1 desain", parity hint visible=true
+
+== Reduced motion ==
+chip transitionDuration=0s (expect 0s)
+
+== Keyboard tab order (1440px) ==
+Tab 1: <a> "Langsung ke konten utama"
+Tab 2: <a> "Wedding System"
+Tab 3: <a> "Katalog"
+Tab 4: <a> "Cara kerja"
+Tab 5: <a> "Harga"
+Tab 6: <a> "FAQ"
+Tab 7: <a> "Lihat koleksi desain"
+Tab 8: <input> ""
+Tab 9: <button> "Cari"
+Tab 10: <summary> "Filter & urutkan"
+Tab 11: <input> ""
+Tab 12: <input> ""
+Tab 13: <select> "TerbaruHarga terendahHarga tertinggi"
+Tab 14: <button> "Terapkan filter"
+Tab 15: <a> "Seruni"
+Tab 16: <a> "Lihat demo"
+Tab 17: <a> "Pilih desain"
+Tab 18: <a> "Nara"
+
+== Collapsed details keyboard ==
+summary reachable via Tab=false
+
+== Console errors ==
+none
+
+== Network failures ==
+none
+
+== Collapsed details keyboard (follow-up, corrected method) ==
+summary at tab stop: 6 — Enter opens panel: true
+(Earlier inline check used only 3 Tab presses, which is why it read false; the summary is tab stop 6 on mobile. Native details keyboard toggling verified.)
+
+== Performance (lab, chromium 375px) ==
+cold: wall=178ms ttfb=54ms dcl=97ms lcp=nullms cls=0.000 reqs=10 js=137.1KB(8 files) css=6.2KB other=0.0KB
+warm: wall=172ms ttfb=33ms dcl=75ms lcp=nullms cls=0.000 reqs=10 js=137.1KB(8 files) css=6.2KB other=0.0KB
+request hosts: localhost:3000

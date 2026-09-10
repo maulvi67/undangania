@@ -1,0 +1,155 @@
+/*
+ * Wedding System — authentication screens (MVP-UI-005).
+ * Scope: `auth-*` classes only; builds on @wedding/ui tokens and utilities.
+ * Editorial, calm, hairline rules, no gradients, no motion beyond focus.
+ */
+
+/* ---------- Kerangka ---------- */
+
+.auth-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.auth-main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: var(--space-10) var(--space-4) var(--space-12);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 26rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-8) var(--space-6);
+}
+
+.auth-logo {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.auth-logo:hover,
+.auth-logo:focus-visible {
+  text-decoration: underline;
+}
+
+.auth-legal {
+  padding: var(--space-4);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ---------- Kepala layar ---------- */
+
+.auth-title {
+  margin-top: var(--space-6);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.auth-lede {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+/* ---------- Formulir ---------- */
+
+.auth-form {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.auth-form .ui-button[type="submit"] {
+  width: 100%;
+}
+
+.auth-alert {
+  margin-top: var(--space-6);
+}
+
+/* Kata sandi: masukan + tombol tampil/sembunyikan berdampingan. */
+
+.auth-password__control {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.auth-password__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-password__toggle {
+  flex: none;
+  min-height: 44px;
+}
+
+/* ---------- Baris tautan silang ---------- */
+
+.auth-links {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+/* ---------- Panel status (interstisial, tautan, suspend, sukses) ---------- */
+
+.auth-panel {
+  margin-top: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.auth-panel__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.auth-panel__body {
+  color: var(--color-text);
+}
+
+.auth-panel__note {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.auth-panel__actions {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+.auth-panel__actions .ui-button {
+  width: 100%;
+  max-width: 20rem;
+}
+
+.auth-panel .auth-links {
+  margin-top: 0;
+}
+
+.auth-resend-status {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}

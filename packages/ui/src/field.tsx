@@ -3,13 +3,23 @@ import { cx } from "./cx";
 import { IconAlert, IconChevronDown } from "./icons";
 
 type FieldChromeProps = {
+  /* id is required: label and message wiring depend on it. */
+  id: string;
   label: string;
   hint?: string;
   error?: string;
   required?: boolean;
 };
 
-function FieldLabel({ id, label, required }: { id: string; label: string; required?: boolean }) {
+function FieldLabel({
+  id,
+  label,
+  required,
+}: {
+  id: string;
+  label: string;
+  required?: boolean | undefined;
+}) {
   return (
     <label className="ui-field__label" htmlFor={id}>
       {label}
@@ -18,7 +28,15 @@ function FieldLabel({ id, label, required }: { id: string; label: string; requir
   );
 }
 
-function FieldMessages({ id, hint, error }: { id: string; hint?: string; error?: string }) {
+function FieldMessages({
+  id,
+  hint,
+  error,
+}: {
+  id: string;
+  hint?: string | undefined;
+  error?: string | undefined;
+}) {
   return (
     <>
       {hint ? (

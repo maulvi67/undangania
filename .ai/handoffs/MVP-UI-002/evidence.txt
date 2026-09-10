@@ -1,0 +1,41 @@
+== Screenshots ==
+320x568: saved, horizontal-overflow=0px
+375x667: saved, horizontal-overflow=0px
+390x844: saved, horizontal-overflow=0px
+768x1024: saved, horizontal-overflow=0px
+1024x768: saved, horizontal-overflow=0px
+1440x900: saved, horizontal-overflow=0px
+
+== 200% zoom equivalent (640px viewport) ==
+horizontal-overflow=0px
+
+== Reduced motion ==
+.lnd-faq__chevron transitionDuration=0s (expect 0s)
+first details open after click=true
+
+== Keyboard tab order (1440px) ==
+Tab 1: <a> "Langsung ke konten utama" -> #konten-utama
+Tab 2: <a> "Wedding System" -> /
+Tab 3: <a> "Katalog" -> /templates
+Tab 4: <a> "Cara kerja" -> /#cara-kerja
+Tab 5: <a> "Harga" -> /#harga
+Tab 6: <a> "FAQ" -> /#faq
+Tab 7: <a> "Lihat koleksi desain" -> /templates
+Tab 8: <a> "Lihat koleksi desain" -> /templates
+Tab 9: <a> "Lihat demo undangan lengkap" -> /demo
+Tab 10: <a> "Lihat semua desain" -> /templates
+Tab 11: <summary> "Apakah semua desain punya fitur yang sama?"
+Tab 12: <summary> "Mengapa harga antar desain berbeda?"
+Tab 13: <summary> "Berapa lama undangan saya aktif?"
+Tab 14: <summary> "Apakah saya perlu keahlian desain?"
+
+== Mobile drawer (375px) ==
+focus inside dialog after open=true
+drawer closed after Escape=true
+focus returned to Menu trigger=true
+
+== Console errors ==
+none
+
+== Network failures ==
+none

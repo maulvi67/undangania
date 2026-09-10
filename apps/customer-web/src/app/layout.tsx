@@ -1,3 +1,14 @@
 import type { ReactNode } from "react";
-export const metadata = { title: "Wedding Customer" };
-export default function RootLayout({ children }: { children: ReactNode }) { return <html lang="id"><body>{children}</body></html>; }
+import "@wedding/ui/tokens.css";
+import "@wedding/ui/ui.css";
+import "./landing.css";
+
+export const metadata = { title: "Wedding System" };
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="id">
+      <body>{children}</body>
+    </html>
+  );
+}
