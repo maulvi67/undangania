@@ -8,12 +8,14 @@
  * context, not their fault).
  */
 
-export const DEFAULT_REDIRECT = "/";
+export const DEFAULT_REDIRECT = "/dashboard";
 
-/** App-internal destinations a post-auth redirect may target (D3: "/" until /dashboard exists). */
+/** App-internal destinations a post-auth redirect may target. */
 const ALLOWED_DESTINATIONS = [
   "/",
+  "/dashboard",
   "/templates",
+  "/checkout",
   "/masuk",
   "/daftar",
   "/verifikasi",
@@ -37,13 +39,16 @@ export function safeRedirectTarget(next: string | null | undefined): string {
   if (value === "") return DEFAULT_REDIRECT;
 
   // Reject protocol-relative and backslash tricks before any URL parsing.
-  if (value.startsWith("//") || value.startsWith("/\\") || value.includes("\\")) {
+  if (
+    value.startsWith("//") ||
+    value.startsWith("/\\") ||
+    value.includes("\\")
+  ) {
     return DEFAULT_REDIRECT;
   }
   // Reject anything that is not plainly a relative path.
   if (!value.startsWith("/")) return DEFAULT_REDIRECT;
   // Reject control characters and whitespace smuggled inside the param.
-  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001F\u007F]/.test(value)) return DEFAULT_REDIRECT;
 
   let parsed: URL;
@@ -68,7 +73,8 @@ export function safeRedirectTarget(next: string | null | undefined): string {
   // browsers may re-normalize them into authority separators.
   if (decoded.includes("//") || decoded.includes("\\")) return DEFAULT_REDIRECT;
 
-  if (!isAllowedPath(parsed.pathname) || !isAllowedPath(decoded)) return DEFAULT_REDIRECT;
+  if (!isAllowedPath(parsed.pathname) || !isAllowedPath(decoded))
+    return DEFAULT_REDIRECT;
 
   // Rebuild from validated pathname + search only (drops credentials,
   // fragment, and any encoded host); keep in-app query params like ?q=.
@@ -77,7 +83,17 @@ export function safeRedirectTarget(next: string | null | undefined): string {
 
 /** Builds a "/masuk?next=…" href (used by cross-links that carry context). */
 export function signInHref(next?: string | null): string {
+  const raw = typeof next === "string" ? next.trim() : "";
+  if (raw === "") return "/masuk";
+
   const target = safeRedirectTarget(next);
-  if (target === DEFAULT_REDIRECT || target === "/") return "/masuk";
+  if (target === "/") return "/masuk";
+  // Invalid input falls back to DEFAULT_REDIRECT, but an explicitly supplied
+  // /dashboard target must still round-trip through the next parameter.
+  const explicitlyTargetsDefault =
+    raw === DEFAULT_REDIRECT ||
+    raw.startsWith(`${DEFAULT_REDIRECT}?`) ||
+    raw.startsWith(`${DEFAULT_REDIRECT}#`);
+  if (target === DEFAULT_REDIRECT && !explicitlyTargetsDefault) return "/masuk";
   return `/masuk?next=${encodeURIComponent(target)}`;
 }

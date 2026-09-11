@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MarketingHeader } from "../../../components/marketing/marketing-header";
 import { MarketingFooter } from "../../../components/marketing/marketing-footer";
@@ -7,13 +8,17 @@ import { DevicePreview } from "../../../components/templates/device-preview";
 import { StickySelectBar } from "../../../components/templates/sticky-select-bar";
 import { TemplatePreview } from "../../../components/templates/template-preview";
 import { LinkButton } from "../../../components/marketing/link-button";
+import { signInHref } from "../../../lib/auth/redirect";
 import {
   SECTION_LABELS,
   formatIdr,
   type TemplateRecord,
   type TemplateSectionId,
 } from "../../../components/templates/template-contract";
-import { getActiveTemplates, getTemplate } from "../../../components/templates/template-data";
+import {
+  getActiveTemplates,
+  getTemplate,
+} from "../../../components/templates/template-data";
 import "../../templates.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -26,7 +31,9 @@ export function generateStaticParams() {
   return getActiveTemplates().map((template) => ({ id: template.id }));
 }
 
-export async function generateMetadata({ params }: TemplateDetailProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: TemplateDetailProps): Promise<Metadata> {
   const { id } = await params;
   const template = getTemplate(id);
   if (!template || template.status !== "ACTIVE") {
@@ -87,12 +94,14 @@ function PriceCard({ template }: { template: TemplateRecord }) {
         <>
           <p className="tpl-price__amount">{formatIdr(template.priceIdr)}</p>
           <p className="tpl-price__note">
-            Harga final — dibayar sekali, tanpa biaya tambahan yang muncul belakangan.
+            Harga final — dibayar sekali, tanpa biaya tambahan yang muncul
+            belakangan.
           </p>
         </>
       ) : (
         <p className="tpl-price__unavailable">
-          Harga untuk desain ini sedang diperbarui. Silakan periksa kembali nanti.
+          Harga untuk desain ini sedang diperbarui. Silakan periksa kembali
+          nanti.
         </p>
       )}
       <ul className="tpl-price__includes">
@@ -104,7 +113,9 @@ function PriceCard({ template }: { template: TemplateRecord }) {
   );
 }
 
-export default async function TemplateDetailPage({ params }: TemplateDetailProps) {
+export default async function TemplateDetailPage({
+  params,
+}: TemplateDetailProps) {
   const { id } = await params;
   const template = getTemplate(id);
   if (!template || template.status !== "ACTIVE") {
@@ -119,9 +130,9 @@ export default async function TemplateDetailPage({ params }: TemplateDetailProps
       <MarketingHeader />
       <main id="konten-utama" tabIndex={-1}>
         <div className="ui-container tpl-page">
-          <a className="tpl-backlink" href="/templates">
+          <Link className="tpl-backlink" href="/templates">
             ← Kembali ke katalog desain
-          </a>
+          </Link>
 
           <div className="tpl-page__preview-col">
             <DevicePreview>
@@ -138,7 +149,10 @@ export default async function TemplateDetailPage({ params }: TemplateDetailProps
               <p className="tpl-info__character">{template.designCharacter}</p>
             </header>
 
-            <section className="tpl-block" aria-labelledby="tpl-character-title">
+            <section
+              className="tpl-block"
+              aria-labelledby="tpl-character-title"
+            >
               <h2 className="tpl-block__title" id="tpl-character-title">
                 Karakter desain
               </h2>
@@ -151,8 +165,8 @@ export default async function TemplateDetailPage({ params }: TemplateDetailProps
               </h2>
               <SectionList sections={template.sections} />
               <p className="tpl-block__body">
-                Semua desain memiliki fitur inti yang sama — daftar di atas adalah bagian
-                undangan yang disusun oleh desain ini.
+                Semua desain memiliki fitur inti yang sama — daftar di atas
+                adalah bagian undangan yang disusun oleh desain ini.
               </p>
             </section>
 
@@ -178,14 +192,17 @@ export default async function TemplateDetailPage({ params }: TemplateDetailProps
                 ))}
               </ol>
               <p className="tpl-block__body">
-                Masa aktif undangan: {INVITATION_ACTIVE_PERIOD}. Sebelum masa aktif berakhir,
-                Anda dapat mengunduh data tamu dan buku tamu.
+                Masa aktif undangan: {INVITATION_ACTIVE_PERIOD}. Sebelum masa
+                aktif berakhir, Anda dapat mengunduh data tamu dan buku tamu.
               </p>
             </section>
 
             <div className="tpl-ctas">
               {template.demo.available ? (
-                <LinkButton href={`/templates/${template.id}/demo`} variant="secondary">
+                <LinkButton
+                  href={`/templates/${template.id}/demo`}
+                  variant="secondary"
+                >
                   Lihat demo undangan
                 </LinkButton>
               ) : (
@@ -194,12 +211,18 @@ export default async function TemplateDetailPage({ params }: TemplateDetailProps
                 </p>
               )}
               {template.priceIdr !== null ? (
-                <LinkButton href="/daftar" variant="primary">
+                <LinkButton
+                  href={signInHref(
+                    `/checkout?template=${encodeURIComponent(template.id)}`,
+                  )}
+                  variant="primary"
+                >
                   Pilih desain
                 </LinkButton>
               ) : null}
               <p className="tpl-ctas__note">
-                Anda akan diminta membuat akun terlebih dahulu sebelum melanjutkan.
+                Anda akan diminta membuat akun terlebih dahulu sebelum
+                melanjutkan.
               </p>
             </div>
           </div>

@@ -10,17 +10,34 @@ describe("safeRedirectTarget", () => {
   });
 
   it("accepts allowlisted internal paths, preserving in-app query params", () => {
+    expect(DEFAULT_REDIRECT).toBe("/dashboard");
+    expect(safeRedirectTarget("/dashboard")).toBe("/dashboard");
+    expect(safeRedirectTarget("/dashboard?state=aktif")).toBe(
+      "/dashboard?state=aktif",
+    );
     expect(safeRedirectTarget("/templates")).toBe("/templates");
     expect(safeRedirectTarget("/templates?q=nara")).toBe("/templates?q=nara");
-    expect(safeRedirectTarget("/templates/seruni-klasik")).toBe("/templates/seruni-klasik");
+    expect(safeRedirectTarget("/templates/seruni-klasik")).toBe(
+      "/templates/seruni-klasik",
+    );
+    expect(safeRedirectTarget("/checkout?template=seruni-klasik")).toBe(
+      "/checkout?template=seruni-klasik",
+    );
+    expect(safeRedirectTarget("/checkout/status?order=WS-20260911-001")).toBe(
+      "/checkout/status?order=WS-20260911-001",
+    );
     expect(safeRedirectTarget("/")).toBe("/");
   });
 
   it("rejects absolute and protocol-relative URLs", () => {
-    expect(safeRedirectTarget("https://evil.example.com")).toBe(DEFAULT_REDIRECT);
+    expect(safeRedirectTarget("https://evil.example.com")).toBe(
+      DEFAULT_REDIRECT,
+    );
     expect(safeRedirectTarget("//evil.example.com")).toBe(DEFAULT_REDIRECT);
     expect(safeRedirectTarget("/\\evil.example.com")).toBe(DEFAULT_REDIRECT);
-    expect(safeRedirectTarget("http://localhost:3000/templates")).toBe(DEFAULT_REDIRECT);
+    expect(safeRedirectTarget("http://localhost:3000/templates")).toBe(
+      DEFAULT_REDIRECT,
+    );
   });
 
   it("rejects backslash and control-character smuggling", () => {
@@ -33,7 +50,9 @@ describe("safeRedirectTarget", () => {
   it("rejects scheme-relative and encoded-host bypasses", () => {
     expect(safeRedirectTarget("https:evil.example.com")).toBe(DEFAULT_REDIRECT);
     expect(safeRedirectTarget(":///evil")).toBe(DEFAULT_REDIRECT);
-    expect(safeRedirectTarget("/%2F%2Fevil.example.com")).toBe(DEFAULT_REDIRECT);
+    expect(safeRedirectTarget("/%2F%2Fevil.example.com")).toBe(
+      DEFAULT_REDIRECT,
+    );
     expect(safeRedirectTarget("/templates/%2F%2Fevil")).toBe(DEFAULT_REDIRECT);
     expect(safeRedirectTarget("/\\t//evil")).toBe(DEFAULT_REDIRECT);
   });
@@ -58,6 +77,12 @@ describe("signInHref", () => {
   });
 
   it("encodes safe destinations into the next param", () => {
-    expect(signInHref("/templates?q=nara")).toBe("/masuk?next=%2Ftemplates%3Fq%3Dnara");
+    expect(signInHref("/dashboard")).toBe("/masuk?next=%2Fdashboard");
+    expect(signInHref("/templates?q=nara")).toBe(
+      "/masuk?next=%2Ftemplates%3Fq%3Dnara",
+    );
+    expect(signInHref("/checkout?template=seruni-klasik")).toBe(
+      "/masuk?next=%2Fcheckout%3Ftemplate%3Dseruni-klasik",
+    );
   });
 });
