@@ -10,5 +10,16 @@ test-results/
 .turbo/
 *.log
 .DS_Store
+
+# Local generated reports and audit artifacts
 .ai/memory/local/
 .ai/reports/runtime/
+.ai/reports/MVP-UI-099-final-review/
+.ai/handoffs/MVP-UI-008/browser-audit/
+.ai/handoffs/MVP-UI-009/browser-audit/
+.ai/handoffs/MVP-UI-011/screenshots/
+.ai/handoffs/MVP-UI-011/axe-details.mjs
+.ai/handoffs/MVP-UI-011/audit.mjs
+.ai/handoffs/MVP-UI-011/performance.mjs
+.ai/handoffs/MVP-UI-011/performance-results.json
+prettier-out.txt

@@ -1,0 +1,243 @@
+/*
+ * Wedding System — onboarding flow (MVP-UI-006).
+ * Scope: `onb-*` classes only; builds on @wedding/ui tokens and utilities.
+ * Editorial, tenang, hairline — tanpa gradien, tanpa gerak selain fokus.
+ */
+
+/* ---------- Kemajuan ---------- */
+
+.onb-progress {
+  margin-top: var(--space-6);
+}
+
+.onb-progress__label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.onb-progress__track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.onb-progress__seg {
+  height: 3px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.onb-progress__seg--done {
+  background: var(--color-olive);
+}
+
+.onb-progress__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-2);
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.onb-progress__step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.onb-progress__step[aria-current="step"] {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.onb-progress__mark {
+  display: inline-flex;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-olive);
+}
+
+.onb-progress__mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Spanduk lanjutkan ---------- */
+
+.onb-resume {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-mist);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.onb-resume__text {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.onb-resume__warning {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.onb-resume__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* ---------- Langkah ---------- */
+
+.onb-title {
+  margin-top: var(--space-6);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.onb-lede {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.onb-fields {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.onb-actions {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.onb-actions .ui-button {
+  width: 100%;
+}
+
+/* ---------- Status simpan ---------- */
+
+.onb-save-status {
+  min-height: 1.5rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ---------- Peringatan tingkat formulir ---------- */
+
+.onb-alert {
+  margin-top: var(--space-4);
+}
+
+.onb-alert__actions {
+  margin-top: var(--space-3);
+}
+
+.onb-alert__actions .ui-button {
+  width: 100%;
+}
+
+/* ---------- Ringkasan baca-saja ---------- */
+
+.onb-summary {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background: var(--color-mist);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.onb-summary__title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+
+.onb-summary__list {
+  display: grid;
+  margin-top: var(--space-2);
+}
+
+.onb-summary__row {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.onb-summary__row:last-child {
+  border-bottom: none;
+}
+
+.onb-summary__term {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.onb-summary__value {
+  margin-top: var(--space-1);
+}
+
+.onb-summary__edits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.onb-summary__edit {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-olive-hover);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.onb-summary__edit:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- Panel (selesai / konflik) ---------- */
+
+.onb-panel {
+  margin-top: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.onb-panel .onb-summary {
+  text-align: left;
+}
+
+.onb-panel__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.onb-panel__body {
+  color: var(--color-text);
+}
+
+.onb-panel__actions {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+.onb-panel__actions .ui-button {
+  width: 100%;
+  max-width: 20rem;
+}
