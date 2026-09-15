@@ -1,1 +1,0 @@
-export default function Page(){return <main><p>Undangan digital untuk momen yang benar-benar milik Anda</p><h1>Bangun website pernikahan yang hangat, jelas, dan mudah dibagikan.</h1><p>Pilih desain, isi detail acara, publikasikan, lalu kelola RSVP dalam satu tempat.</p><a href="/templates">Lihat koleksi desain</a></main>}

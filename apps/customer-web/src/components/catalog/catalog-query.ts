@@ -12,11 +12,18 @@ import {
  * user-controlled input.
  */
 
-export const CATALOG_SORTS = ["terbaru", "harga-terendah", "harga-tertinggi"] as const;
+export const CATALOG_SORTS = [
+  "terbaru",
+  "harga-terendah",
+  "harga-tertinggi",
+] as const;
 
 export type CatalogSort = (typeof CATALOG_SORTS)[number];
 
-export const SORT_OPTIONS: ReadonlyArray<{ value: CatalogSort; label: string }> = [
+export const SORT_OPTIONS: ReadonlyArray<{
+  value: CatalogSort;
+  label: string;
+}> = [
   { value: "terbaru", label: "Terbaru" },
   { value: "harga-terendah", label: "Harga terendah" },
   { value: "harga-tertinggi", label: "Harga tertinggi" },
@@ -58,11 +65,15 @@ function normalize(value: string): string {
 }
 
 function parseTier(value: string): TemplateTier | "" {
-  return (TEMPLATE_TIERS as readonly string[]).includes(value) ? (value as TemplateTier) : "";
+  return (TEMPLATE_TIERS as readonly string[]).includes(value)
+    ? (value as TemplateTier)
+    : "";
 }
 
 function parseSort(value: string): CatalogSort {
-  return (CATALOG_SORTS as readonly string[]).includes(value) ? (value as CatalogSort) : DEFAULT_SORT;
+  return (CATALOG_SORTS as readonly string[]).includes(value)
+    ? (value as CatalogSort)
+    : DEFAULT_SORT;
 }
 
 export function parseCatalogQuery(raw: RawSearchParams): CatalogQuery {
@@ -99,7 +110,10 @@ export function applyCatalogQuery(
 ): TemplateRecord[] {
   const results = templates.filter((template) => {
     if (template.status !== "ACTIVE") return false;
-    if (query.kategori !== "" && template.category.toLowerCase() !== query.kategori.toLowerCase()) {
+    if (
+      query.kategori !== "" &&
+      template.category.toLowerCase() !== query.kategori.toLowerCase()
+    ) {
       return false;
     }
     if (query.harga !== "" && template.tier !== query.harga) return false;
@@ -108,7 +122,8 @@ export function applyCatalogQuery(
   });
 
   if (query.urutkan === "harga-terendah") results.sort(compareByPrice(1));
-  else if (query.urutkan === "harga-tertinggi") results.sort(compareByPrice(-1));
+  else if (query.urutkan === "harga-tertinggi")
+    results.sort(compareByPrice(-1));
   return results;
 }
 
@@ -131,7 +146,11 @@ export type CatalogFilterToken = {
 export function activeFilterTokens(query: CatalogQuery): CatalogFilterToken[] {
   const tokens: CatalogFilterToken[] = [];
   if (query.q !== "") {
-    tokens.push({ key: "q", label: `Pencarian: "${query.q}"`, href: catalogHref({ ...query, q: "" }) });
+    tokens.push({
+      key: "q",
+      label: `Pencarian: "${query.q}"`,
+      href: catalogHref({ ...query, q: "" }),
+    });
   }
   if (query.kategori !== "") {
     tokens.push({
@@ -148,7 +167,9 @@ export function activeFilterTokens(query: CatalogQuery): CatalogFilterToken[] {
     });
   }
   if (query.urutkan !== DEFAULT_SORT) {
-    const option = SORT_OPTIONS.find((candidate) => candidate.value === query.urutkan);
+    const option = SORT_OPTIONS.find(
+      (candidate) => candidate.value === query.urutkan,
+    );
     tokens.push({
       key: "urutkan",
       label: `Urutan: ${option?.label ?? query.urutkan}`,
@@ -167,7 +188,9 @@ export function hasActiveFilters(query: CatalogQuery): boolean {
 }
 
 /** Unique categories of ACTIVE templates, in fixture (newest-first) order. */
-export function uniqueCategories(templates: readonly TemplateRecord[]): string[] {
+export function uniqueCategories(
+  templates: readonly TemplateRecord[],
+): string[] {
   const seen = new Set<string>();
   const categories: string[] = [];
   for (const template of templates) {

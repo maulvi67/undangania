@@ -23,7 +23,11 @@ export function OnboardingProgress({ step }: { step: StepId }) {
       </div>
       <ol className="onb-progress__steps" aria-labelledby="onb-progress-label">
         {ONBOARDING_STEPS.map(({ id, title }) => (
-          <li key={id} className="onb-progress__step" aria-current={id === step ? "step" : undefined}>
+          <li
+            key={id}
+            className="onb-progress__step"
+            aria-current={id === step ? "step" : undefined}
+          >
             {id < step ? (
               <span className="onb-progress__mark">
                 <IconCheck />

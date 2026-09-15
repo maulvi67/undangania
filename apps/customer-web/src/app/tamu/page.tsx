@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { ApplicationShell, StatePanel } from "@wedding/ui";
 import { GuestManagementView } from "../../components/guests/guest-management-view";
-import { GuestPermissionDenied, GuestUnavailable } from "../../components/guests/guest-state-panels";
+import {
+  GuestPermissionDenied,
+  GuestUnavailable,
+} from "../../components/guests/guest-state-panels";
 import { parseGuestQuery } from "../../lib/guests/contract";
 import { loadGuests } from "../../lib/guests/stub-transport";
 import { getAuthenticatedRequest } from "../../lib/auth/server";
@@ -9,7 +12,8 @@ import "../guests.css";
 
 export const metadata: Metadata = {
   title: "Tamu — Wedding System",
-  description: "Kelola rumah tangga, akses acara, dan tautan personal undangan.",
+  description:
+    "Kelola rumah tangga, akses acara, dan tautan personal undangan.",
   robots: { index: false, follow: false },
 };
 
@@ -35,7 +39,14 @@ type GuestPageProps = {
 };
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <ApplicationShell nav={NAV} footerNote="Kelola tamu dengan tenang, dari satu workspace." >{children}</ApplicationShell>;
+  return (
+    <ApplicationShell
+      nav={NAV}
+      footerNote="Kelola tamu dengan tenang, dari satu workspace."
+    >
+      {children}
+    </ApplicationShell>
+  );
 }
 
 export default async function GuestPage({ searchParams }: GuestPageProps) {
@@ -59,7 +70,9 @@ export default async function GuestPage({ searchParams }: GuestPageProps) {
         </div>
       </Shell>
     ) : (
-      <Shell><GuestUnavailable /></Shell>
+      <Shell>
+        <GuestUnavailable />
+      </Shell>
     );
   }
 
@@ -73,17 +86,40 @@ export default async function GuestPage({ searchParams }: GuestPageProps) {
           <StatePanel
             title="Masuk untuk melihat tamu"
             description="Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
-            action={<a className="ui-button ui-button--primary ui-button--md" href="/masuk?next=%2Ftamu">Masuk</a>}
+            action={
+              <a
+                className="ui-button ui-button--primary ui-button--md"
+                href="/masuk?next=%2Ftamu"
+              >
+                Masuk
+              </a>
+            }
           />
         </div>
       </Shell>
     );
   }
-  if (result.kind === "forbidden") return <Shell><GuestPermissionDenied /></Shell>;
-  if (result.kind === "unavailable") return <Shell><GuestUnavailable /></Shell>;
-  return <Shell><GuestManagementView data={result.data} query={query} /></Shell>;
+  if (result.kind === "forbidden")
+    return (
+      <Shell>
+        <GuestPermissionDenied />
+      </Shell>
+    );
+  if (result.kind === "unavailable")
+    return (
+      <Shell>
+        <GuestUnavailable />
+      </Shell>
+    );
+  return (
+    <Shell>
+      <GuestManagementView data={result.data} query={query} />
+    </Shell>
+  );
 }
 
 export function GuestRoutePlaceholder() {
-  return <StatePanel title="Daftar tamu" description="Memuat data rumah tangga…" />;
+  return (
+    <StatePanel title="Daftar tamu" description="Memuat data rumah tangga…" />
+  );
 }

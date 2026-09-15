@@ -31,7 +31,12 @@ function fieldProps(field: OnboardingField, errors: FieldErrors) {
  * venue diisi. Tanpa atribut `min` pada tanggal — server yang memvalidasi
  * masa lalu, dan `min` berisiko tidak sinkron saat pergantian hari.
  */
-export function StepEvent({ data, errors, headingRef, onFieldChange }: StepEventProps) {
+export function StepEvent({
+  data,
+  errors,
+  headingRef,
+  onFieldChange,
+}: StepEventProps) {
   const addressVisible = data.venueName.trim() !== "";
 
   return (
@@ -40,7 +45,8 @@ export function StepEvent({ data, errors, headingRef, onFieldChange }: StepEvent
         Acara pertama
       </h1>
       <p className="onb-lede">
-        Mulai dari acara pertama Anda — acara lain bisa ditambahkan setelahnya dari editor.
+        Mulai dari acara pertama Anda — acara lain bisa ditambahkan setelahnya
+        dari editor.
       </p>
       <div className="onb-fields">
         <Select
@@ -128,7 +134,9 @@ export function StepEvent({ data, errors, headingRef, onFieldChange }: StepEvent
             rows={3}
             maxLength={ADDRESS_MAX_LENGTH}
             autoComplete="street-address"
-            onChange={(event) => onFieldChange({ venueAddress: event.target.value })}
+            onChange={(event) =>
+              onFieldChange({ venueAddress: event.target.value })
+            }
             {...fieldProps("venueAddress", errors)}
           />
         ) : null}

@@ -7,7 +7,11 @@ describe("canonical invitation view model", () => {
       schemaVersion: 1,
       locale: "id-ID",
       timezone: "Asia/Jakarta",
-      couple: { displayNames: "Rani & Bima", partner1Name: "Rani", partner2Name: "Bima" },
+      couple: {
+        displayNames: "Rani & Bima",
+        partner1Name: "Rani",
+        partner2Name: "Bima",
+      },
       events: [
         {
           id: "akad",
@@ -19,7 +23,12 @@ describe("canonical invitation view model", () => {
         },
       ],
       sections: [
-        { id: "couple", type: "couple", visible: true, payload: { title: "Mempelai" } },
+        {
+          id: "couple",
+          type: "couple",
+          visible: true,
+          payload: { title: "Mempelai" },
+        },
       ],
     });
 

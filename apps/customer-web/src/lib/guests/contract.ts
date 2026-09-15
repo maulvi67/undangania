@@ -98,7 +98,13 @@ export type GuestLoadResult =
   | Readonly<{ kind: "unavailable" }>;
 
 export type GuestDetailLoadResult =
-  | Readonly<{ kind: "ok"; data: Readonly<{ household: GuestHouseholdDetail; management: GuestManagementData }> }>
+  | Readonly<{
+      kind: "ok";
+      data: Readonly<{
+        household: GuestHouseholdDetail;
+        management: GuestManagementData;
+      }>;
+    }>
   | Readonly<{ kind: "not-found" }>
   | Readonly<{ kind: "unauthenticated" }>
   | Readonly<{ kind: "forbidden" }>
@@ -194,11 +200,15 @@ const sortValues: readonly GuestSort[] = [
   "pax-asc",
 ];
 
-export function isGuestFixture(value: string | undefined): value is GuestFixture {
+export function isGuestFixture(
+  value: string | undefined,
+): value is GuestFixture {
   return value !== undefined && GUEST_FIXTURES.includes(value as GuestFixture);
 }
 
-export function parseGuestFixture(value: string | string[] | undefined): GuestFixture {
+export function parseGuestFixture(
+  value: string | string[] | undefined,
+): GuestFixture {
   const candidate = Array.isArray(value) ? value[0] : value;
   return isGuestFixture(candidate) ? candidate : "normal";
 }
@@ -212,7 +222,7 @@ export function parseGuestQuery(input: {
   sort?: string | string[];
 }): GuestListQuery {
   const first = (value: string | string[] | undefined): string =>
-    Array.isArray(value) ? value[0] ?? "" : value ?? "";
+    Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
   const parsed = guestListQuerySchema.parse({
     fixture: first(input.fixture) || "normal",
     q: first(input.q),
@@ -246,18 +256,25 @@ export function filterGuestHouseholds(
 ): readonly GuestHouseholdListItem[] {
   const term = query.q.toLocaleLowerCase("id-ID");
   const filtered = households.filter((household) => {
-    const searchable = [household.displayName, ...household.eventNames, ...household.tags]
+    const searchable = [
+      household.displayName,
+      ...household.eventNames,
+      ...household.tags,
+    ]
       .join(" ")
       .toLocaleLowerCase("id-ID");
     const matchesQuery = term === "" || searchable.includes(term);
     const matchesTag = query.tag === "" || household.tags.includes(query.tag);
-    const matchesEvent = query.event === "" || household.eventNames.includes(query.event);
-    const matchesLink = query.link === "" || household.linkStatus === query.link;
+    const matchesEvent =
+      query.event === "" || household.eventNames.includes(query.event);
+    const matchesLink =
+      query.link === "" || household.linkStatus === query.link;
     return matchesQuery && matchesTag && matchesEvent && matchesLink;
   });
 
   return [...filtered].sort((left, right) => {
-    if (query.sort === "updated") return right.updatedAt.localeCompare(left.updatedAt);
+    if (query.sort === "updated")
+      return right.updatedAt.localeCompare(left.updatedAt);
     if (query.sort === "pax-desc") return right.maximumPax - left.maximumPax;
     if (query.sort === "pax-asc") return left.maximumPax - right.maximumPax;
     return left.displayName.localeCompare(right.displayName, "id-ID");
@@ -326,11 +343,16 @@ export function parseGuestCsv(
   const missingHeaders = guestImportHeaderLabels
     .slice(0, 2)
     .filter((header) => !rawHeaders.includes(header));
-  const headerIssues = missingHeaders.map((header) => `Kolom wajib “${header}” belum tersedia.`);
+  const headerIssues = missingHeaders.map(
+    (header) => `Kolom wajib “${header}” belum tersedia.`,
+  );
   if (lines.length < 2 || missingHeaders.length > 0) {
     return {
       headersValid: missingHeaders.length === 0,
-      headerIssues: lines.length < 2 ? [...headerIssues, "File belum memiliki baris data."] : headerIssues,
+      headerIssues:
+        lines.length < 2
+          ? [...headerIssues, "File belum memiliki baris data."]
+          : headerIssues,
       rows: [],
       validCount: 0,
       invalidCount: 0,
@@ -338,10 +360,13 @@ export function parseGuestCsv(
     };
   }
 
-  const headerIndex = new Map(rawHeaders.map((header, index) => [header, index]));
+  const headerIndex = new Map(
+    rawHeaders.map((header, index) => [header, index]),
+  );
   const rows: GuestImportRow[] = lines.slice(1).map((line, lineIndex) => {
     const cells = splitCsvLine(line);
-    const value = (header: string): string => cells[headerIndex.get(header) ?? -1] ?? "";
+    const value = (header: string): string =>
+      cells[headerIndex.get(header) ?? -1] ?? "";
     const householdName = value("nama_rumah_tangga");
     const guestName = value("nama_tamu");
     const paxValue = value("maksimal_pax");
@@ -360,7 +385,9 @@ export function parseGuestCsv(
       (eventName) => !events.some((event) => event.title === eventName),
     );
     if (unknownEvents.length > 0) {
-      issues.push(`Acara “${unknownEvents[0]}” tidak ditemukan di workspace ini.`);
+      issues.push(
+        `Acara “${unknownEvents[0]}” tidak ditemukan di workspace ini.`,
+      );
     }
     const phone = value("telepon");
     const email = value("email");
@@ -369,14 +396,17 @@ export function parseGuestCsv(
     }
 
     const duplicate = existingHouseholds.find(
-      (household) => normalize(household.displayName) === normalize(householdName),
+      (household) =>
+        normalize(household.displayName) === normalize(householdName),
     );
-    const status: GuestImportRowStatus = issues.length > 0 ? "invalid" : duplicate ? "duplicate" : "valid";
+    const status: GuestImportRowStatus =
+      issues.length > 0 ? "invalid" : duplicate ? "duplicate" : "valid";
     return {
       rowNumber: lineIndex + 2,
       householdName,
       guestName,
-      maximumPax: Number.isInteger(maximumPax) && maximumPax > 0 ? maximumPax : null,
+      maximumPax:
+        Number.isInteger(maximumPax) && maximumPax > 0 ? maximumPax : null,
       eventNames,
       tag: value("tag"),
       hasPhone: phone !== "",
@@ -388,8 +418,17 @@ export function parseGuestCsv(
   });
   const validCount = rows.filter((row) => row.status === "valid").length;
   const invalidCount = rows.filter((row) => row.status === "invalid").length;
-  const duplicateCount = rows.filter((row) => row.status === "duplicate").length;
-  return { headersValid: true, headerIssues: [], rows, validCount, invalidCount, duplicateCount };
+  const duplicateCount = rows.filter(
+    (row) => row.status === "duplicate",
+  ).length;
+  return {
+    headersValid: true,
+    headerIssues: [],
+    rows,
+    validCount,
+    invalidCount,
+    duplicateCount,
+  };
 }
 
 export function guestSortValues(): readonly GuestSort[] {

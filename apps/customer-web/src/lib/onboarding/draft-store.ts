@@ -55,7 +55,10 @@ export function browserStorage(): DraftStorage | null {
 
 /** ID draf baru; crypto.randomUUID bila ada, cadangan deterministik-cukup jika tidak. */
 export function createDraftId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `draft-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -79,11 +82,20 @@ export function parseStoredDraft(raw: string | null): StoredDraft | null {
 
   if (typeof record.draftId !== "string" || record.draftId === "") return null;
   if (record.step !== 1 && record.step !== 2 && record.step !== 3) return null;
-  if (typeof record.version !== "number" || !Number.isInteger(record.version) || record.version < 0) {
+  if (
+    typeof record.version !== "number" ||
+    !Number.isInteger(record.version) ||
+    record.version < 0
+  ) {
     return null;
   }
-  if (typeof record.updatedAt !== "number" || !Number.isFinite(record.updatedAt)) return null;
-  if (record.completed !== undefined && typeof record.completed !== "boolean") return null;
+  if (
+    typeof record.updatedAt !== "number" ||
+    !Number.isFinite(record.updatedAt)
+  )
+    return null;
+  if (record.completed !== undefined && typeof record.completed !== "boolean")
+    return null;
   if (typeof record.data !== "object" || record.data === null) return null;
 
   const stored = record.data as Record<string, unknown>;
@@ -152,7 +164,9 @@ export function saveStoredDraft(
   }
 }
 
-export function clearStoredDraft(storage: DraftStorage | null = browserStorage()): void {
+export function clearStoredDraft(
+  storage: DraftStorage | null = browserStorage(),
+): void {
   if (!storage) return;
   try {
     storage.removeItem(DRAFT_STORAGE_KEY);

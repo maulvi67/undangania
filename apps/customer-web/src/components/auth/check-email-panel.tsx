@@ -19,7 +19,12 @@ type CheckEmailPanelProps = {
  * The reset variant's copy is byte-identical for known and unknown emails
  * (anti-enumeration R3) — asserted in e2e.
  */
-export function CheckEmailPanel({ flow, email, headingRef, children }: CheckEmailPanelProps) {
+export function CheckEmailPanel({
+  flow,
+  email,
+  headingRef,
+  children,
+}: CheckEmailPanelProps) {
   return (
     <section className="auth-panel">
       <h1 className="auth-panel__title" tabIndex={-1} ref={headingRef}>

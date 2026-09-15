@@ -10,7 +10,9 @@ export function TemplatePreview({ template }: { template: TemplateRecord }) {
   return (
     <div className={`${themeClasses(template)} tpl-preview`} aria-hidden="true">
       <span className="tpl-preview__eyebrow">
-        {template.category === "Tradisi" ? "Walimatul Urs" : "Undangan Pernikahan"}
+        {template.category === "Tradisi"
+          ? "Walimatul Urs"
+          : "Undangan Pernikahan"}
       </span>
       <span className="tpl-preview__names">
         Rai <span className="tpl-preview__amp">&amp;</span> Anisa

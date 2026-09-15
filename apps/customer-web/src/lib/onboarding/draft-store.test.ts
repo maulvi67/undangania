@@ -25,21 +25,26 @@ class MemoryStorage implements DraftStorage {
   }
 }
 
-function makeDraft(overrides: {
-  completed?: boolean;
-  data?: OnboardingData;
-  step?: 1 | 2 | 3;
-  version?: number;
-} = {}): StoredDraft {
+function makeDraft(
+  overrides: {
+    completed?: boolean;
+    data?: OnboardingData;
+    step?: 1 | 2 | 3;
+    version?: number;
+  } = {},
+): StoredDraft {
   return {
     draftId: "draft-uji",
     step: overrides.step ?? 1,
     version: overrides.version ?? 2,
     updatedAt: 1_800_000_000_000,
     ...(overrides.completed === true ? { completed: true } : {}),
-    data:
-      overrides.data ??
-      { ...createInitialData(), partner1Name: "Rani", partner2Name: "Bima", city: "Bandung" },
+    data: overrides.data ?? {
+      ...createInitialData(),
+      partner1Name: "Rani",
+      partner2Name: "Bima",
+      city: "Bandung",
+    },
   };
 }
 
@@ -65,7 +70,14 @@ describe("draft-store", () => {
       { draftId: "x", step: 1, version: -1, updatedAt: 1, data: {} },
       { draftId: "x", step: 1, version: 1, updatedAt: "besok", data: {} },
       { draftId: "x", step: 1, version: 1, updatedAt: 1, data: null },
-      { draftId: "x", step: 1, version: 1, updatedAt: 1, completed: "ya", data: {} },
+      {
+        draftId: "x",
+        step: 1,
+        version: 1,
+        updatedAt: 1,
+        completed: "ya",
+        data: {},
+      },
       {
         draftId: "x",
         step: 1,
@@ -120,7 +132,10 @@ describe("draft-store", () => {
 
   it("penanda selesai ikut tersimpan dan terbaca kembali", () => {
     const storage = new MemoryStorage();
-    saveStoredDraft(makeDraft({ completed: true, step: 3, version: 5 }), storage);
+    saveStoredDraft(
+      makeDraft({ completed: true, step: 3, version: 5 }),
+      storage,
+    );
     const loaded = loadStoredDraft(storage);
     expect(loaded?.completed).toBe(true);
     expect(loaded?.step).toBe(3);

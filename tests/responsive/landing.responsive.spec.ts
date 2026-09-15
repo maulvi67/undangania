@@ -13,13 +13,19 @@ const VIEWPORTS = [
 ];
 
 for (const viewport of VIEWPORTS) {
-  test(`landing fits ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`landing fits ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
     const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
     );
     expect(overflow).toBe(false);
-    await expect(page.getByRole("link", { name: "Lihat koleksi desain" }).first()).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Lihat koleksi desain" }).first(),
+    ).toBeVisible();
   });
 }

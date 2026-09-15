@@ -21,7 +21,10 @@ import { formLevelMessage } from "./sign-in-form";
  * dipakai" state anywhere in the UI.
  */
 export function RegisterForm({ next }: { next: string }) {
-  const [state, formAction, pending] = useActionState(registerAction, INITIAL_AUTH_FORM_STATE);
+  const [state, formAction, pending] = useActionState(
+    registerAction,
+    INITIAL_AUTH_FORM_STATE,
+  );
   const alertRef = useRef<HTMLDivElement>(null);
   const panelHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -51,8 +54,7 @@ export function RegisterForm({ next }: { next: string }) {
             <Link href={withNext("/daftar")}>Gunakan email lain</Link>
           </span>
           <span>
-            Sudah punya akun?{" "}
-            <Link href={withNext("/masuk")}>Masuk</Link>
+            Sudah punya akun? <Link href={withNext("/masuk")}>Masuk</Link>
           </span>
         </AuthLinkRow>
       </CheckEmailPanel>
@@ -84,8 +86,7 @@ export function RegisterForm({ next }: { next: string }) {
       </form>
       <AuthLinkRow>
         <span>
-          Sudah punya akun?{" "}
-          <Link href={withNext("/masuk")}>Masuk</Link>
+          Sudah punya akun? <Link href={withNext("/masuk")}>Masuk</Link>
         </span>
       </AuthLinkRow>
     </>

@@ -10,8 +10,8 @@ export default function TemplateNotFound() {
             <p className="tpl-info__eyebrow">Desain tidak tersedia</p>
             <h1 className="tpl-info__title">Desain ini tidak ditemukan</h1>
             <p className="tpl-info__character">
-              Desain yang Anda cari mungkin telah dipensiunkan dari koleksi. Silakan jelajahi
-              koleksi desain lain yang tersedia.
+              Desain yang Anda cari mungkin telah dipensiunkan dari koleksi.
+              Silakan jelajahi koleksi desain lain yang tersedia.
             </p>
             <div className="tpl-ctas">
               <LinkButton href="/templates" variant="primary">

@@ -8,7 +8,11 @@ export default function TemplateDetailLoading() {
           <Skeleton width="12rem" height="1rem" />
           <div className="tpl-page__preview-col">
             <Skeleton width="6rem" height="2rem" />
-            <Skeleton className="tpl-device__frame" width="100%" height="auto" />
+            <Skeleton
+              className="tpl-device__frame"
+              width="100%"
+              height="auto"
+            />
           </div>
           <div className="tpl-info">
             <Skeleton width="8rem" height="0.875rem" />

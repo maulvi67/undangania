@@ -16,13 +16,23 @@ export function Skeleton({
   return (
     <span
       aria-hidden="true"
-      className={cx("ui-skeleton", circle ? "ui-skeleton--circle" : undefined, className)}
+      className={cx(
+        "ui-skeleton",
+        circle ? "ui-skeleton--circle" : undefined,
+        className,
+      )}
       style={{ width, height }}
     />
   );
 }
 
-export function LoadingState({ label, rows = 3 }: { label: string; rows?: number }) {
+export function LoadingState({
+  label,
+  rows = 3,
+}: {
+  label: string;
+  rows?: number;
+}) {
   return (
     <div className="ui-stack" role="status" aria-live="polite">
       <span className="ui-visually-hidden">{label}</span>
@@ -41,7 +51,12 @@ export function LoadingState({ label, rows = 3 }: { label: string; rows?: number
 
 export function SpinnerState({ label }: { label: string }) {
   return (
-    <div className="ui-stack" role="status" aria-live="polite" style={{ alignItems: "center", padding: "var(--space-8)" }}>
+    <div
+      className="ui-stack"
+      role="status"
+      aria-live="polite"
+      style={{ alignItems: "center", padding: "var(--space-8)" }}
+    >
       <Spinner />
       <span className="ui-visually-hidden">{label}</span>
     </div>
@@ -56,9 +71,20 @@ export type StatePanelProps = {
   tone?: "default" | "danger";
 };
 
-export function StatePanel({ icon, title, description, action, tone = "default" }: StatePanelProps) {
+export function StatePanel({
+  icon,
+  title,
+  description,
+  action,
+  tone = "default",
+}: StatePanelProps) {
   return (
-    <div className={cx("ui-state-panel", tone === "danger" ? "ui-state-panel--danger" : undefined)}>
+    <div
+      className={cx(
+        "ui-state-panel",
+        tone === "danger" ? "ui-state-panel--danger" : undefined,
+      )}
+    >
       <span className="ui-state-panel__icon" aria-hidden="true">
         {icon ?? <IconInbox />}
       </span>
@@ -78,7 +104,14 @@ export function EmptyState({
   description: string;
   action?: ReactNode;
 }) {
-  return <StatePanel icon={<IconInbox />} title={title} description={description} action={action} />;
+  return (
+    <StatePanel
+      icon={<IconInbox />}
+      title={title}
+      description={description}
+      action={action}
+    />
+  );
 }
 
 export function ErrorState({
@@ -91,6 +124,12 @@ export function ErrorState({
   action?: ReactNode;
 }) {
   return (
-    <StatePanel icon={<IconAlert />} tone="danger" title={title} description={description} action={action} />
+    <StatePanel
+      icon={<IconAlert />}
+      tone="danger"
+      title={title}
+      description={description}
+      action={action}
+    />
   );
 }

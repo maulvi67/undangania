@@ -1,4 +1,8 @@
-import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type {
+  InputHTMLAttributes,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 import { cx } from "./cx";
 import { IconAlert, IconChevronDown } from "./icons";
 
@@ -53,21 +57,40 @@ function FieldMessages({
   );
 }
 
-function describedBy(id: string, hint?: string, error?: string): string | undefined {
-  const ids = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean);
+function describedBy(
+  id: string,
+  hint?: string,
+  error?: string,
+): string | undefined {
+  const ids = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(
+    Boolean,
+  );
   return ids.length > 0 ? ids.join(" ") : undefined;
 }
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement> & FieldChromeProps;
+export type InputProps = InputHTMLAttributes<HTMLInputElement> &
+  FieldChromeProps;
 
-export function Input({ id, label, hint, error, required, className, ...rest }: InputProps) {
+export function Input({
+  id,
+  label,
+  hint,
+  error,
+  required,
+  className,
+  ...rest
+}: InputProps) {
   return (
     <div className="ui-field">
       <FieldLabel id={id} label={label} required={required} />
       <FieldMessages id={id} hint={hint} error={error} />
       <input
         id={id}
-        className={cx("ui-input", error ? "ui-input--error" : undefined, className)}
+        className={cx(
+          "ui-input",
+          error ? "ui-input--error" : undefined,
+          className,
+        )}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         required={required}
@@ -77,16 +100,29 @@ export function Input({ id, label, hint, error, required, className, ...rest }: 
   );
 }
 
-export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & FieldChromeProps;
+export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> &
+  FieldChromeProps;
 
-export function Textarea({ id, label, hint, error, required, className, ...rest }: TextareaProps) {
+export function Textarea({
+  id,
+  label,
+  hint,
+  error,
+  required,
+  className,
+  ...rest
+}: TextareaProps) {
   return (
     <div className="ui-field">
       <FieldLabel id={id} label={label} required={required} />
       <FieldMessages id={id} hint={hint} error={error} />
       <textarea
         id={id}
-        className={cx("ui-textarea", error ? "ui-textarea--error" : undefined, className)}
+        className={cx(
+          "ui-textarea",
+          error ? "ui-textarea--error" : undefined,
+          className,
+        )}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hint, error)}
         required={required}
@@ -98,13 +134,26 @@ export function Textarea({ id, label, hint, error, required, className, ...rest 
 
 export type SelectOption = { value: string; label: string };
 
-export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "children"> &
+export type SelectProps = Omit<
+  SelectHTMLAttributes<HTMLSelectElement>,
+  "children"
+> &
   FieldChromeProps & {
     options: ReadonlyArray<SelectOption>;
     placeholder?: string;
   };
 
-export function Select({ id, label, hint, error, required, options, placeholder, className, ...rest }: SelectProps) {
+export function Select({
+  id,
+  label,
+  hint,
+  error,
+  required,
+  options,
+  placeholder,
+  className,
+  ...rest
+}: SelectProps) {
   return (
     <div className="ui-field">
       <FieldLabel id={id} label={label} required={required} />
@@ -118,9 +167,7 @@ export function Select({ id, label, hint, error, required, options, placeholder,
           required={required}
           {...rest}
         >
-          {placeholder ? (
-            <option value="">{placeholder}</option>
-          ) : null}
+          {placeholder ? <option value="">{placeholder}</option> : null}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

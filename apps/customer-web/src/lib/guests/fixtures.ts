@@ -166,7 +166,9 @@ export function getGuestManagementData(
   fixture: GuestFixture = "normal",
   role: GuestRole = "OWNER",
 ): GuestManagementData {
-  const noticeByFixture: Partial<Record<GuestFixture, GuestManagementData["notice"]>> = {
+  const noticeByFixture: Partial<
+    Record<GuestFixture, GuestManagementData["notice"]>
+  > = {
     "import-processing": {
       tone: "info",
       title: "Sedang memproses impor",
@@ -199,7 +201,9 @@ export function getGuestManagementData(
       ? []
       : fixture === "token-disabled"
         ? households.map((household) =>
-            household.id === "household-budi" ? { ...household, linkStatus: "DISABLED" as const } : household,
+            household.id === "household-budi"
+              ? { ...household, linkStatus: "DISABLED" as const }
+              : household,
           )
         : households;
   const fixtureRole = fixture === "permission-denied" ? "VIEWER" : role;
@@ -213,7 +217,10 @@ export function getGuestManagementData(
     events,
     tags,
     households: fixtureHouseholds,
-    totalGuests: fixtureHouseholds.reduce((total, item) => total + item.memberCount, 0),
+    totalGuests: fixtureHouseholds.reduce(
+      (total, item) => total + item.memberCount,
+      0,
+    ),
     role: fixtureRole,
     capabilities,
     notice: noticeByFixture[fixture] ?? null,
@@ -225,7 +232,9 @@ export function getGuestHouseholdDetail(
   fixture: GuestFixture = "normal",
   role: GuestRole = "OWNER",
 ): GuestHouseholdDetail | undefined {
-  const item = getGuestManagementData(fixture, role).households.find((household) => household.id === householdId);
+  const item = getGuestManagementData(fixture, role).households.find(
+    (household) => household.id === householdId,
+  );
   if (!item) return undefined;
   const memberList = members[householdId] ?? [];
   const eventIds = item.eventNames

@@ -30,7 +30,8 @@ function text(formData: FormData, name: string): string {
 }
 
 function parseStepId(value: string): StepId | null {
-  if (value === "1" || value === "2" || value === "3") return Number(value) as StepId;
+  if (value === "1" || value === "2" || value === "3")
+    return Number(value) as StepId;
   return null;
 }
 
@@ -64,15 +65,21 @@ function rawFieldsFromFormData(step: StepId, formData: FormData) {
 }
 
 type StepValidation =
-  | { ok: true; patch: StepPatch }
-  | { ok: false; fieldErrors: FieldErrors };
+  { ok: true; patch: StepPatch } | { ok: false; fieldErrors: FieldErrors };
 
 function validateStep(step: StepId, formData: FormData): StepValidation {
   const schema =
-    step === 1 ? coupleStepSchema : step === 2 ? eventStepSchema : preferencesStepSchema;
+    step === 1
+      ? coupleStepSchema
+      : step === 2
+        ? eventStepSchema
+        : preferencesStepSchema;
   const parsed = schema.safeParse(rawFieldsFromFormData(step, formData));
   if (!parsed.success) {
-    return { ok: false, fieldErrors: translateFieldErrors(parsed.error.issues) };
+    return {
+      ok: false,
+      fieldErrors: translateFieldErrors(parsed.error.issues),
+    };
   }
   // Hasil parse bertipe sempit (enum di basis skema) dan lengkap per langkah —
   // langsung layak sebagai patch terkontrol.
@@ -96,10 +103,18 @@ export async function saveStepAction(formData: FormData): Promise<FlowState> {
   }
 
   const validation = validateStep(stepId, formData);
-  if (!validation.ok) return { kind: "error", fieldErrors: validation.fieldErrors };
+  if (!validation.ok)
+    return { kind: "error", fieldErrors: validation.fieldErrors };
 
-  const result = await stubSaveStep(draftId, stepId, validation.patch, baseVersion, force);
-  if (result.ok) return { kind: "saved", version: result.version, step: stepId };
+  const result = await stubSaveStep(
+    draftId,
+    stepId,
+    validation.patch,
+    baseVersion,
+    force,
+  );
+  if (result.ok)
+    return { kind: "saved", version: result.version, step: stepId };
   if (result.code === "STALE_VERSION") {
     return {
       kind: "conflict",
@@ -126,10 +141,17 @@ export async function completeAction(formData: FormData): Promise<FlowState> {
   // Langkah 3: satu-satunya isian adalah locale; data langkah 1–2 sudah
   // tervalidasi pada simpanan masing-masing dan digabung server.
   const validation = validateStep(3, formData);
-  if (!validation.ok) return { kind: "error", fieldErrors: validation.fieldErrors };
+  if (!validation.ok)
+    return { kind: "error", fieldErrors: validation.fieldErrors };
 
-  const result = await stubCompleteStep(draftId, validation.patch, baseVersion, force);
-  if (result.ok) return { kind: "completed", version: result.version, data: result.data };
+  const result = await stubCompleteStep(
+    draftId,
+    validation.patch,
+    baseVersion,
+    force,
+  );
+  if (result.ok)
+    return { kind: "completed", version: result.version, data: result.data };
   if (result.code === "STALE_VERSION") {
     return {
       kind: "conflict",

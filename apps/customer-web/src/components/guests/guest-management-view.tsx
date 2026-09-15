@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Alert, Badge, Checkbox } from "@wedding/ui";
-import type { GuestListQuery, GuestManagementData } from "../../lib/guests/contract";
+import type {
+  GuestListQuery,
+  GuestManagementData,
+} from "../../lib/guests/contract";
 import { GuestBulkActions } from "./guest-bulk-actions";
 import { GuestFilterTokens, GuestFilters } from "./guest-filters";
 import { GuestHouseholdCard } from "./guest-household-card";
@@ -18,9 +21,17 @@ export function GuestManagementView({
   data: GuestManagementData;
   query: GuestListQuery;
 }) {
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
-  const allSelected = data.households.length > 0 && data.households.every((item) => selectedIds.has(item.id));
-  const filtered = query.q !== "" || query.tag !== "" || query.event !== "" || query.link !== "";
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  const allSelected =
+    data.households.length > 0 &&
+    data.households.every((item) => selectedIds.has(item.id));
+  const filtered =
+    query.q !== "" ||
+    query.tag !== "" ||
+    query.event !== "" ||
+    query.link !== "";
   const selectedCount = selectedIds.size;
   const toggleSelected = (id: string, selected: boolean) => {
     setSelectedIds((current) => {
@@ -30,7 +41,10 @@ export function GuestManagementView({
       return next;
     });
   };
-  const visibleIds = useMemo(() => data.households.map((item) => item.id), [data.households]);
+  const visibleIds = useMemo(
+    () => data.households.map((item) => item.id),
+    [data.households],
+  );
   const toggleAll = (selected: boolean) => {
     setSelectedIds(selected ? new Set(visibleIds) : new Set());
   };
@@ -42,17 +56,32 @@ export function GuestManagementView({
           <p className="gst-eyebrow">Workspace pernikahan</p>
           <h1>Tamu</h1>
           <p className="gst-page__lead">
-            Kelola rumah tangga, atur akses acara, dan siapkan tautan personal untuk setiap undangan.
+            Kelola rumah tangga, atur akses acara, dan siapkan tautan personal
+            untuk setiap undangan.
           </p>
         </div>
         <div className="gst-page__actions">
           {data.capabilities.canImport ? (
-            <Link className="ui-button ui-button--secondary ui-button--md" href={query.fixture === "normal" ? "/tamu/impor" : `/tamu/impor?fixture=${query.fixture}`}>
+            <Link
+              className="ui-button ui-button--secondary ui-button--md"
+              href={
+                query.fixture === "normal"
+                  ? "/tamu/impor"
+                  : `/tamu/impor?fixture=${query.fixture}`
+              }
+            >
               Impor CSV
             </Link>
           ) : null}
           {data.capabilities.canWrite ? (
-            <Link className="ui-button ui-button--primary ui-button--md" href={query.fixture === "normal" ? "/tamu/baru" : `/tamu/baru?fixture=${query.fixture}`}>
+            <Link
+              className="ui-button ui-button--primary ui-button--md"
+              href={
+                query.fixture === "normal"
+                  ? "/tamu/baru"
+                  : `/tamu/baru?fixture=${query.fixture}`
+              }
+            >
               Tambah rumah tangga
             </Link>
           ) : null}
@@ -76,17 +105,23 @@ export function GuestManagementView({
 
       {data.notice ? (
         <div className="gst-notice">
-          <Alert variant={data.notice.tone} title={data.notice.title}>{data.notice.body}</Alert>
+          <Alert variant={data.notice.tone} title={data.notice.title}>
+            {data.notice.body}
+          </Alert>
         </div>
       ) : null}
 
       <section className="gst-controls" aria-labelledby="gst-controls-title">
-        <h2 id="gst-controls-title" className="ui-visually-hidden">Cari dan filter tamu</h2>
+        <h2 id="gst-controls-title" className="ui-visually-hidden">
+          Cari dan filter tamu
+        </h2>
         <GuestFilters query={query} events={data.events} tags={data.tags} />
         <GuestFilterTokens query={query} />
       </section>
 
-      {data.households.length === 0 ? <GuestEmpty filtered={filtered} /> : (
+      {data.households.length === 0 ? (
+        <GuestEmpty filtered={filtered} />
+      ) : (
         <section className="gst-results" aria-labelledby="gst-results-title">
           <div className="gst-results__header">
             <div>
@@ -95,7 +130,9 @@ export function GuestManagementView({
             </div>
             <div className="gst-results__actions">
               <Badge tone={data.capabilities.canExport ? "neutral" : "blush"}>
-                {data.capabilities.canExport ? "Ekspor tersedia" : "Ekspor tidak tersedia"}
+                {data.capabilities.canExport
+                  ? "Ekspor tersedia"
+                  : "Ekspor tidak tersedia"}
               </Badge>
               <GuestBulkActions selectedCount={selectedCount} />
             </div>
@@ -103,7 +140,9 @@ export function GuestManagementView({
 
           <div className="gst-desktop-list">
             <table className="gst-table">
-              <caption className="ui-visually-hidden">Daftar rumah tangga tamu</caption>
+              <caption className="ui-visually-hidden">
+                Daftar rumah tangga tamu
+              </caption>
               <thead>
                 <tr>
                   <th scope="col">
@@ -119,7 +158,9 @@ export function GuestManagementView({
                   <th scope="col">Akses acara</th>
                   <th scope="col">Tag</th>
                   <th scope="col">Tautan</th>
-                  <th scope="col"><span className="ui-visually-hidden">Tindakan</span></th>
+                  <th scope="col">
+                    <span className="ui-visually-hidden">Tindakan</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -129,14 +170,19 @@ export function GuestManagementView({
                     household={household}
                     query={query}
                     selected={selectedIds.has(household.id)}
-                    onSelectedChange={(selected) => toggleSelected(household.id, selected)}
+                    onSelectedChange={(selected) =>
+                      toggleSelected(household.id, selected)
+                    }
                   />
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="gst-mobile-list" aria-label="Daftar rumah tangga versi mobile">
+          <div
+            className="gst-mobile-list"
+            aria-label="Daftar rumah tangga versi mobile"
+          >
             <div className="gst-mobile-list__select-all">
               <Checkbox
                 id="select-all-households-mobile"
@@ -151,13 +197,16 @@ export function GuestManagementView({
                 household={household}
                 query={query}
                 selected={selectedIds.has(household.id)}
-                onSelectedChange={(selected) => toggleSelected(household.id, selected)}
+                onSelectedChange={(selected) =>
+                  toggleSelected(household.id, selected)
+                }
               />
             ))}
           </div>
 
           <p className="gst-results__privacy">
-            Kontak tamu disembunyikan di daftar untuk menjaga privasi. Buka satu rumah tangga untuk mengelola detailnya.
+            Kontak tamu disembunyikan di daftar untuk menjaga privasi. Buka satu
+            rumah tangga untuk mengelola detailnya.
           </p>
         </section>
       )}

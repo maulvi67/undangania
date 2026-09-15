@@ -12,7 +12,9 @@ export function GuestExportAction({
   canExport: boolean;
   initialProcessing?: boolean;
 }) {
-  const [status, setStatus] = useState<ExportStatus>(initialProcessing ? "processing" : "idle");
+  const [status, setStatus] = useState<ExportStatus>(
+    initialProcessing ? "processing" : "idle",
+  );
 
   useEffect(() => {
     if (!initialProcessing) return;
@@ -41,14 +43,19 @@ export function GuestExportAction({
   return (
     <div className="gst-export-action">
       {status === "processing" ? (
-        <p className="gst-export-action__status" role="status" aria-live="polite">
+        <p
+          className="gst-export-action__status"
+          role="status"
+          aria-live="polite"
+        >
           Menyiapkan ekspor…
         </p>
       ) : null}
       {status === "ready" ? (
         <div className="gst-export-action__ready">
           <Alert variant="success" title="Ekspor siap diunduh">
-            Ini adalah simulasi UI. Pada versi produksi, file akan disediakan melalui job tenant-scoped yang tercatat di audit.
+            Ini adalah simulasi UI. Pada versi produksi, file akan disediakan
+            melalui job tenant-scoped yang tercatat di audit.
           </Alert>
         </div>
       ) : null}

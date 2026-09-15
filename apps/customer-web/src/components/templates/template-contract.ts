@@ -48,7 +48,11 @@ export type TemplateTheme = z.infer<typeof templateThemeSchema>;
  * Price tiers describe design/asset complexity only — never functionality.
  * Every tier includes the same Digital Invitation Core.
  */
-export const TEMPLATE_TIERS = ["sederhana", "klasik-detail", "eksklusif"] as const;
+export const TEMPLATE_TIERS = [
+  "sederhana",
+  "klasik-detail",
+  "eksklusif",
+] as const;
 
 export type TemplateTier = (typeof TEMPLATE_TIERS)[number];
 

@@ -6,7 +6,11 @@ import type { GuestHouseholdDetail, GuestHouseholdListItem } from "./contract";
  */
 export function scrubGuestForDiagnostics(
   household: GuestHouseholdListItem | GuestHouseholdDetail,
-): Readonly<{ householdId: string; memberCount: number; linkStatus: GuestHouseholdListItem["linkStatus"] }> {
+): Readonly<{
+  householdId: string;
+  memberCount: number;
+  linkStatus: GuestHouseholdListItem["linkStatus"];
+}> {
   return {
     householdId: household.id,
     memberCount: household.memberCount,

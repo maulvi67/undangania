@@ -17,10 +17,14 @@ export function GuestFilters({
   events: readonly GuestEvent[];
   tags: readonly GuestTag[];
 }) {
-  const activeCount = [query.tag, query.event, query.link].filter(Boolean).length;
+  const activeCount = [query.tag, query.event, query.link].filter(
+    Boolean,
+  ).length;
   return (
     <form method="get" action="/tamu" className="gst-filters-form">
-      {query.fixture !== "normal" ? <input type="hidden" name="fixture" value={query.fixture} /> : null}
+      {query.fixture !== "normal" ? (
+        <input type="hidden" name="fixture" value={query.fixture} />
+      ) : null}
       <div className="gst-search-row">
         <Input
           id="gst-search"
@@ -45,14 +49,23 @@ export function GuestFilters({
             name="tag"
             label="Tag"
             defaultValue={query.tag}
-            options={[{ value: "", label: "Semua tag" }, ...tags.map((tag) => ({ value: tag.label, label: tag.label }))]}
+            options={[
+              { value: "", label: "Semua tag" },
+              ...tags.map((tag) => ({ value: tag.label, label: tag.label })),
+            ]}
           />
           <Select
             id="gst-event"
             name="event"
             label="Akses acara"
             defaultValue={query.event}
-            options={[{ value: "", label: "Semua acara" }, ...events.map((event) => ({ value: event.title, label: event.title }))]}
+            options={[
+              { value: "", label: "Semua acara" },
+              ...events.map((event) => ({
+                value: event.title,
+                label: event.title,
+              })),
+            ]}
           />
           <Select
             id="gst-link"
@@ -80,7 +93,14 @@ export function GuestFilters({
           <div className="gst-filter-drawer__actions">
             <Button type="submit">Terapkan filter</Button>
             {activeCount > 0 || query.q ? (
-              <Link className="gst-filter-drawer__reset" href={query.fixture === "normal" ? "/tamu" : `/tamu?fixture=${query.fixture}`}>
+              <Link
+                className="gst-filter-drawer__reset"
+                href={
+                  query.fixture === "normal"
+                    ? "/tamu"
+                    : `/tamu?fixture=${query.fixture}`
+                }
+              >
                 Hapus semua
               </Link>
             ) : null}
@@ -92,23 +112,46 @@ export function GuestFilters({
 }
 
 export function GuestFilterTokens({ query }: { query: GuestListQuery }) {
-  type FilterToken = { label: string; patch: Partial<Omit<GuestListQuery, "fixture">> };
+  type FilterToken = {
+    label: string;
+    patch: Partial<Omit<GuestListQuery, "fixture">>;
+  };
   const tokens: Array<FilterToken | null> = [
     query.q ? { label: `Cari: ${query.q}`, patch: { q: "" } } : null,
     query.tag ? { label: `Tag: ${query.tag}`, patch: { tag: "" } } : null,
-    query.event ? { label: `Acara: ${query.event}`, patch: { event: "" } } : null,
-    query.link ? { label: `Status: ${query.link === "ACTIVE" ? "Aktif" : "Dinonaktifkan"}`, patch: { link: "" } } : null,
+    query.event
+      ? { label: `Acara: ${query.event}`, patch: { event: "" } }
+      : null,
+    query.link
+      ? {
+          label: `Status: ${query.link === "ACTIVE" ? "Aktif" : "Dinonaktifkan"}`,
+          patch: { link: "" },
+        }
+      : null,
   ];
-  const activeTokens = tokens.filter((token): token is FilterToken => token !== null);
+  const activeTokens = tokens.filter(
+    (token): token is FilterToken => token !== null,
+  );
   if (activeTokens.length === 0) return null;
   return (
     <div className="gst-filter-tokens" aria-label="Filter aktif">
       {activeTokens.map((token) => (
-        <Link key={token.label} className="gst-filter-token" href={guestQueryHref(query, token.patch)}>
+        <Link
+          key={token.label}
+          className="gst-filter-token"
+          href={guestQueryHref(query, token.patch)}
+        >
           {token.label} <span aria-hidden="true">×</span>
         </Link>
       ))}
-      <Link className="gst-filter-token__clear" href={query.fixture === "normal" ? "/tamu" : `/tamu?fixture=${query.fixture}`}>
+      <Link
+        className="gst-filter-token__clear"
+        href={
+          query.fixture === "normal"
+            ? "/tamu"
+            : `/tamu?fixture=${query.fixture}`
+        }
+      >
         Hapus semua
       </Link>
     </div>

@@ -5,7 +5,10 @@ import {
   getPublicInvitationSnapshot,
 } from "./fixtures";
 
-function section(model: ReturnType<typeof getPublicInvitationFixture>, type: string) {
+function section(
+  model: ReturnType<typeof getPublicInvitationFixture>,
+  type: string,
+) {
   return model.sections.find((item) => item.type === type);
 }
 
@@ -40,10 +43,15 @@ describe("public invitation fixtures", () => {
   });
 
   it("keeps the canonical public slug while selecting development fixtures", () => {
-    expect(getPublicInvitationSnapshot("rani-bima")?.templateId).toBe("seruni-klasik");
-    expect(getPublicInvitationSnapshot("rani-bima", "large-gallery")?.slug).toBe("rani-bima");
-    expect(getPublicInvitationSnapshot("rani-bima-large-gallery", "large-gallery")?.slug).toBe(
-      "rani-bima-large-gallery",
+    expect(getPublicInvitationSnapshot("rani-bima")?.templateId).toBe(
+      "seruni-klasik",
     );
+    expect(
+      getPublicInvitationSnapshot("rani-bima", "large-gallery")?.slug,
+    ).toBe("rani-bima");
+    expect(
+      getPublicInvitationSnapshot("rani-bima-large-gallery", "large-gallery")
+        ?.slug,
+    ).toBe("rani-bima-large-gallery");
   });
 });

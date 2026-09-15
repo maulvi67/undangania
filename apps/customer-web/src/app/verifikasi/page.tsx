@@ -32,7 +32,9 @@ interface VerifikasiPageProps {
   searchParams: Promise<{ token?: string | string[] }>;
 }
 
-export default async function VerifikasiPage({ searchParams }: VerifikasiPageProps) {
+export default async function VerifikasiPage({
+  searchParams,
+}: VerifikasiPageProps) {
   const params = await searchParams;
   const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
   // Deterministic token fixtures are development-only. Production requires the
@@ -56,7 +58,10 @@ export default async function VerifikasiPage({ searchParams }: VerifikasiPagePro
               Akun Anda sudah aktif. Silakan masuk untuk melanjutkan.
             </p>
             <div className="auth-panel__actions">
-              <Link className="ui-button ui-button--primary ui-button--lg" href="/masuk">
+              <Link
+                className="ui-button ui-button--primary ui-button--lg"
+                href="/masuk"
+              >
                 Masuk
               </Link>
             </div>

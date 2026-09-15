@@ -1,0 +1,134 @@
+/*
+ * Wedding System — shared template theme tokens and cover preview.
+ *
+ * Extracted from templates.css (MVP-UI-004) so the landing page, catalog, and
+ * detail/demo routes all render the same invitation preview from one
+ * definition. Loaded globally from layout.tsx; route-specific layout stays in
+ * the respective route stylesheets (catalog.css, templates.css).
+ *
+ * Themes are allowlisted token classes — never raw CSS from data.
+ */
+
+/* Theme tokens — composable classes set --tpl-* custom properties. */
+.tpl-theme {
+  --tpl-bg: var(--color-ivory);
+  --tpl-ink: var(--color-ink);
+  --tpl-muted: var(--color-ink-soft);
+  --tpl-line: var(--color-border);
+  --tpl-accent: var(--color-olive);
+  --tpl-display: var(--font-display);
+  --tpl-display-weight: 400;
+}
+.tpl-theme--palette-ivory {
+  --tpl-bg: var(--color-ivory);
+  --tpl-ink: var(--color-ink);
+  --tpl-muted: var(--color-ink-soft);
+  --tpl-line: var(--color-border);
+}
+.tpl-theme--palette-paper {
+  --tpl-bg: var(--color-paper);
+  --tpl-ink: var(--color-ink);
+  --tpl-muted: var(--color-ink-soft);
+  --tpl-line: var(--color-border);
+}
+.tpl-theme--palette-blush {
+  --tpl-bg: var(--color-blush);
+  --tpl-ink: var(--color-ink);
+  --tpl-muted: var(--color-ink-soft);
+  --tpl-line: var(--color-clay);
+}
+.tpl-theme--accent-olive {
+  --tpl-accent: var(--color-olive);
+}
+.tpl-theme--accent-clay {
+  --tpl-accent: var(--color-clay-deep);
+}
+.tpl-theme--accent-gold {
+  --tpl-accent: var(--color-gold);
+}
+.tpl-theme--type-serif {
+  --tpl-display: var(--font-display);
+  --tpl-display-weight: 400;
+}
+.tpl-theme--type-sans {
+  --tpl-display: var(--font-sans);
+  --tpl-display-weight: 300;
+  --tpl-display-tracking: 0.02em;
+}
+.tpl-theme--ornament-hairline {
+  --tpl-ornament-rule: 1;
+}
+.tpl-theme--ornament-frame {
+  --tpl-ornament-frame: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Cover preview composition (decorative, aria-hidden in markup)
+   -------------------------------------------------------------------------- */
+
+.tpl-preview {
+  margin: auto;
+  width: 100%;
+  max-width: 20rem;
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-4);
+  position: relative;
+  background: var(--tpl-bg, var(--color-ivory));
+  color: var(--tpl-ink, var(--color-ink));
+}
+.tpl-preview--wide {
+  max-width: 36rem;
+  padding: var(--space-10);
+}
+.tpl-theme--ornament-frame .tpl-preview::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-3);
+  border: 1px solid var(--tpl-accent, var(--color-sage));
+  pointer-events: none;
+}
+.tpl-preview__eyebrow {
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tpl-muted, var(--color-ink-soft));
+}
+.tpl-preview__names {
+  font-family: var(--tpl-display, var(--font-display));
+  font-weight: var(--tpl-display-weight, 400);
+  letter-spacing: var(--tpl-display-tracking, 0);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.2;
+  color: var(--tpl-ink, var(--color-ink));
+}
+.tpl-preview__amp {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--tpl-accent, var(--color-olive));
+  font-size: 0.75em;
+}
+.tpl-preview__rule {
+  display: var(--tpl-ornament-rule, none) flex;
+  width: 3rem;
+  height: 1px;
+  background: var(--tpl-accent, var(--color-sage));
+}
+.tpl-preview__date {
+  font-size: var(--text-sm);
+  color: var(--tpl-muted, var(--color-ink-soft));
+}
+.tpl-preview__open {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-6);
+  border: 1px solid var(--tpl-accent, var(--color-olive));
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tpl-ink, var(--color-ink));
+}

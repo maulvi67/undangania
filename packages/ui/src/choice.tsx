@@ -1,15 +1,29 @@
 import type { InputHTMLAttributes } from "react";
 import { cx } from "./cx";
 
-export type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+export type CheckboxProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "type"
+> & {
   label: string;
   hint?: string;
 };
 
-export function Checkbox({ id, label, hint, className, ...rest }: CheckboxProps) {
+export function Checkbox({
+  id,
+  label,
+  hint,
+  className,
+  ...rest
+}: CheckboxProps) {
   return (
     <div className="ui-choice">
-      <input id={id} type="checkbox" className={cx("ui-choice__input", className)} {...rest} />
+      <input
+        id={id}
+        type="checkbox"
+        className={cx("ui-choice__input", className)}
+        {...rest}
+      />
       <label className="ui-choice__label" htmlFor={id}>
         {label}
         {hint ? <span className="ui-choice__hint">{hint}</span> : null}
@@ -29,7 +43,14 @@ export type RadioGroupProps = {
   required?: boolean;
 };
 
-export function RadioGroup({ name, legend, hint, options, defaultValue, required }: RadioGroupProps) {
+export function RadioGroup({
+  name,
+  legend,
+  hint,
+  options,
+  defaultValue,
+  required,
+}: RadioGroupProps) {
   return (
     <fieldset className="ui-fieldset">
       <legend className="ui-fieldset__legend">{legend}</legend>
@@ -46,9 +67,14 @@ export function RadioGroup({ name, legend, hint, options, defaultValue, required
               defaultChecked={defaultValue === option.value}
               required={required}
             />
-            <label className="ui-choice__label" htmlFor={`${name}-${option.value}`}>
+            <label
+              className="ui-choice__label"
+              htmlFor={`${name}-${option.value}`}
+            >
               {option.label}
-              {option.hint ? <span className="ui-choice__hint">{option.hint}</span> : null}
+              {option.hint ? (
+                <span className="ui-choice__hint">{option.hint}</span>
+              ) : null}
             </label>
           </div>
         ))}

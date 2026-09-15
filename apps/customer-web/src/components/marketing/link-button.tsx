@@ -22,7 +22,12 @@ export function LinkButton({
 }: LinkButtonProps) {
   return (
     <a
-      className={cx("ui-button", `ui-button--${variant}`, `ui-button--${size}`, className)}
+      className={cx(
+        "ui-button",
+        `ui-button--${variant}`,
+        `ui-button--${size}`,
+        className,
+      )}
       {...rest}
     />
   );

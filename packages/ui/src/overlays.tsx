@@ -50,9 +50,16 @@ function useNativeDialog() {
   return { open, setOpen, dialogRef, triggerRef, requestClose };
 }
 
-export function Dialog({ triggerLabel, triggerVariant = "secondary", title, children, footer }: OverlayProps) {
+export function Dialog({
+  triggerLabel,
+  triggerVariant = "secondary",
+  title,
+  children,
+  footer,
+}: OverlayProps) {
   const id = useId();
-  const { open, setOpen, dialogRef, triggerRef, requestClose } = useNativeDialog();
+  const { open, setOpen, dialogRef, triggerRef, requestClose } =
+    useNativeDialog();
 
   return (
     <>
@@ -79,12 +86,19 @@ export function Dialog({ triggerLabel, triggerVariant = "secondary", title, chil
           <h2 className="ui-overlay__title" id={`${id}-title`}>
             {title}
           </h2>
-          <button type="button" className="ui-overlay__close" aria-label="Tutup" onClick={requestClose}>
+          <button
+            type="button"
+            className="ui-overlay__close"
+            aria-label="Tutup"
+            onClick={requestClose}
+          >
             <IconClose />
           </button>
         </header>
         <div className="ui-overlay__body">{children}</div>
-        {footer ? <footer className="ui-overlay__footer">{footer}</footer> : null}
+        {footer ? (
+          <footer className="ui-overlay__footer">{footer}</footer>
+        ) : null}
       </dialog>
     </>
   );
@@ -98,7 +112,8 @@ export function Drawer({
   side = "right",
 }: OverlayProps & { side?: "left" | "right" }) {
   const id = useId();
-  const { open, setOpen, dialogRef, triggerRef, requestClose } = useNativeDialog();
+  const { open, setOpen, dialogRef, triggerRef, requestClose } =
+    useNativeDialog();
 
   return (
     <>
@@ -115,7 +130,10 @@ export function Drawer({
       <dialog
         ref={dialogRef}
         id={id}
-        className={cx("ui-drawer", side === "left" ? "ui-drawer--left" : "ui-drawer--right")}
+        className={cx(
+          "ui-drawer",
+          side === "left" ? "ui-drawer--left" : "ui-drawer--right",
+        )}
         aria-labelledby={`${id}-title`}
         onClick={(event) => {
           if (event.target === dialogRef.current) requestClose();
@@ -125,7 +143,12 @@ export function Drawer({
           <h2 className="ui-overlay__title" id={`${id}-title`}>
             {title}
           </h2>
-          <button type="button" className="ui-overlay__close" aria-label="Tutup" onClick={requestClose}>
+          <button
+            type="button"
+            className="ui-overlay__close"
+            aria-label="Tutup"
+            onClick={requestClose}
+          >
             <IconClose />
           </button>
         </header>

@@ -290,10 +290,7 @@ export function parseIdrAmountMinor(grossAmount: string): bigint {
       "Invalid payment amount",
     );
   }
-  if (
-    amountMinor <= 0n ||
-    amountMinor > BigInt(Number.MAX_SAFE_INTEGER)
-  ) {
+  if (amountMinor <= 0n || amountMinor > BigInt(Number.MAX_SAFE_INTEGER)) {
     throw new QrisNotificationValidationError(
       "INVALID_AMOUNT",
       "Invalid payment amount",

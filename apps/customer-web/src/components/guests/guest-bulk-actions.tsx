@@ -27,7 +27,8 @@ export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
       {notice ? (
         <div className="gst-bulk__notice">
           <Alert variant="success" title="Tindakan disimpan">
-            Pada versi produksi, tag dan ekspor akan diproses melalui layanan tenant-scoped.
+            Pada versi produksi, tag dan ekspor akan diproses melalui layanan
+            tenant-scoped.
           </Alert>
         </div>
       ) : null}
@@ -40,13 +41,29 @@ export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
         triggerRef={triggerRef}
       >
         <div className="gst-bulk__drawer">
-          <Button type="button" onClick={() => { setNotice(true); setOpen(false); }}>
+          <Button
+            type="button"
+            onClick={() => {
+              setNotice(true);
+              setOpen(false);
+            }}
+          >
             Tambahkan tag
           </Button>
-          <Button type="button" variant="secondary" onClick={() => { setNotice(true); setOpen(false); }}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setNotice(true);
+              setOpen(false);
+            }}
+          >
             Ekspor pilihan
           </Button>
-          <p className="gst-bulk__note">Ganti atau nonaktifkan tautan tetap dilakukan satu per satu untuk mencegah pencabutan akses yang tidak disengaja.</p>
+          <p className="gst-bulk__note">
+            Ganti atau nonaktifkan tautan tetap dilakukan satu per satu untuk
+            mencegah pencabutan akses yang tidak disengaja.
+          </p>
         </div>
       </GuestDialog>
     </div>

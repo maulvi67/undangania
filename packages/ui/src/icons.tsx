@@ -96,7 +96,13 @@ export function IconShield(props: IconProps) {
   );
 }
 
-export function Spinner({ className, labeled = true }: { className?: string; labeled?: boolean }) {
+export function Spinner({
+  className,
+  labeled = true,
+}: {
+  className?: string;
+  labeled?: boolean;
+}) {
   return (
     <span className="ui-spinner-wrap">
       <svg
@@ -106,8 +112,20 @@ export function Spinner({ className, labeled = true }: { className?: string; lab
         focusable="false"
         className={className ? `ui-spinner ${className}` : "ui-spinner"}
       >
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
-        <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          opacity="0.25"
+        />
+        <path
+          d="M21 12a9 9 0 0 0-9-9"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
       </svg>
       {labeled ? <span className="ui-visually-hidden">Memuat…</span> : null}
     </span>

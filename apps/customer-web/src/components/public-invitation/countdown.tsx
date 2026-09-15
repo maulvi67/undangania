@@ -9,12 +9,20 @@ type CountdownValue = {
   seconds: number;
 };
 
-function parseLocalDateTime(value: string): [number, number, number, number, number] | null {
+function parseLocalDateTime(
+  value: string,
+): [number, number, number, number, number] | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
   if (!match) return null;
   const [, year, month, day, hour, minute] = match;
   if (!year || !month || !day || !hour || !minute) return null;
-  return [Number(year), Number(month), Number(day), Number(hour), Number(minute)];
+  return [
+    Number(year),
+    Number(month),
+    Number(day),
+    Number(hour),
+    Number(minute),
+  ];
 }
 
 function partValue(
@@ -98,7 +106,9 @@ export function Countdown({
   timezone: string;
 }) {
   const target = localDateTimeToEpoch(startsAt, timezone);
-  const [remaining, setRemaining] = useState<CountdownValue | null | undefined>(undefined);
+  const [remaining, setRemaining] = useState<CountdownValue | null | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     if (target === null) return;
@@ -108,11 +118,12 @@ export function Countdown({
     return () => window.clearInterval(interval);
   }, [target]);
 
-  const message = target === null || remaining === undefined
-    ? "Menuju hari bahagia"
-    : remaining === null
-      ? "Hari bahagia telah tiba"
-      : `${remaining.days} hari ${pad(remaining.hours)}:${pad(remaining.minutes)}:${pad(remaining.seconds)}`;
+  const message =
+    target === null || remaining === undefined
+      ? "Menuju hari bahagia"
+      : remaining === null
+        ? "Hari bahagia telah tiba"
+        : `${remaining.days} hari ${pad(remaining.hours)}:${pad(remaining.minutes)}:${pad(remaining.seconds)}`;
 
   return (
     <p className="gld-countdown" aria-label={`Hitung mundur: ${message}`}>

@@ -158,7 +158,9 @@
   font-size: var(--text-sm);
   color: var(--color-text);
   cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
 }
 
 .ctlg-chips .ui-choice__input:focus-visible + .ui-choice__label {

@@ -16,7 +16,10 @@ function navList(nav: ReadonlyArray<NavItem>, className: string) {
     <a
       key={item.href}
       href={item.href}
-      className={cx(className, item.current ? `${className}--current` : undefined)}
+      className={cx(
+        className,
+        item.current ? `${className}--current` : undefined,
+      )}
       aria-current={item.current ? "page" : undefined}
     >
       {item.label}
@@ -24,7 +27,12 @@ function navList(nav: ReadonlyArray<NavItem>, className: string) {
   ));
 }
 
-export function ApplicationShell({ brand = "Wedding System", nav, children, footerNote }: ApplicationShellProps) {
+export function ApplicationShell({
+  brand = "Wedding System",
+  nav,
+  children,
+  footerNote,
+}: ApplicationShellProps) {
   return (
     <div className="ui-shell">
       <a className="ui-skip-link" href="#konten-utama">
@@ -39,8 +47,15 @@ export function ApplicationShell({ brand = "Wedding System", nav, children, foot
             {navList(nav, "ui-nav__link")}
           </nav>
           <div className="ui-mobile-nav">
-            <Drawer triggerLabel="Menu" triggerVariant="tertiary" title="Menu" side="left">
-              <ul className="ui-drawer-nav">{navList(nav, "ui-drawer-nav__link")}</ul>
+            <Drawer
+              triggerLabel="Menu"
+              triggerVariant="tertiary"
+              title="Menu"
+              side="left"
+            >
+              <ul className="ui-drawer-nav">
+                {navList(nav, "ui-drawer-nav__link")}
+              </ul>
             </Drawer>
           </div>
         </div>
@@ -50,7 +65,9 @@ export function ApplicationShell({ brand = "Wedding System", nav, children, foot
       </main>
       <footer className="ui-footer">
         <div className="ui-container">
-          <p>{footerNote ?? "Dibuat untuk momen yang benar-benar milik Anda."}</p>
+          <p>
+            {footerNote ?? "Dibuat untuk momen yang benar-benar milik Anda."}
+          </p>
         </div>
       </footer>
     </div>

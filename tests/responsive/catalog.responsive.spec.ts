@@ -10,33 +10,49 @@ const VIEWPORTS = [
 ];
 
 for (const viewport of VIEWPORTS) {
-  test(`catalog fits ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`catalog fits ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
     await page.setViewportSize(viewport);
     await page.goto("/templates");
     const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
     );
     expect(overflow).toBe(false);
   });
 
-  test(`filtered catalog fits ${viewport.width}x${viewport.height}`, async ({ page }) => {
+  test(`filtered catalog fits ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
     await page.setViewportSize(viewport);
-    await page.goto("/templates?q=klasik&harga=eksklusif&urutkan=harga-terendah");
+    await page.goto(
+      "/templates?q=klasik&harga=eksklusif&urutkan=harga-terendah",
+    );
     const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
     );
     expect(overflow).toBe(false);
   });
 }
 
-test("collapsed filter panel does not cause horizontal overflow", async ({ page }) => {
+test("collapsed filter panel does not cause horizontal overflow", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/templates");
   await page
     .locator("details.ctlg-filters")
-    .evaluate((element) => (element as HTMLDetailsElement).removeAttribute("open"));
+    .evaluate((element) =>
+      (element as HTMLDetailsElement).removeAttribute("open"),
+    );
   const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
   );
   expect(overflow).toBe(false);
 });

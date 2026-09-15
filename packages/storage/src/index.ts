@@ -1,1 +1,10 @@
-export interface StoragePort { createUpload(input:{tenantId:string;objectKey:string;contentType:string;maxBytes:number}):Promise<{url:string;expiresAt:string}>; delete(objectKey:string):Promise<void>; createReadUrl(objectKey:string,expiresInSeconds:number):Promise<string>; }
+export interface StoragePort {
+  createUpload(input: {
+    tenantId: string;
+    objectKey: string;
+    contentType: string;
+    maxBytes: number;
+  }): Promise<{ url: string; expiresAt: string }>;
+  delete(objectKey: string): Promise<void>;
+  createReadUrl(objectKey: string, expiresInSeconds: number): Promise<string>;
+}

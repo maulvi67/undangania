@@ -1,1 +1,9 @@
-export interface NotificationPort { send(input:{idempotencyKey:string;channel:"EMAIL"|"WHATSAPP";recipientRef:string;templateCode:string;variables:Record<string,string>}):Promise<{providerMessageId:string;status:"SENT"|"QUEUED"}>; }
+export interface NotificationPort {
+  send(input: {
+    idempotencyKey: string;
+    channel: "EMAIL" | "WHATSAPP";
+    recipientRef: string;
+    templateCode: string;
+    variables: Record<string, string>;
+  }): Promise<{ providerMessageId: string; status: "SENT" | "QUEUED" }>;
+}

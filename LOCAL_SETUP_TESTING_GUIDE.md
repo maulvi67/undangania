@@ -318,7 +318,6 @@ Untuk menjalankan satu aplikasi:
 ```bash
 npm run dev -w @wedding/customer-web
 npm run dev -w @wedding/admin-dashboard
-npm run dev -w @wedding/vendor-dashboard
 ```
 
 Backend API skeleton:
@@ -344,12 +343,11 @@ Hasil:
 
 ### Port aplikasi
 
-Next.js memilih port `3000` secara default. Karena tiga aplikasi tidak dapat menggunakan port yang sama, jalankan dengan port eksplisit ketika bersamaan:
+Next.js memilih port `3000` secara default. Karena dua aplikasi tidak dapat menggunakan port yang sama, jalankan dengan port eksplisit ketika bersamaan:
 
 ```bash
 npm run dev -w @wedding/customer-web -- --port 3000
 npm run dev -w @wedding/admin-dashboard -- --port 3001
-npm run dev -w @wedding/vendor-dashboard -- --port 3002
 ```
 
 Rekomendasi lokal:
@@ -357,7 +355,6 @@ Rekomendasi lokal:
 ```text
 Customer Web:     http://localhost:3000
 Admin Dashboard:  http://localhost:3001
-Vendor Dashboard: http://localhost:3002
 Backend API:      http://localhost:4000
 Mailpit:          http://localhost:8025
 MinIO Console:    http://localhost:9001

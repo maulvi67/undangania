@@ -26,8 +26,12 @@ export function TemplateCard({ template }: { template: TemplateRecord }) {
         <p className="ctlg-card__character">{template.designCharacter}</p>
         {template.priceIdr !== null ? (
           <p className="ctlg-card__price">
-            <span className="ctlg-card__amount">{formatIdr(template.priceIdr)}</span>
-            <span className="ctlg-card__tier">{TIER_LABELS[template.tier]}</span>
+            <span className="ctlg-card__amount">
+              {formatIdr(template.priceIdr)}
+            </span>
+            <span className="ctlg-card__tier">
+              {TIER_LABELS[template.tier]}
+            </span>
           </p>
         ) : (
           <p className="ctlg-card__price ctlg-card__price--unavailable">
@@ -36,11 +40,19 @@ export function TemplateCard({ template }: { template: TemplateRecord }) {
         )}
         <div className="ctlg-card__actions">
           {template.demo.available ? (
-            <LinkButton href={`/templates/${template.id}/demo`} variant="secondary" size="sm">
+            <LinkButton
+              href={`/templates/${template.id}/demo`}
+              variant="secondary"
+              size="sm"
+            >
               Lihat demo
             </LinkButton>
           ) : null}
-          <LinkButton href={`/templates/${template.id}`} variant="primary" size="sm">
+          <LinkButton
+            href={`/templates/${template.id}`}
+            variant="primary"
+            size="sm"
+          >
             Pilih desain
           </LinkButton>
         </div>

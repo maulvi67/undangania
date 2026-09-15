@@ -17,7 +17,11 @@ export default function CatalogLoading() {
           <Skeleton className="ctlg-skeleton-search" height="3.5rem" />
           <ul className="ctlg-grid">
             {Array.from({ length: 6 }, (_, index) => (
-              <li className="ctlg-card ctlg-card--skeleton" key={index} aria-hidden="true">
+              <li
+                className="ctlg-card ctlg-card--skeleton"
+                key={index}
+                aria-hidden="true"
+              >
                 <Skeleton className="ctlg-card__preview" />
                 <div className="ctlg-card__body">
                   <Skeleton height="0.75rem" width="40%" />

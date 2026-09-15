@@ -1,6 +1,16 @@
 {
   "mcpServers": {
-    "context7": {"url": "https://mcp.context7.com/mcp"},
-    "github-readonly": {"command": "docker", "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"]}
+    "context7": { "url": "https://mcp.context7.com/mcp" },
+    "github-readonly": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server"
+      ]
+    }
   }
 }

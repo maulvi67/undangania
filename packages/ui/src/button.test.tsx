@@ -17,9 +17,11 @@ test("tombol nonaktif tidak memicu klik", () => {
   render(
     <Button disabled onClick={onClick}>
       Kirim Undangan
-    </Button>
+    </Button>,
   );
-  const button = screen.getByRole("button", { name: "Kirim Undangan" }) as HTMLButtonElement;
+  const button = screen.getByRole("button", {
+    name: "Kirim Undangan",
+  }) as HTMLButtonElement;
   expect(button.disabled).toBe(true);
   fireEvent.click(button);
   expect(onClick).not.toHaveBeenCalled();
@@ -27,7 +29,9 @@ test("tombol nonaktif tidak memicu klik", () => {
 
 test("keadaan memuat menandai aria-busy dan menonaktifkan tombol", () => {
   render(<Button loading>Simpan Perubahan</Button>);
-  const button = screen.getByRole("button", { name: "Simpan Perubahan" }) as HTMLButtonElement;
+  const button = screen.getByRole("button", {
+    name: "Simpan Perubahan",
+  }) as HTMLButtonElement;
   expect(button.getAttribute("aria-busy")).toBe("true");
   expect(button.disabled).toBe(true);
 });
@@ -36,7 +40,7 @@ test("ukuran sm menerapkan kelas ukuran", () => {
   render(
     <Button size="sm" variant="secondary">
       Pratinjau
-    </Button>
+    </Button>,
   );
   expect(screen.getByRole("button").className).toContain("ui-button--sm");
 });

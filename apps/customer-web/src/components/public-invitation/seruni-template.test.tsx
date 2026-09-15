@@ -6,13 +6,21 @@ import {
   SeruniInvitation,
   seruniRenderer,
 } from "./seruni-template";
-import { getRegisteredTemplateIds, renderPublicationSnapshot } from "./registry";
+import {
+  getRegisteredTemplateIds,
+  renderPublicationSnapshot,
+} from "./registry";
 
 describe("Seruni golden template", () => {
   it("exposes the required publication manifest and section order", () => {
     expect(SERUNI_MANIFEST.id).toBe("seruni-klasik");
     expect(SERUNI_MANIFEST.version).toBe("1");
-    expect(SERUNI_MANIFEST.requiredSections).toEqual(["hero", "couple", "events", "closing"]);
+    expect(SERUNI_MANIFEST.requiredSections).toEqual([
+      "hero",
+      "couple",
+      "events",
+      "closing",
+    ]);
     expect(SERUNI_MANIFEST.supportedSections).toContain("guestbook");
     expect(SERUNI_MANIFEST.sectionOrder).toContain("rsvp");
   });
@@ -49,7 +57,9 @@ describe("Seruni golden template", () => {
   });
 
   it("keeps the renderer as a pure React boundary", () => {
-    const output = SeruniInvitation({ model: getPublicInvitationFixture("missing-optional") });
+    const output = SeruniInvitation({
+      model: getPublicInvitationFixture("missing-optional"),
+    });
     expect(output).toBeTruthy();
   });
 });

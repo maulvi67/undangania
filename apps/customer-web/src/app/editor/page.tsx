@@ -41,7 +41,11 @@ export default async function EditorPage({ searchParams }: EditorPageProps) {
     const authenticated = await getAuthenticatedRequest();
     return (
       <EditorRouteView
-        result={authenticated === null ? { kind: "forbidden" } : { kind: "unavailable" }}
+        result={
+          authenticated === null
+            ? { kind: "forbidden" }
+            : { kind: "unavailable" }
+        }
         fixture="normal"
         initialSection="couple"
       />

@@ -11,7 +11,8 @@ export const PUBLIC_INVITATION_FIXTURES = [
   "large-gallery",
 ] as const;
 
-export type PublicInvitationFixture = (typeof PUBLIC_INVITATION_FIXTURES)[number];
+export type PublicInvitationFixture =
+  (typeof PUBLIC_INVITATION_FIXTURES)[number];
 
 export type PublicationSnapshot = Readonly<{
   slug: string;
@@ -90,8 +91,7 @@ const normalSections: RawSection[] = [
     visible: true,
     payload: {
       title: "Tentang kami",
-      body:
-        "Dengan memohon rahmat dan ridha Tuhan Yang Maha Esa, kami mengundang Anda untuk hadir dan berbagi kebahagiaan pada hari pernikahan kami.",
+      body: "Dengan memohon rahmat dan ridha Tuhan Yang Maha Esa, kami mengundang Anda untuk hadir dan berbagi kebahagiaan pada hari pernikahan kami.",
     },
   },
   {
@@ -112,8 +112,7 @@ const normalSections: RawSection[] = [
     visible: true,
     payload: {
       title: "Kisah kami",
-      body:
-        "Berawal dari pertemuan sederhana, kami belajar bahwa rumah dapat ditemukan dalam percakapan yang hangat, doa yang panjang, dan langkah yang dipilih bersama.",
+      body: "Berawal dari pertemuan sederhana, kami belajar bahwa rumah dapat ditemukan dalam percakapan yang hangat, doa yang panjang, dan langkah yang dipilih bersama.",
     },
   },
   {
@@ -217,11 +216,13 @@ const baseModelInput = {
   sections: normalSections,
 };
 
-function createModel(input: {
-  couple?: Partial<typeof baseModelInput.couple>;
-  events?: RawEvent[];
-  sections?: RawSection[];
-} = {}): InvitationViewModel {
+function createModel(
+  input: {
+    couple?: Partial<typeof baseModelInput.couple>;
+    events?: RawEvent[];
+    sections?: RawSection[];
+  } = {},
+): InvitationViewModel {
   return invitationViewModelSchema.parse({
     ...baseModelInput,
     couple: { ...baseModelInput.couple, ...input.couple },
@@ -239,7 +240,8 @@ function sectionsWithGalleryCount(count: number): RawSection[] {
             ...section.payload,
             assetIds: Array.from(
               { length: count },
-              (_, index) => `rani-bima-gallery-${String(index + 1).padStart(2, "0")}`,
+              (_, index) =>
+                `rani-bima-gallery-${String(index + 1).padStart(2, "0")}`,
             ),
           },
         }
@@ -249,7 +251,9 @@ function sectionsWithGalleryCount(count: number): RawSection[] {
 
 function hideOptionalSections(): RawSection[] {
   return normalSections.map((section) =>
-    ["story", "gallery", "music", "gift", "faq", "guestbook"].includes(section.type)
+    ["story", "gallery", "music", "gift", "faq", "guestbook"].includes(
+      section.type,
+    )
       ? { ...section, visible: false }
       : section,
   );
@@ -259,10 +263,8 @@ const FIXTURE_MODELS: Record<PublicInvitationFixture, InvitationViewModel> = {
   normal: createModel(),
   "long-content": createModel({
     couple: {
-      partner1Name:
-        "Raden Mas Aditya Pratama Wijaya Kusumawardhana",
-      partner2Name:
-        "Raden Ayu Sekar Nirmala Puspitasari",
+      partner1Name: "Raden Mas Aditya Pratama Wijaya Kusumawardhana",
+      partner2Name: "Raden Ayu Sekar Nirmala Puspitasari",
       displayNames:
         "Raden Mas Aditya Pratama Wijaya Kusumawardhana & Raden Ayu Sekar Nirmala Puspitasari",
     },
@@ -279,20 +281,23 @@ const FIXTURE_MODELS: Record<PublicInvitationFixture, InvitationViewModel> = {
   "large-gallery": createModel({ sections: sectionsWithGalleryCount(30) }),
 };
 
-const SNAPSHOTS: readonly PublicationSnapshot[] = Object.entries(FIXTURE_MODELS).map(
-  ([fixture, model]) => ({
-    slug: fixture === "normal" ? "rani-bima" : `rani-bima-${fixture}`,
-    templateId: "seruni-klasik",
-    templateVersion: "1",
-    contractVersion: 1,
-    model,
-  }),
-);
+const SNAPSHOTS: readonly PublicationSnapshot[] = Object.entries(
+  FIXTURE_MODELS,
+).map(([fixture, model]) => ({
+  slug: fixture === "normal" ? "rani-bima" : `rani-bima-${fixture}`,
+  templateId: "seruni-klasik",
+  templateVersion: "1",
+  contractVersion: 1,
+  model,
+}));
 
 export function isPublicInvitationFixture(
   value: string | undefined,
 ): value is PublicInvitationFixture {
-  return value !== undefined && PUBLIC_INVITATION_FIXTURES.includes(value as PublicInvitationFixture);
+  return (
+    value !== undefined &&
+    PUBLIC_INVITATION_FIXTURES.includes(value as PublicInvitationFixture)
+  );
 }
 
 export function getPublicInvitationFixture(

@@ -37,7 +37,9 @@ export function StepPreferences({
       <h1 className="onb-title" tabIndex={-1} ref={headingRef}>
         Preferensi
       </h1>
-      <p className="onb-lede">Tentukan bahasa undangan dan periksa kembali isian Anda.</p>
+      <p className="onb-lede">
+        Tentukan bahasa undangan dan periksa kembali isian Anda.
+      </p>
       <div className="onb-fields">
         <Select
           id="onb-locale"
@@ -52,7 +54,11 @@ export function StepPreferences({
           {...fieldProps("locale", errors)}
         />
       </div>
-      <SummaryCard data={data} title="Ringkasan isian" onEditStep={onEditStep} />
+      <SummaryCard
+        data={data}
+        title="Ringkasan isian"
+        onEditStep={onEditStep}
+      />
     </section>
   );
 }

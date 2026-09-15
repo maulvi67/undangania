@@ -14,7 +14,11 @@ import {
   type OnboardingData,
   type StepId,
 } from "../../lib/onboarding/contract";
-import { completeAction, loadDraftAction, saveStepAction } from "../../lib/onboarding/actions";
+import {
+  completeAction,
+  loadDraftAction,
+  saveStepAction,
+} from "../../lib/onboarding/actions";
 import {
   AUTOSAVE_DEBOUNCE_MS,
   clearStoredDraft,
@@ -48,9 +52,13 @@ export function OnboardingFlow({ templateId }: { templateId: string }) {
   const [saving, setSaving] = useState(false);
   const [reloading, setReloading] = useState(false);
   const [saveNotice, setSaveNotice] = useState<SaveNotice>("idle");
-  const [resumeInfo, setResumeInfo] = useState<{ savedAt: number } | null>(null);
+  const [resumeInfo, setResumeInfo] = useState<{ savedAt: number } | null>(
+    null,
+  );
   const [finished, setFinished] = useState(false);
-  const [completedData, setCompletedData] = useState<OnboardingData | null>(null);
+  const [completedData, setCompletedData] = useState<OnboardingData | null>(
+    null,
+  );
 
   const formRef = useRef<HTMLFormElement>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -153,12 +161,17 @@ export function OnboardingFlow({ templateId }: { templateId: string }) {
 
   /* ---------- Simpan / selesai / konflik ---------- */
 
-  function appendStepFields(formData: FormData, targetStep: StepId, source: OnboardingData) {
+  function appendStepFields(
+    formData: FormData,
+    targetStep: StepId,
+    source: OnboardingData,
+  ) {
     if (targetStep === 1) {
       formData.set("partner1Name", source.partner1Name);
       formData.set("partner2Name", source.partner2Name);
       formData.set("weddingDate", source.weddingDate);
-      if (source.weddingDateUndecided) formData.set("weddingDateUndecided", "on");
+      if (source.weddingDateUndecided)
+        formData.set("weddingDateUndecided", "on");
       return;
     }
     if (targetStep === 2) {
@@ -191,7 +204,9 @@ export function OnboardingFlow({ templateId }: { templateId: string }) {
     setSaveNotice("saving");
     try {
       const result =
-        step === 3 ? await completeAction(formData) : await saveStepAction(formData);
+        step === 3
+          ? await completeAction(formData)
+          : await saveStepAction(formData);
 
       if (result.kind === "saved") {
         setVersion(result.version);
@@ -280,7 +295,9 @@ export function OnboardingFlow({ templateId }: { templateId: string }) {
   /* ---------- Render ---------- */
 
   const editorHref =
-    templateId !== "" ? `/editor?template=${encodeURIComponent(templateId)}` : "/editor";
+    templateId !== ""
+      ? `/editor?template=${encodeURIComponent(templateId)}`
+      : "/editor";
 
   if (finished) {
     const summary = completedData ?? data;
@@ -290,15 +307,21 @@ export function OnboardingFlow({ templateId }: { templateId: string }) {
           Persiapan selesai
         </h1>
         <p className="onb-panel__body">
-          Data dasar undangan Anda sudah tersimpan. Lanjutkan di editor untuk menyusun
-          undangan.
+          Data dasar undangan Anda sudah tersimpan. Lanjutkan di editor untuk
+          menyusun undangan.
         </p>
         <SummaryCard data={summary} title="Ringkasan isian" />
         <div className="onb-panel__actions">
-          <Link className="ui-button ui-button--primary ui-button--lg" href={editorHref}>
+          <Link
+            className="ui-button ui-button--primary ui-button--lg"
+            href={editorHref}
+          >
             Mulai edit undangan
           </Link>
-          <Link className="ui-button ui-button--secondary ui-button--lg" href="/templates">
+          <Link
+            className="ui-button ui-button--secondary ui-button--lg"
+            href="/templates"
+          >
             Lihat koleksi desain
           </Link>
           <Button variant="tertiary" size="lg" onClick={restart}>
@@ -314,16 +337,26 @@ export function OnboardingFlow({ templateId }: { templateId: string }) {
       <>
         <OnboardingProgress step={step} />
         <section className="onb-panel">
-          <h1 className="onb-panel__title" tabIndex={-1} ref={conflictHeadingRef}>
+          <h1
+            className="onb-panel__title"
+            tabIndex={-1}
+            ref={conflictHeadingRef}
+          >
             Draf tersimpan lebih baru
           </h1>
           <p className="onb-panel__body">
-            Isian di layar ini lebih lama daripada draf yang tersimpan di server. Pilih
-            versi yang ingin dipertahankan.
+            Isian di layar ini lebih lama daripada draf yang tersimpan di
+            server. Pilih versi yang ingin dipertahankan.
           </p>
-          <SummaryCard data={flowState.serverData} title="Draf tersimpan di server" />
+          <SummaryCard
+            data={flowState.serverData}
+            title="Draf tersimpan di server"
+          />
           <div className="onb-panel__actions">
-            <Button onClick={() => void reloadServerDraft()} loading={reloading}>
+            <Button
+              onClick={() => void reloadServerDraft()}
+              loading={reloading}
+            >
               Muat ulang draf
             </Button>
             <Button

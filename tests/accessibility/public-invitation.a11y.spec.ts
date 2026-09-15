@@ -4,23 +4,38 @@ import AxeBuilder from "@axe-core/playwright";
 const URL = "/invite/rani-bima";
 
 test.describe("golden public invitation accessibility", () => {
-  test("has no critical or serious axe violations before opening", async ({ page }) => {
+  test("has no critical or serious axe violations before opening", async ({
+    page,
+  }) => {
     await page.goto(URL);
     const result = await new AxeBuilder({ page }).analyze();
-    expect(result.violations.filter((item) => ["critical", "serious"].includes(item.impact ?? ""))).toEqual([]);
+    expect(
+      result.violations.filter((item) =>
+        ["critical", "serious"].includes(item.impact ?? ""),
+      ),
+    ).toEqual([]);
   });
 
-  test("has no critical or serious axe violations after opening and FAQ expansion", async ({ page }) => {
+  test("has no critical or serious axe violations after opening and FAQ expansion", async ({
+    page,
+  }) => {
     await page.goto(URL);
     await page.getByText("Buka undangan").click();
     await page.getByRole("button", { name: /Tidak ada/ }).count();
     const faq = page.locator(".gld-faq summary").first();
     await faq.click();
     const result = await new AxeBuilder({ page }).analyze();
-    expect(result.violations.filter((item) => ["critical", "serious"].includes(item.impact ?? ""))).toEqual([]);
+    expect(
+      result.violations.filter((item) =>
+        ["critical", "serious"].includes(item.impact ?? ""),
+      ),
+    ).toEqual([]);
   });
 
-  test("has a logical keyboard path and visible focus targets", async ({ page, browserName }) => {
+  test("has a logical keyboard path and visible focus targets", async ({
+    page,
+    browserName,
+  }) => {
     await page.goto(URL);
     if (browserName === "webkit") {
       await page.locator(".ui-skip-link").focus();
@@ -33,7 +48,9 @@ test.describe("golden public invitation accessibility", () => {
     } else {
       await page.keyboard.press("Tab");
     }
-    await expect(page.getByRole("link", { name: "Wedding System" })).toBeFocused();
+    await expect(
+      page.getByRole("link", { name: "Wedding System" }),
+    ).toBeFocused();
     if (browserName === "webkit") {
       await page.locator(".gld-opening > summary").focus();
     } else {
@@ -44,12 +61,16 @@ test.describe("golden public invitation accessibility", () => {
     await expect(page.locator(".gld-opening")).toHaveAttribute("open", "");
   });
 
-  test("opens without JavaScript through native details behavior", async ({ browser }) => {
+  test("opens without JavaScript through native details behavior", async ({
+    browser,
+  }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto(URL);
     await page.getByText("Buka undangan").click();
-    await expect(page.getByRole("heading", { name: "Rangkaian acara" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Rangkaian acara" }),
+    ).toBeVisible();
     await context.close();
   });
 });

@@ -9,20 +9,35 @@ import { RsvpForm } from "./rsvp-form";
  */
 
 const SAMPLE_WISHES = [
-  { name: "Tante Dewi", text: "Selamat menempuh hidup baru! Semoga sakinah dan bahagia selalu." },
-  { name: "Bagas", text: "Turut berbahagia untuk kalian berdua. Sampai jumpa di resepsi!" },
-  { name: "Keluarga Rahmadi", text: "Barakallahu lakuma. Doa terbaik untuk keluarga baru kalian." },
+  {
+    name: "Tante Dewi",
+    text: "Selamat menempuh hidup baru! Semoga sakinah dan bahagia selalu.",
+  },
+  {
+    name: "Bagas",
+    text: "Turut berbahagia untuk kalian berdua. Sampai jumpa di resepsi!",
+  },
+  {
+    name: "Keluarga Rahmadi",
+    text: "Barakallahu lakuma. Doa terbaik untuk keluarga baru kalian.",
+  },
 ] as const;
 
 export function DemoInvitation({ template }: { template: TemplateRecord }) {
-  const has = (section: TemplateSectionId) => template.sections.includes(section);
+  const has = (section: TemplateSectionId) =>
+    template.sections.includes(section);
 
   return (
     <div className={`${themeClasses(template)} dmv`}>
       {has("hero") ? (
-        <section className="dmv__section dmv__hero" aria-label="Pembuka undangan">
+        <section
+          className="dmv__section dmv__hero"
+          aria-label="Pembuka undangan"
+        >
           <p className="dmv__eyebrow">
-            {template.category === "Tradisi" ? "Walimatul Urs" : "Undangan Pernikahan"}
+            {template.category === "Tradisi"
+              ? "Walimatul Urs"
+              : "Undangan Pernikahan"}
           </p>
           <h2 className="dmv__names">
             Rai <span className="dmv__amp">&amp;</span> Anisa
@@ -38,8 +53,9 @@ export function DemoInvitation({ template }: { template: TemplateRecord }) {
             Rai &amp; Anisa
           </h3>
           <p className="dmv__body">
-            Dengan memohon rahmat dan ridha Tuhan, kami mengundang Anda untuk menghadiri
-            pernikahan kami — dua keluarga besar yang bertemu di satu hari bahagia.
+            Dengan memohon rahmat dan ridha Tuhan, kami mengundang Anda untuk
+            menghadiri pernikahan kami — dua keluarga besar yang bertemu di satu
+            hari bahagia.
           </p>
         </section>
       ) : null}
@@ -52,16 +68,22 @@ export function DemoInvitation({ template }: { template: TemplateRecord }) {
           <ul className="dmv__events">
             <li className="dmv__event">
               <p className="dmv__event-name">Akad Nikah</p>
-              <p className="dmv__event-time">Sabtu, 12 September 2026 · 08.00 – 10.00 WIB</p>
+              <p className="dmv__event-time">
+                Sabtu, 12 September 2026 · 08.00 – 10.00 WIB
+              </p>
               <p className="dmv__event-venue">Masjid Agung Contoh, Jakarta</p>
             </li>
             <li className="dmv__event">
               <p className="dmv__event-name">Resepsi</p>
-              <p className="dmv__event-time">Sabtu, 12 September 2026 · 11.00 – 14.00 WIB</p>
+              <p className="dmv__event-time">
+                Sabtu, 12 September 2026 · 11.00 – 14.00 WIB
+              </p>
               <p className="dmv__event-venue">Balai Kartini Contoh, Jakarta</p>
             </li>
           </ul>
-          <p className="dmv__rsvp-note">Nama dan lokasi pada demo ini adalah data contoh.</p>
+          <p className="dmv__rsvp-note">
+            Nama dan lokasi pada demo ini adalah data contoh.
+          </p>
         </section>
       ) : null}
 
@@ -77,7 +99,8 @@ export function DemoInvitation({ template }: { template: TemplateRecord }) {
             <div className="dmv__figure" />
           </div>
           <p className="dmv__rsvp-note">
-            Pada undangan sungguhan, bagian ini menampilkan foto pra-pernikahan Anda.
+            Pada undangan sungguhan, bagian ini menampilkan foto pra-pernikahan
+            Anda.
           </p>
         </section>
       ) : null}
@@ -88,8 +111,9 @@ export function DemoInvitation({ template }: { template: TemplateRecord }) {
             Tanda kasih
           </h3>
           <p className="dmv__body">
-            Kehadiran dan doa Anda adalah hadiah terbaik bagi kami. Apabila berkenan memberi
-            tanda kasih, informasi pengirimannya tersedia di undangan sungguhan.
+            Kehadiran dan doa Anda adalah hadiah terbaik bagi kami. Apabila
+            berkenan memberi tanda kasih, informasi pengirimannya tersedia di
+            undangan sungguhan.
           </p>
         </section>
       ) : null}
@@ -121,8 +145,13 @@ export function DemoInvitation({ template }: { template: TemplateRecord }) {
       ) : null}
 
       {has("closing") ? (
-        <section className="dmv__section dmv__closing" aria-label="Penutup undangan">
-          <p className="dmv__body">Merupakan suatu kehormatan bila Anda berkenan hadir.</p>
+        <section
+          className="dmv__section dmv__closing"
+          aria-label="Penutup undangan"
+        >
+          <p className="dmv__body">
+            Merupakan suatu kehormatan bila Anda berkenan hadir.
+          </p>
           <p className="dmv__closing-names">Rai &amp; Anisa</p>
         </section>
       ) : null}

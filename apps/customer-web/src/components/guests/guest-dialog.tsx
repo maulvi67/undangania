@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { Button } from "@wedding/ui";
 
 export function GuestDialog({
@@ -66,7 +72,12 @@ export function GuestDialog({
             <h2 id={titleId}>{title}</h2>
             {description ? <p id={descriptionId}>{description}</p> : null}
           </div>
-          <button type="button" className="gst-dialog__close" aria-label="Tutup" onClick={onClose}>
+          <button
+            type="button"
+            className="gst-dialog__close"
+            aria-label="Tutup"
+            onClick={onClose}
+          >
             ×
           </button>
         </header>
@@ -107,8 +118,16 @@ export function GuestConfirmDialog({
       {...(triggerRef ? { triggerRef } : {})}
     >
       <div className="gst-dialog__actions">
-        <Button type="button" variant="secondary" onClick={onClose}>Batalkan</Button>
-        <Button type="button" variant={danger ? "danger" : "primary"} onClick={onConfirm}>{confirmLabel}</Button>
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Batalkan
+        </Button>
+        <Button
+          type="button"
+          variant={danger ? "danger" : "primary"}
+          onClick={onConfirm}
+        >
+          {confirmLabel}
+        </Button>
       </div>
     </GuestDialog>
   );

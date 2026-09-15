@@ -5,7 +5,12 @@ import {
   formatIdr,
   templateRecordSchema,
 } from "./template-contract";
-import { DEFAULT_TEMPLATE_ID, TEMPLATES, getActiveTemplates, getTemplate } from "./template-data";
+import {
+  DEFAULT_TEMPLATE_ID,
+  TEMPLATES,
+  getActiveTemplates,
+  getTemplate,
+} from "./template-data";
 
 describe("template contract", () => {
   it("labels exist for every section id", () => {
@@ -18,26 +23,41 @@ describe("template contract", () => {
     expect(() =>
       templateRecordSchema.parse({
         ...TEMPLATES[0],
-        theme: { palette: "red; background:url(x)", accent: "olive", typeMood: "serif", ornament: "none" },
+        theme: {
+          palette: "red; background:url(x)",
+          accent: "olive",
+          typeMood: "serif",
+          ornament: "none",
+        },
       }),
     ).toThrow();
   });
 
   it("rejects negative or fractional prices", () => {
-    expect(() => templateRecordSchema.parse({ ...TEMPLATES[0], priceIdr: -1 })).toThrow();
-    expect(() => templateRecordSchema.parse({ ...TEMPLATES[0], priceIdr: 1000.5 })).toThrow();
+    expect(() =>
+      templateRecordSchema.parse({ ...TEMPLATES[0], priceIdr: -1 }),
+    ).toThrow();
+    expect(() =>
+      templateRecordSchema.parse({ ...TEMPLATES[0], priceIdr: 1000.5 }),
+    ).toThrow();
   });
 
   it("allows a null price (payment package unavailable)", () => {
-    expect(templateRecordSchema.parse({ ...TEMPLATES[0], priceIdr: null }).priceIdr).toBeNull();
+    expect(
+      templateRecordSchema.parse({ ...TEMPLATES[0], priceIdr: null }).priceIdr,
+    ).toBeNull();
   });
 
   it("rejects unknown design tiers", () => {
-    expect(() => templateRecordSchema.parse({ ...TEMPLATES[0], tier: "premium" })).toThrow();
+    expect(() =>
+      templateRecordSchema.parse({ ...TEMPLATES[0], tier: "premium" }),
+    ).toThrow();
   });
 
   it("rejects unknown section ids", () => {
-    expect(() => templateRecordSchema.parse({ ...TEMPLATES[0], sections: ["countdown"] })).toThrow();
+    expect(() =>
+      templateRecordSchema.parse({ ...TEMPLATES[0], sections: ["countdown"] }),
+    ).toThrow();
   });
 
   it("formats IDR with dot thousands separators and no decimals", () => {

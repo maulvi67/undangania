@@ -8,7 +8,11 @@ export type SaveNotice = "idle" | "saving" | "saved";
 export function SaveStatus({ notice }: { notice: SaveNotice }) {
   return (
     <p className="onb-save-status" role="status">
-      {notice === "saving" ? "Menyimpan…" : notice === "saved" ? "Tersimpan." : ""}
+      {notice === "saving"
+        ? "Menyimpan…"
+        : notice === "saved"
+          ? "Tersimpan."
+          : ""}
     </p>
   );
 }

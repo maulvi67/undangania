@@ -49,12 +49,10 @@ export function ResendEmailForm({ email }: { email?: string | undefined }) {
         <ResendEmailForm email={state.emailSentTo} />
         <AuthLinkRow>
           <span>
-            Salah email?{" "}
-            <Link href="/daftar">Gunakan email lain</Link>
+            Salah email? <Link href="/daftar">Gunakan email lain</Link>
           </span>
           <span>
-            Sudah punya akun?{" "}
-            <Link href="/masuk">Masuk</Link>
+            Sudah punya akun? <Link href="/masuk">Masuk</Link>
           </span>
         </AuthLinkRow>
       </CheckEmailPanel>
@@ -96,8 +94,7 @@ export function ResendEmailForm({ email }: { email?: string | undefined }) {
       {email ? null : (
         <AuthLinkRow>
           <span>
-            Sudah punya akun?{" "}
-            <Link href="/masuk">Masuk</Link>
+            Sudah punya akun? <Link href="/masuk">Masuk</Link>
           </span>
         </AuthLinkRow>
       )}

@@ -4,8 +4,15 @@ import AxeBuilder from "@axe-core/playwright";
 const DETAIL_URL = "/templates/seruni-klasik";
 
 test.describe("template detail accessibility", () => {
-  for (const state of ["default", "desktop-preview", "demo", "rsvp-error"] as const) {
-    test(`@a11y no critical or serious violations (${state})`, async ({ page }) => {
+  for (const state of [
+    "default",
+    "desktop-preview",
+    "demo",
+    "rsvp-error",
+  ] as const) {
+    test(`@a11y no critical or serious violations (${state})`, async ({
+      page,
+    }) => {
       if (state === "demo") {
         await page.goto(`${DETAIL_URL}/demo`);
       } else {
@@ -21,7 +28,9 @@ test.describe("template detail accessibility", () => {
       }
       const result = await new AxeBuilder({ page }).analyze();
       expect(
-        result.violations.filter((v) => ["critical", "serious"].includes(v.impact ?? "")),
+        result.violations.filter((v) =>
+          ["critical", "serious"].includes(v.impact ?? ""),
+        ),
       ).toEqual([]);
     });
   }

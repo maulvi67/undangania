@@ -50,7 +50,10 @@ function delay(): Promise<void> {
 }
 
 /** Gabung patch langkah di atas draf tersimpan (atau nilai awal). */
-function mergeDraft(existing: StoredServerDraft | undefined, patch: StepPatch): OnboardingData {
+function mergeDraft(
+  existing: StoredServerDraft | undefined,
+  patch: StepPatch,
+): OnboardingData {
   return { ...createInitialData(), ...(existing?.data ?? {}), ...patch };
 }
 
@@ -110,7 +113,13 @@ export async function stubCompleteStep(
   }
   const version = existing ? existing.version + 1 : 1;
   const data = mergeDraft(existing, patch);
-  DRAFTS.set(draftId, { version, step: 3, data, completed: true, updatedAt: Date.now() });
+  DRAFTS.set(draftId, {
+    version,
+    step: 3,
+    data,
+    completed: true,
+    updatedAt: Date.now(),
+  });
   return { ok: true, version, data };
 }
 
@@ -119,5 +128,9 @@ export function stubGetDraft(
 ): { step: StepId; version: number; data: OnboardingData } | null {
   const existing = DRAFTS.get(draftId);
   if (!existing) return null;
-  return { step: existing.step, version: existing.version, data: existing.data };
+  return {
+    step: existing.step,
+    version: existing.version,
+    data: existing.data,
+  };
 }

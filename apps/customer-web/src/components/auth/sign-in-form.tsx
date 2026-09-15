@@ -19,7 +19,10 @@ import { AuthLinkRow } from "./auth-link-row";
  * again before redirecting — the client copy is never trusted.
  */
 export function SignInForm({ next }: { next: string }) {
-  const [state, formAction, pending] = useActionState(signInAction, INITIAL_AUTH_FORM_STATE);
+  const [state, formAction, pending] = useActionState(
+    signInAction,
+    INITIAL_AUTH_FORM_STATE,
+  );
   const alertRef = useRef<HTMLDivElement>(null);
   const suspendedHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -42,7 +45,11 @@ export function SignInForm({ next }: { next: string }) {
   if (state.code === "SUSPENDED") {
     return (
       <section className="auth-panel">
-        <h1 className="auth-panel__title" tabIndex={-1} ref={suspendedHeadingRef}>
+        <h1
+          className="auth-panel__title"
+          tabIndex={-1}
+          ref={suspendedHeadingRef}
+        >
           Akun ditangguhkan
         </h1>
         <p className="auth-panel__body">
@@ -87,8 +94,7 @@ export function SignInForm({ next }: { next: string }) {
       <AuthLinkRow>
         <Link href={withNext("/lupa-sandi")}>Lupa kata sandi?</Link>
         <span>
-          Belum punya akun?{" "}
-          <Link href={withNext("/daftar")}>Daftar</Link>
+          Belum punya akun? <Link href={withNext("/daftar")}>Daftar</Link>
         </span>
       </AuthLinkRow>
     </>

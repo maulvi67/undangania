@@ -30,7 +30,9 @@ interface ResetSandiPageProps {
   searchParams: Promise<{ token?: string | string[] }>;
 }
 
-export default async function ResetSandiPage({ searchParams }: ResetSandiPageProps) {
+export default async function ResetSandiPage({
+  searchParams,
+}: ResetSandiPageProps) {
   const params = await searchParams;
   const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
   // Deterministic token fixtures are development-only. Production requires the

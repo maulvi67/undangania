@@ -18,44 +18,55 @@ test.describe("template detail page", () => {
     // 4. Price.
     await expect(page.getByText("Rp 349.000").first()).toBeVisible();
     // 5. What is included — core features.
-    await expect(page.getByText("Semua fitur inti undangan digital")).toBeVisible();
+    await expect(
+      page.getByText("Semua fitur inti undangan digital"),
+    ).toBeVisible();
     // 6. What happens after purchase.
-    await expect(page.getByRole("heading", { name: "Setelah memilih desain ini" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Setelah memilih desain ini" }),
+    ).toBeVisible();
     // 7. Active period.
-    await expect(page.getByText("hingga 30 hari setelah tanggal acara").first()).toBeVisible();
+    await expect(
+      page.getByText("hingga 30 hari setelah tanggal acara").first(),
+    ).toBeVisible();
   });
 
-  test("device preview switch toggles frame width without JavaScript APIs", async ({ page }) => {
+  test("device preview switch toggles frame width without JavaScript APIs", async ({
+    page,
+  }) => {
     await page.goto(DETAIL_URL);
     const frame = page.locator(".tpl-device__frame");
     await page.locator("label[for='tpl-device-desktop']").click();
     await expect(page.locator("#tpl-device-desktop")).toBeChecked();
     // Aspect ratio change is viewport-independent (width alone is not:
     // narrow viewports constrain the phone frame to the same column width).
-    const ratio = await frame.evaluate((el) => getComputedStyle(el).aspectRatio);
+    const ratio = await frame.evaluate(
+      (el) => getComputedStyle(el).aspectRatio,
+    );
     expect(ratio).toBe("16 / 10");
     // Switch back via keyboard (radio group arrow keys).
     await page.locator("#tpl-device-desktop").focus();
     await page.keyboard.press("ArrowUp");
     await expect(page.locator("#tpl-device-ponsel")).toBeChecked();
-    const phoneRatio = await frame.evaluate((el) => getComputedStyle(el).aspectRatio);
+    const phoneRatio = await frame.evaluate(
+      (el) => getComputedStyle(el).aspectRatio,
+    );
     expect(phoneRatio).toBe("9 / 18");
   });
 
-  test("CTAs target demo and signup; back link returns to catalog", async ({ page }) => {
+  test("CTAs target demo and signup; back link returns to catalog", async ({
+    page,
+  }) => {
     await page.goto(DETAIL_URL);
-    await expect(page.getByRole("link", { name: "Lihat demo undangan" })).toHaveAttribute(
-      "href",
-      `${DETAIL_URL}/demo`,
-    );
-    await expect(page.getByRole("link", { name: "Pilih desain" }).first()).toHaveAttribute(
-      "href",
-      "/daftar",
-    );
-    await expect(page.getByRole("link", { name: "Kembali ke katalog desain" })).toHaveAttribute(
-      "href",
-      "/templates",
-    );
+    await expect(
+      page.getByRole("link", { name: "Lihat demo undangan" }),
+    ).toHaveAttribute("href", `${DETAIL_URL}/demo`);
+    await expect(
+      page.getByRole("link", { name: "Pilih desain" }).first(),
+    ).toHaveAttribute("href", "/daftar");
+    await expect(
+      page.getByRole("link", { name: "Kembali ke katalog desain" }),
+    ).toHaveAttribute("href", "/templates");
   });
 
   test("mobile sticky bar shows price and select CTA without hiding focused content", async ({
@@ -76,7 +87,8 @@ test.describe("template detail page", () => {
       const clear = await page.evaluate(() => {
         const bar = document.querySelector(".tpl-sticky");
         const el = document.activeElement;
-        if (!bar || !el || el === document.body || bar.contains(el)) return true;
+        if (!bar || !el || el === document.body || bar.contains(el))
+          return true;
         const barBox = bar.getBoundingClientRect();
         const elBox = el.getBoundingClientRect();
         const overlaps = elBox.top < barBox.bottom && elBox.bottom > barBox.top;
@@ -88,17 +100,19 @@ test.describe("template detail page", () => {
 
   test("retired or unknown template shows safe recovery", async ({ page }) => {
     await page.goto("/templates/cempaka-lama");
-    await expect(page.getByRole("heading", { name: "Desain ini tidak ditemukan" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Lihat katalog desain" })).toHaveAttribute(
-      "href",
-      "/templates",
-    );
-    await expect(page.getByRole("link", { name: "Kembali ke halaman utama" })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    await expect(
+      page.getByRole("heading", { name: "Desain ini tidak ditemukan" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Lihat katalog desain" }),
+    ).toHaveAttribute("href", "/templates");
+    await expect(
+      page.getByRole("link", { name: "Kembali ke halaman utama" }),
+    ).toHaveAttribute("href", "/");
     await page.goto("/templates/tidak-ada");
-    await expect(page.getByRole("heading", { name: "Desain ini tidak ditemukan" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Desain ini tidak ditemukan" }),
+    ).toBeVisible();
   });
 
   test("no console or network failures while loading", async ({ page }) => {
@@ -108,10 +122,13 @@ test.describe("template detail page", () => {
       if (message.type() === "error") consoleErrors.push(message.text());
     });
     page.on("requestfailed", (request) => {
-      failedRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`);
+      failedRequests.push(
+        `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
+      );
     });
     page.on("response", (response) => {
-      if (response.status() >= 400) failedRequests.push(`${response.status()} ${response.url()}`);
+      if (response.status() >= 400)
+        failedRequests.push(`${response.status()} ${response.url()}`);
     });
     await page.goto(DETAIL_URL, { waitUntil: "networkidle" });
     expect(consoleErrors).toEqual([]);
@@ -124,15 +141,26 @@ test.describe("interactive demo", () => {
     page,
   }) => {
     await page.goto(`${DETAIL_URL}/demo`);
-    await expect(page.getByText("data contoh", { exact: false }).first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Rai & Anisa" }).first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Rangkaian acara" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Konfirmasi kehadiran" })).toBeVisible();
-    await expect(page.getByText("Pratinjau demo — isian pada formulir ini tidak dikirim ke mana pun.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Kembali ke detail desain" })).toHaveAttribute(
-      "href",
-      DETAIL_URL,
-    );
+    await expect(
+      page.getByText("data contoh", { exact: false }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Rai & Anisa" }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Rangkaian acara" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Konfirmasi kehadiran" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Pratinjau demo — isian pada formulir ini tidak dikirim ke mana pun.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Kembali ke detail desain" }),
+    ).toHaveAttribute("href", DETAIL_URL);
   });
 
   test("RSVP demo form validates and confirms locally", async ({ page }) => {
@@ -147,7 +175,9 @@ test.describe("interactive demo", () => {
   test("/demo redirects to the default template demo", async ({ page }) => {
     await page.goto("/demo");
     await expect(page).toHaveURL(new RegExp(`/templates/${TEMPLATE_ID}/demo$`));
-    await expect(page.getByText("data contoh", { exact: false }).first()).toBeVisible();
+    await expect(
+      page.getByText("data contoh", { exact: false }).first(),
+    ).toBeVisible();
   });
 
   test("demo has no console or network failures", async ({ page }) => {
@@ -157,10 +187,13 @@ test.describe("interactive demo", () => {
       if (message.type() === "error") consoleErrors.push(message.text());
     });
     page.on("requestfailed", (request) => {
-      failedRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`);
+      failedRequests.push(
+        `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
+      );
     });
     page.on("response", (response) => {
-      if (response.status() >= 400) failedRequests.push(`${response.status()} ${response.url()}`);
+      if (response.status() >= 400)
+        failedRequests.push(`${response.status()} ${response.url()}`);
     });
     await page.goto(`${DETAIL_URL}/demo`, { waitUntil: "networkidle" });
     expect(consoleErrors).toEqual([]);
@@ -171,9 +204,13 @@ test.describe("interactive demo", () => {
 test.describe("template detail without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("content and device switch (CSS radios) work without JavaScript", async ({ page }) => {
+  test("content and device switch (CSS radios) work without JavaScript", async ({
+    page,
+  }) => {
     await page.goto(DETAIL_URL);
-    await expect(page.getByRole("heading", { name: "Seruni", level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Seruni", level: 1 }),
+    ).toBeVisible();
     await expect(page.getByText("Rp 349.000").first()).toBeVisible();
     // Radio group is operable without JS: the label is a native toggle.
     await page.locator("label[for='tpl-device-desktop']").click();

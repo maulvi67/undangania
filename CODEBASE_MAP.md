@@ -2,7 +2,6 @@
 
 - `apps/customer-web`: marketplace, customer dashboard, editor shell, public invitation routes.
 - `apps/admin-dashboard`: support, finance, moderation, template/package administration.
-- `apps/vendor-dashboard`: vendor profile, print orders, production and shipping updates.
 - `apps/backend-api`: HTTP API, webhooks, signed uploads, provider callbacks.
 - `services/background-worker`: outbox consumption, media, exports, reconciliation, lifecycle.
 - `services/notification-service`: provider-neutral email and WhatsApp delivery.

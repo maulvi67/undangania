@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Alert, Badge } from "@wedding/ui";
 import { DemoInvitation } from "../../../../components/templates/demo/demo-invitation";
-import { getActiveTemplates, getTemplate } from "../../../../components/templates/template-data";
+import {
+  getActiveTemplates,
+  getTemplate,
+} from "../../../../components/templates/template-data";
 import "../../../templates.css";
 
 interface DemoPageProps {
@@ -40,11 +43,16 @@ export default async function TemplateDemoPage({ params }: DemoPageProps) {
         <Badge tone="gold">Demo</Badge>
       </header>
       <main id="konten-utama" tabIndex={-1}>
-        <h1 className="ui-visually-hidden">Demo undangan desain {template.name}</h1>
+        <h1 className="ui-visually-hidden">
+          Demo undangan desain {template.name}
+        </h1>
         <div className="dmv-banner">
-          <Alert variant="info" title="Pratinjau demo — semua data di bawah adalah data contoh.">
-            Inilah tampilan undangan lengkap dengan desain {template.name}, dilihat dari sudut
-            pandang tamu Anda.
+          <Alert
+            variant="info"
+            title="Pratinjau demo — semua data di bawah adalah data contoh."
+          >
+            Inilah tampilan undangan lengkap dengan desain {template.name},
+            dilihat dari sudut pandang tamu Anda.
           </Alert>
         </div>
         <DemoInvitation template={template} />

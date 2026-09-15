@@ -7,7 +7,10 @@ import { getGuestManagementData } from "../../../lib/guests/fixtures";
 import { getAuthenticatedRequest } from "../../../lib/auth/server";
 import "../../guests.css";
 
-export const metadata: Metadata = { title: "Impor tamu — Wedding System", robots: { index: false, follow: false } };
+export const metadata: Metadata = {
+  title: "Impor tamu — Wedding System",
+  robots: { index: false, follow: false },
+};
 export const dynamic = "force-dynamic";
 
 const NAV = [
@@ -30,12 +33,24 @@ export default async function GuestImportPage({ searchParams }: Props) {
       >
         <div className="gst-state">
           <StatePanel
-            title={authenticated === null ? "Masuk untuk mengimpor tamu" : "Impor tamu belum tersedia"}
-            description={authenticated === null ? "Masuk ke akun Wedding System untuk mengelola daftar tamu di workspace Anda." : "Impor tamu belum dapat diproses dari layanan workspace."}
+            title={
+              authenticated === null
+                ? "Masuk untuk mengimpor tamu"
+                : "Impor tamu belum tersedia"
+            }
+            description={
+              authenticated === null
+                ? "Masuk ke akun Wedding System untuk mengelola daftar tamu di workspace Anda."
+                : "Impor tamu belum dapat diproses dari layanan workspace."
+            }
             action={
               <a
                 className="ui-button ui-button--primary ui-button--md"
-                href={authenticated === null ? "/masuk?next=%2Ftamu%2Fimpor" : "/tamu"}
+                href={
+                  authenticated === null
+                    ? "/masuk?next=%2Ftamu%2Fimpor"
+                    : "/tamu"
+                }
               >
                 {authenticated === null ? "Masuk" : "Kembali ke daftar tamu"}
               </a>
@@ -50,8 +65,15 @@ export default async function GuestImportPage({ searchParams }: Props) {
   const fixture = parseGuestFixture(params.fixture);
   const data = getGuestManagementData(fixture);
   return (
-    <ApplicationShell nav={NAV} footerNote="Impor tamu hanya setelah Anda meninjau hasilnya.">
-      {!data.capabilities.canImport ? <GuestPermissionDenied /> : <GuestImportWizard management={data} fixture={fixture} />}
+    <ApplicationShell
+      nav={NAV}
+      footerNote="Impor tamu hanya setelah Anda meninjau hasilnya."
+    >
+      {!data.capabilities.canImport ? (
+        <GuestPermissionDenied />
+      ) : (
+        <GuestImportWizard management={data} fixture={fixture} />
+      )}
     </ApplicationShell>
   );
 }

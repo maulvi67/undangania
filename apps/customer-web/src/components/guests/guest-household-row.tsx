@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Badge, Checkbox } from "@wedding/ui";
-import type { GuestHouseholdListItem, GuestListQuery } from "../../lib/guests/contract";
+import type {
+  GuestHouseholdListItem,
+  GuestListQuery,
+} from "../../lib/guests/contract";
 
 export function GuestHouseholdRow({
   household,
@@ -24,7 +27,10 @@ export function GuestHouseholdRow({
         />
       </td>
       <th scope="row">
-        <Link className="gst-table__household" href={`/tamu/${household.id}${query.fixture === "normal" ? "" : `?fixture=${query.fixture}`}`}>
+        <Link
+          className="gst-table__household"
+          href={`/tamu/${household.id}${query.fixture === "normal" ? "" : `?fixture=${query.fixture}`}`}
+        >
           {household.displayName}
         </Link>
         <span className="gst-table__subtext">{household.memberCount} tamu</span>
@@ -32,15 +38,21 @@ export function GuestHouseholdRow({
       <td>{household.maximumPax}</td>
       <td>
         <ul className="gst-table__list">
-          {household.eventNames.map((eventName) => <li key={eventName}>{eventName}</li>)}
+          {household.eventNames.map((eventName) => (
+            <li key={eventName}>{eventName}</li>
+          ))}
         </ul>
       </td>
       <td>
         {household.tags.length > 0 ? (
           <ul className="gst-table__list gst-table__list--tags">
-            {household.tags.map((tag) => <li key={tag}>{tag}</li>)}
+            {household.tags.map((tag) => (
+              <li key={tag}>{tag}</li>
+            ))}
           </ul>
-        ) : <span className="gst-muted">Belum ada</span>}
+        ) : (
+          <span className="gst-muted">Belum ada</span>
+        )}
       </td>
       <td>
         <Badge tone={household.linkStatus === "ACTIVE" ? "olive" : "blush"}>
@@ -48,7 +60,10 @@ export function GuestHouseholdRow({
         </Badge>
       </td>
       <td>
-        <Link className="gst-table__action" href={`/tamu/${household.id}${query.fixture === "normal" ? "" : `?fixture=${query.fixture}`}`}>
+        <Link
+          className="gst-table__action"
+          href={`/tamu/${household.id}${query.fixture === "normal" ? "" : `?fixture=${query.fixture}`}`}
+        >
           Kelola
         </Link>
       </td>

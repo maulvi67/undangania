@@ -133,9 +133,10 @@ describe("coupleStepSchema", () => {
         weddingDate: "Tanggal pernikahan tidak boleh di masa lalu.",
       });
     }
-    expect(coupleStepSchema.safeParse({ ...validCoupleData(), weddingDate: today }).success).toBe(
-      true,
-    );
+    expect(
+      coupleStepSchema.safeParse({ ...validCoupleData(), weddingDate: today })
+        .success,
+    ).toBe(true);
   });
 
   it("melewati validasi tanggal saat 'belum ditentukan' dicentang", () => {
@@ -192,27 +193,37 @@ describe("eventStepSchema", () => {
 
   it("menolak tanggal acara di masa lalu, menerima hari ini", () => {
     const today = todayYmd("Asia/Jakarta");
-    const past = eventStepSchema.safeParse({ ...validEventData(), eventDate: shiftDays(today, -1) });
+    const past = eventStepSchema.safeParse({
+      ...validEventData(),
+      eventDate: shiftDays(today, -1),
+    });
     expect(past.success).toBe(false);
     if (!past.success) {
       expect(translateFieldErrors(past.error.issues)).toEqual({
         eventDate: "Tanggal acara tidak boleh di masa lalu.",
       });
     }
-    expect(eventStepSchema.safeParse({ ...validEventData(), eventDate: today }).success).toBe(
-      true,
-    );
+    expect(
+      eventStepSchema.safeParse({ ...validEventData(), eventDate: today })
+        .success,
+    ).toBe(true);
   });
 
   it("menolak nilai enum yang tidak dikenal (hanya bisa lewat manipulasi langsung)", () => {
-    const eventType = eventStepSchema.safeParse({ ...validEventData(), eventType: "Seminar" });
+    const eventType = eventStepSchema.safeParse({
+      ...validEventData(),
+      eventType: "Seminar",
+    });
     expect(eventType.success).toBe(false);
     if (!eventType.success) {
       expect(translateFieldErrors(eventType.error.issues)).toEqual({
         eventType: "Pilih jenis acara.",
       });
     }
-    const timezone = eventStepSchema.safeParse({ ...validEventData(), timezone: "Asia/Mars" });
+    const timezone = eventStepSchema.safeParse({
+      ...validEventData(),
+      timezone: "Asia/Mars",
+    });
     expect(timezone.success).toBe(false);
     if (!timezone.success) {
       expect(translateFieldErrors(timezone.error.issues)).toEqual({
@@ -254,15 +265,22 @@ describe("eventStepSchema", () => {
   });
 
   it("menerima alamat kosong (opsional)", () => {
-    const parsed = eventStepSchema.safeParse({ ...validEventData(), venueAddress: "" });
+    const parsed = eventStepSchema.safeParse({
+      ...validEventData(),
+      venueAddress: "",
+    });
     expect(parsed.success).toBe(true);
   });
 });
 
 describe("preferencesStepSchema", () => {
   it("menerima id dan en, menolak lainnya", () => {
-    expect(preferencesStepSchema.safeParse({ locale: "id" }).success).toBe(true);
-    expect(preferencesStepSchema.safeParse({ locale: "en" }).success).toBe(true);
+    expect(preferencesStepSchema.safeParse({ locale: "id" }).success).toBe(
+      true,
+    );
+    expect(preferencesStepSchema.safeParse({ locale: "en" }).success).toBe(
+      true,
+    );
     const parsed = preferencesStepSchema.safeParse({ locale: "fr" });
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
@@ -275,19 +293,29 @@ describe("preferencesStepSchema", () => {
 
 describe("translateFieldErrors", () => {
   it("mengabaikan isu tanpa path isian yang dikenal", () => {
-    expect(translateFieldErrors([{ code: "custom", message: "x" }])).toEqual({});
-    expect(translateFieldErrors([{ code: "custom", message: "x", path: [] }])).toEqual({});
-    expect(translateFieldErrors([{ code: "custom", message: "x", path: ["unknown"] }])).toEqual(
+    expect(translateFieldErrors([{ code: "custom", message: "x" }])).toEqual(
       {},
     );
+    expect(
+      translateFieldErrors([{ code: "custom", message: "x", path: [] }]),
+    ).toEqual({});
+    expect(
+      translateFieldErrors([
+        { code: "custom", message: "x", path: ["unknown"] },
+      ]),
+    ).toEqual({});
   });
 
   it("memetakan too_big ke pesan panjang maksimum dan sisanya ke pesan wajib", () => {
-    expect(translateFieldErrors([{ code: "too_big", message: "z", path: ["city"] }])).toEqual({
+    expect(
+      translateFieldErrors([{ code: "too_big", message: "z", path: ["city"] }]),
+    ).toEqual({
       city: "Kota maksimal 100 karakter.",
     });
     expect(
-      translateFieldErrors([{ code: "invalid_type", message: "z", path: ["venueName"] }]),
+      translateFieldErrors([
+        { code: "invalid_type", message: "z", path: ["venueName"] },
+      ]),
     ).toEqual({ venueName: "Masukkan nama venue." });
   });
 });
@@ -300,7 +328,9 @@ describe("format tampilan", () => {
       eventTime: "08:00",
       timezone: "Asia/Jakarta" as const,
     };
-    expect(formatEventLine(base)).toBe("Akad Nikah — Sabtu, 21 Maret 2026 pukul 08.00 WIB");
+    expect(formatEventLine(base)).toBe(
+      "Akad Nikah — Sabtu, 21 Maret 2026 pukul 08.00 WIB",
+    );
     expect(formatEventLine({ ...base, timezone: "Asia/Makassar" })).toBe(
       "Akad Nikah — Sabtu, 21 Maret 2026 pukul 08.00 WITA",
     );
@@ -310,14 +340,20 @@ describe("format tampilan", () => {
   });
 
   it("menampilkan tanggal pernikahan: terisi, kosong, dan eksplisit belum ditentukan", () => {
-    expect(formatWeddingDate({ weddingDate: "2026-03-21", weddingDateUndecided: false })).toBe(
-      "21 Maret 2026",
-    );
-    expect(formatWeddingDate({ weddingDate: "", weddingDateUndecided: false })).toBe(
-      "Belum ditentukan",
-    );
     expect(
-      formatWeddingDate({ weddingDate: "2026-03-21", weddingDateUndecided: true }),
+      formatWeddingDate({
+        weddingDate: "2026-03-21",
+        weddingDateUndecided: false,
+      }),
+    ).toBe("21 Maret 2026");
+    expect(
+      formatWeddingDate({ weddingDate: "", weddingDateUndecided: false }),
+    ).toBe("Belum ditentukan");
+    expect(
+      formatWeddingDate({
+        weddingDate: "2026-03-21",
+        weddingDateUndecided: true,
+      }),
     ).toBe("Belum ditentukan");
   });
 });
@@ -343,14 +379,25 @@ describe("data awal dan deteksi isian", () => {
   });
 
   it("katalog jenis acara berisi nilai yang dijanjikan", () => {
-    expect([...EVENT_TYPES]).toEqual(["Akad Nikah", "Resepsi", "Unduh Mantu", "Lainnya"]);
+    expect([...EVENT_TYPES]).toEqual([
+      "Akad Nikah",
+      "Resepsi",
+      "Unduh Mantu",
+      "Lainnya",
+    ]);
   });
 });
 
 describe("stub transport determinism", () => {
   it("simpan pertama membuat versi 1, simpan berikutnya menaikkan versi", async () => {
     const id = "stub-save-1";
-    const first = await stubSaveStep(id, 1, { partner1Name: "Rani", partner2Name: "Bima" }, 0, false);
+    const first = await stubSaveStep(
+      id,
+      1,
+      { partner1Name: "Rani", partner2Name: "Bima" },
+      0,
+      false,
+    );
     expect(first).toEqual({ ok: true, version: 1 });
     const second = await stubSaveStep(id, 2, { city: "Bandung" }, 1, false);
     expect(second).toEqual({ ok: true, version: 2 });
@@ -363,7 +410,13 @@ describe("stub transport determinism", () => {
     const id = "stub-save-2";
     await stubSaveStep(id, 1, { partner1Name: "Rani" }, 0, false);
     await stubSaveStep(id, 1, { partner2Name: "Bima" }, 1, false);
-    const stale = await stubSaveStep(id, 1, { partner1Name: "Sinta" }, 1, false);
+    const stale = await stubSaveStep(
+      id,
+      1,
+      { partner1Name: "Sinta" },
+      1,
+      false,
+    );
     expect(stale.ok).toBe(false);
     if (!stale.ok && stale.code === "STALE_VERSION") {
       expect(stale.serverVersion).toBe(2);
@@ -375,13 +428,25 @@ describe("stub transport determinism", () => {
     const id = "stub-save-3";
     await stubSaveStep(id, 1, { partner1Name: "Rani" }, 0, false);
     await stubSaveStep(id, 1, { partner2Name: "Bima" }, 1, false);
-    const forced = await stubSaveStep(id, 1, { partner1Name: "Sinta" }, 1, true);
+    const forced = await stubSaveStep(
+      id,
+      1,
+      { partner1Name: "Sinta" },
+      1,
+      true,
+    );
     expect(forced).toEqual({ ok: true, version: 3 });
     expect(stubGetDraft(id)?.data.partner1Name).toBe("Sinta");
   });
 
   it("fixture kota gagal-simpan memicu SAVE_FAILED", async () => {
-    const result = await stubSaveStep("stub-fail-1", 2, { city: "gagal-simpan" }, 0, false);
+    const result = await stubSaveStep(
+      "stub-fail-1",
+      2,
+      { city: "gagal-simpan" },
+      0,
+      false,
+    );
     expect(result).toEqual({ ok: false, code: "SAVE_FAILED" });
   });
 
@@ -389,7 +454,13 @@ describe("stub transport determinism", () => {
     const id = "stub-fail-2";
     const existing = await stubSaveStep(id, 2, { city: "Bandung" }, 0, false);
     expect(existing.ok && existing.version === 1).toBe(true);
-    const conflict = await stubSaveStep(id, 2, { venueName: "versi-lama" }, 1, false);
+    const conflict = await stubSaveStep(
+      id,
+      2,
+      { venueName: "versi-lama" },
+      1,
+      false,
+    );
     expect(conflict.ok).toBe(false);
     if (!conflict.ok && conflict.code === "STALE_VERSION") {
       expect(conflict.serverVersion).toBe(2);
@@ -399,11 +470,22 @@ describe("stub transport determinism", () => {
 
   it("menyelesaikan draf: menggabungkan semua langkah dan menandai selesai", async () => {
     const id = "stub-complete-1";
-    await stubSaveStep(id, 1, { partner1Name: "Rani", partner2Name: "Bima" }, 0, false);
+    await stubSaveStep(
+      id,
+      1,
+      { partner1Name: "Rani", partner2Name: "Bima" },
+      0,
+      false,
+    );
     await stubSaveStep(
       id,
       2,
-      { city: "Bandung", venueName: "Gedung Melati", eventDate: "2026-12-05", eventTime: "08:00" },
+      {
+        city: "Bandung",
+        venueName: "Gedung Melati",
+        eventDate: "2026-12-05",
+        eventTime: "08:00",
+      },
       1,
       false,
     );

@@ -21,9 +21,19 @@ const household: GuestHouseholdListItem = {
 
 describe("guest list contract", () => {
   it("parses safe defaults and filters by tenant-owned list fields", () => {
-    expect(parseGuestQuery({ q: "  keluarga  " })).toMatchObject({ q: "keluarga", sort: "name" });
-    expect(filterGuestHouseholds([household], parseGuestQuery({ tag: "Keluarga besar" }))).toEqual([household]);
-    expect(filterGuestHouseholds([household], parseGuestQuery({ link: "DISABLED" }))).toEqual([]);
+    expect(parseGuestQuery({ q: "  keluarga  " })).toMatchObject({
+      q: "keluarga",
+      sort: "name",
+    });
+    expect(
+      filterGuestHouseholds(
+        [household],
+        parseGuestQuery({ tag: "Keluarga besar" }),
+      ),
+    ).toEqual([household]);
+    expect(
+      filterGuestHouseholds([household], parseGuestQuery({ link: "DISABLED" })),
+    ).toEqual([]);
   });
 
   it("rejects list DTO fields outside the privacy-safe contract", () => {
@@ -61,8 +71,11 @@ describe("guest CSV preview", () => {
 
 describe("token-disabled fixture", () => {
   it("keeps list and detail status consistent", async () => {
-    const { getGuestManagementData, getGuestHouseholdDetail } = await import("./fixtures");
-    const list = getGuestManagementData("token-disabled").households.find((item) => item.id === "household-budi");
+    const { getGuestManagementData, getGuestHouseholdDetail } =
+      await import("./fixtures");
+    const list = getGuestManagementData("token-disabled").households.find(
+      (item) => item.id === "household-budi",
+    );
     const detail = getGuestHouseholdDetail("household-budi", "token-disabled");
     expect(list?.linkStatus).toBe("DISABLED");
     expect(detail?.linkStatus).toBe("DISABLED");

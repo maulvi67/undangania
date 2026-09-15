@@ -13,7 +13,7 @@ test("Input mengaitkan label, petunjuk, dan galat", () => {
       required
       hint="Nama ini muncul di undangan."
       error="Nama panggilan wajib diisi."
-    />
+    />,
   );
   const input = screen.getByLabelText("Nama panggilan (wajib)");
   expect(input.getAttribute("aria-invalid")).toBe("true");
@@ -31,7 +31,14 @@ test("Input tanpa galat tidak menandai aria-invalid", () => {
 });
 
 test("Textarea mengaitkan label dan baris petunjuk", () => {
-  render(<Textarea id="ucapan" label="Ucapan pembuka" hint="Tulis ucapan singkat untuk tamu Anda." rows={4} />);
+  render(
+    <Textarea
+      id="ucapan"
+      label="Ucapan pembuka"
+      hint="Tulis ucapan singkat untuk tamu Anda."
+      rows={4}
+    />,
+  );
   const textarea = screen.getByLabelText("Ucapan pembuka");
   expect(textarea.getAttribute("aria-describedby")).toContain("ucapan-hint");
 });
@@ -46,9 +53,11 @@ test("Select merender opsi dan placeholder", () => {
         { value: "satu", label: "Satu acara (Akad)" },
         { value: "dua", label: "Dua acara (Akad & Resepsi)" },
       ]}
-    />
+    />,
   );
   const select = screen.getByLabelText("Jumlah acara");
-  expect(screen.getByRole("option", { name: "Dua acara (Akad & Resepsi)" })).toBeTruthy();
+  expect(
+    screen.getByRole("option", { name: "Dua acara (Akad & Resepsi)" }),
+  ).toBeTruthy();
   expect((select as HTMLSelectElement).options.length).toBe(3);
 });

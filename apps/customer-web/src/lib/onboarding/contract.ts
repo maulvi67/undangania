@@ -24,14 +24,23 @@ import { z } from "zod";
 
 /* ---------- Opsi dan batas isian ---------- */
 
-export const EVENT_TYPES = ["Akad Nikah", "Resepsi", "Unduh Mantu", "Lainnya"] as const;
+export const EVENT_TYPES = [
+  "Akad Nikah",
+  "Resepsi",
+  "Unduh Mantu",
+  "Lainnya",
+] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
 export function isEventType(value: string): value is EventType {
   return (EVENT_TYPES as readonly string[]).includes(value);
 }
 
-export const TIMEZONE_IDS = ["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"] as const;
+export const TIMEZONE_IDS = [
+  "Asia/Jakarta",
+  "Asia/Makassar",
+  "Asia/Jayapura",
+] as const;
 export type TimezoneId = (typeof TIMEZONE_IDS)[number];
 
 export function isTimezoneId(value: string): value is TimezoneId {
@@ -45,13 +54,19 @@ export const TZ_LABELS: Record<TimezoneId, string> = {
   "Asia/Jayapura": "WIT",
 };
 
-export const TIMEZONE_OPTIONS: ReadonlyArray<{ value: TimezoneId; label: string }> = [
+export const TIMEZONE_OPTIONS: ReadonlyArray<{
+  value: TimezoneId;
+  label: string;
+}> = [
   { value: "Asia/Jakarta", label: "WIB — Jakarta" },
   { value: "Asia/Makassar", label: "WITA — Makassar" },
   { value: "Asia/Jayapura", label: "WIT — Jayapura" },
 ];
 
-export const LOCALE_OPTIONS: ReadonlyArray<{ value: "id" | "en"; label: string }> = [
+export const LOCALE_OPTIONS: ReadonlyArray<{
+  value: "id" | "en";
+  label: string;
+}> = [
   { value: "id", label: "Bahasa Indonesia" },
   { value: "en", label: "English" },
 ];
@@ -151,18 +166,23 @@ export function hasAnyInput(data: OnboardingData): boolean {
 const YMD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 /** Parse YMD menjadi angka; null bila bentuknya tidak bisa diandalkan. */
-function ymdNumbers(value: string): { year: number; month: number; day: number } | null {
+function ymdNumbers(
+  value: string,
+): { year: number; month: number; day: number } | null {
   const parts = value.split("-");
   if (parts.length !== 3) return null;
   const year = Number(parts[0]);
   const month = Number(parts[1]);
   const day = Number(parts[2]);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null;
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day))
+    return null;
   return { year, month, day };
 }
 
 /** Bagian tanggal + cek kalender nyata; null bila tidak sah. */
-function validYmdParts(value: string): { year: number; month: number; day: number } | null {
+function validYmdParts(
+  value: string,
+): { year: number; month: number; day: number } | null {
   if (!YMD_PATTERN.test(value)) return null;
   const parts = ymdNumbers(value);
   if (parts === null) return null;
@@ -230,7 +250,11 @@ export const MAX_LENGTH_MESSAGES: Partial<Record<OnboardingField, string>> = {
 
 export const FORM_LEVEL_ERROR = "Periksa kembali isian Anda.";
 
-type AddIssue = (issue: { code: "custom"; path: [OnboardingField]; message: string }) => void;
+type AddIssue = (issue: {
+  code: "custom";
+  path: [OnboardingField];
+  message: string;
+}) => void;
 
 function nameChecks(
   ctx: { addIssue: AddIssue },
@@ -242,7 +266,11 @@ function nameChecks(
   if (value.trim() === "") {
     ctx.addIssue({ code: "custom", path: [field], message: requiredMessage });
   } else if (value.length > NAME_MAX_LENGTH) {
-    ctx.addIssue({ code: "custom", path: [field], message: MAX_LENGTH_MESSAGES[field] ?? "Nama maksimal 100 karakter." });
+    ctx.addIssue({
+      code: "custom",
+      path: [field],
+      message: MAX_LENGTH_MESSAGES[field] ?? "Nama maksimal 100 karakter.",
+    });
   }
 }
 
@@ -254,13 +282,27 @@ export const coupleStepSchema = z
     weddingDateUndecided: z.boolean(),
   })
   .superRefine((value, ctx) => {
-    nameChecks(ctx, "partner1Name", value.partner1Name, REQUIRED_MESSAGES.partner1Name ?? "");
-    nameChecks(ctx, "partner2Name", value.partner2Name, REQUIRED_MESSAGES.partner2Name ?? "");
+    nameChecks(
+      ctx,
+      "partner1Name",
+      value.partner1Name,
+      REQUIRED_MESSAGES.partner1Name ?? "",
+    );
+    nameChecks(
+      ctx,
+      "partner2Name",
+      value.partner2Name,
+      REQUIRED_MESSAGES.partner2Name ?? "",
+    );
     // Skipped entirely when undecided — the flag IS the answer (plan §5).
     if (value.weddingDateUndecided) return;
     if (value.weddingDate === "") return;
     if (!isValidYmd(value.weddingDate)) {
-      ctx.addIssue({ code: "custom", path: ["weddingDate"], message: "Masukkan tanggal yang valid." });
+      ctx.addIssue({
+        code: "custom",
+        path: ["weddingDate"],
+        message: "Masukkan tanggal yang valid.",
+      });
       return;
     }
     if (isPastDay(value.weddingDate, todayYmd())) {
@@ -287,9 +329,17 @@ export const eventStepSchema = z
   })
   .superRefine((value, ctx) => {
     if (value.eventDate === "") {
-      ctx.addIssue({ code: "custom", path: ["eventDate"], message: REQUIRED_MESSAGES.eventDate ?? "" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["eventDate"],
+        message: REQUIRED_MESSAGES.eventDate ?? "",
+      });
     } else if (!isValidYmd(value.eventDate)) {
-      ctx.addIssue({ code: "custom", path: ["eventDate"], message: "Masukkan tanggal yang valid." });
+      ctx.addIssue({
+        code: "custom",
+        path: ["eventDate"],
+        message: "Masukkan tanggal yang valid.",
+      });
     } else if (isPastDay(value.eventDate, todayYmd())) {
       ctx.addIssue({
         code: "custom",
@@ -298,20 +348,44 @@ export const eventStepSchema = z
       });
     }
     if (!isValidTime(value.eventTime)) {
-      ctx.addIssue({ code: "custom", path: ["eventTime"], message: REQUIRED_MESSAGES.eventTime ?? "" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["eventTime"],
+        message: REQUIRED_MESSAGES.eventTime ?? "",
+      });
     }
     if (value.city.trim() === "") {
-      ctx.addIssue({ code: "custom", path: ["city"], message: REQUIRED_MESSAGES.city ?? "" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["city"],
+        message: REQUIRED_MESSAGES.city ?? "",
+      });
     } else if (value.city.length > CITY_MAX_LENGTH) {
-      ctx.addIssue({ code: "custom", path: ["city"], message: MAX_LENGTH_MESSAGES.city ?? "" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["city"],
+        message: MAX_LENGTH_MESSAGES.city ?? "",
+      });
     }
     if (value.venueName.trim() === "") {
-      ctx.addIssue({ code: "custom", path: ["venueName"], message: REQUIRED_MESSAGES.venueName ?? "" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["venueName"],
+        message: REQUIRED_MESSAGES.venueName ?? "",
+      });
     } else if (value.venueName.length > VENUE_MAX_LENGTH) {
-      ctx.addIssue({ code: "custom", path: ["venueName"], message: MAX_LENGTH_MESSAGES.venueName ?? "" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["venueName"],
+        message: MAX_LENGTH_MESSAGES.venueName ?? "",
+      });
     }
     if (value.venueAddress.length > ADDRESS_MAX_LENGTH) {
-      ctx.addIssue({ code: "custom", path: ["venueAddress"], message: MAX_LENGTH_MESSAGES.venueAddress ?? "" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["venueAddress"],
+        message: MAX_LENGTH_MESSAGES.venueAddress ?? "",
+      });
     }
   });
 
@@ -338,7 +412,9 @@ export type FieldIssue = {
  * `too_big` dipetakan ke pesan panjang maksimum; sisanya jatuh ke pesan
  * wajib-isi per isian (pertahanan untuk API asli).
  */
-export function translateFieldErrors(issues: ReadonlyArray<FieldIssue>): FieldErrors {
+export function translateFieldErrors(
+  issues: ReadonlyArray<FieldIssue>,
+): FieldErrors {
   const errors: FieldErrors = {};
   for (const issue of issues) {
     const field = issue.path?.[0];
@@ -350,8 +426,10 @@ export function translateFieldErrors(issues: ReadonlyArray<FieldIssue>): FieldEr
     }
     errors[field] =
       issue.code === "too_big"
-        ? MAX_LENGTH_MESSAGES[field] ?? REQUIRED_MESSAGES[field] ?? FORM_LEVEL_ERROR
-        : REQUIRED_MESSAGES[field] ?? FORM_LEVEL_ERROR;
+        ? (MAX_LENGTH_MESSAGES[field] ??
+          REQUIRED_MESSAGES[field] ??
+          FORM_LEVEL_ERROR)
+        : (REQUIRED_MESSAGES[field] ?? FORM_LEVEL_ERROR);
   }
   return errors;
 }
@@ -412,7 +490,10 @@ export const IDLE_FLOW_STATE: FlowState = { kind: "idle" };
  * konversi zona; jangkar UTC mencegah offset zona menggeser nama hari.
  */
 export function formatEventLine(
-  data: Pick<OnboardingData, "eventType" | "eventDate" | "eventTime" | "timezone">,
+  data: Pick<
+    OnboardingData,
+    "eventType" | "eventDate" | "eventTime" | "timezone"
+  >,
   locale: "id" | "en" = "id",
 ): string {
   const parts = validYmdParts(data.eventDate);
@@ -420,16 +501,20 @@ export function formatEventLine(
     // Pertahanan untuk data setengah jadi; ringkasan nyata selalu tampil setelah validasi.
     return data.eventType;
   }
-  const timeText = locale === "en" ? data.eventTime : data.eventTime.replace(":", ".");
+  const timeText =
+    locale === "en" ? data.eventTime : data.eventTime.replace(":", ".");
   const anchor = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
   // en-GB (bukan en-US) agar urutan hari-bulan sama dengan versi Indonesia.
-  const dateText = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "id-ID", {
-    timeZone: "UTC",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(anchor);
+  const dateText = new Intl.DateTimeFormat(
+    locale === "en" ? "en-GB" : "id-ID",
+    {
+      timeZone: "UTC",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    },
+  ).format(anchor);
   const at = locale === "en" ? "at" : "pukul";
   return `${data.eventType} — ${dateText} ${at} ${timeText} ${TZ_LABELS[data.timezone]}`;
 }

@@ -50,7 +50,10 @@ export function CatalogFilters({ query }: { query: CatalogQuery }) {
               defaultValue={query.kategori}
               options={[
                 { value: "", label: "Semua" },
-                ...categories.map((category) => ({ value: category, label: category })),
+                ...categories.map((category) => ({
+                  value: category,
+                  label: category,
+                })),
               ]}
             />
           </div>
@@ -63,7 +66,10 @@ export function CatalogFilters({ query }: { query: CatalogQuery }) {
               defaultValue={query.harga}
               options={[
                 { value: "", label: "Semua" },
-                ...TEMPLATE_TIERS.map((tier) => ({ value: tier, label: TIER_LABELS[tier] })),
+                ...TEMPLATE_TIERS.map((tier) => ({
+                  value: tier,
+                  label: TIER_LABELS[tier],
+                })),
               ]}
             />
           </div>

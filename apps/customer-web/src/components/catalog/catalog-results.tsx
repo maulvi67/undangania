@@ -5,7 +5,11 @@ import { TemplateCard } from "./template-card";
  * Result grid plus the live result count. The count is a polite status so
  * screen readers announce it after each full-page GET re-render.
  */
-export function CatalogResults({ templates }: { templates: readonly TemplateRecord[] }) {
+export function CatalogResults({
+  templates,
+}: {
+  templates: readonly TemplateRecord[];
+}) {
   return (
     <section className="ctlg-results" aria-label="Hasil pencarian desain">
       <p className="ctlg-count" role="status">

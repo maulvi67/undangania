@@ -21,7 +21,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
         </div>
       </main>
       <p className="auth-legal">
-        &copy; {new Date().getFullYear()} Wedding System. Undangan digital untuk hari bahagia Anda.
+        &copy; {new Date().getFullYear()} Wedding System. Undangan digital untuk
+        hari bahagia Anda.
       </p>
     </div>
   );

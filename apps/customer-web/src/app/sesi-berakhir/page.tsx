@@ -29,7 +29,9 @@ interface SesiBerakhirPageProps {
   searchParams: Promise<{ next?: string | string[] }>;
 }
 
-export default async function SesiBerakhirPage({ searchParams }: SesiBerakhirPageProps) {
+export default async function SesiBerakhirPage({
+  searchParams,
+}: SesiBerakhirPageProps) {
   const params = await searchParams;
   const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
   const href = signInHref(rawNext);
@@ -44,7 +46,10 @@ export default async function SesiBerakhirPage({ searchParams }: SesiBerakhirPag
           Untuk keamanan, Anda diminta masuk kembali.
         </p>
         <div className="auth-panel__actions">
-          <Link className="ui-button ui-button--primary ui-button--lg" href={href}>
+          <Link
+            className="ui-button ui-button--primary ui-button--lg"
+            href={href}
+          >
             Masuk kembali
           </Link>
         </div>

@@ -55,7 +55,10 @@ export default async function MulaiPage({ searchParams }: MulaiPageProps) {
           title="Persiapan workspace belum tersedia"
           description="Layanan onboarding belum dapat menyimpan data dari lingkungan produksi."
           action={
-            <a className="ui-button ui-button--secondary ui-button--lg" href="/dashboard">
+            <a
+              className="ui-button ui-button--secondary ui-button--lg"
+              href="/dashboard"
+            >
               Kembali ke dasbor
             </a>
           }
@@ -65,7 +68,9 @@ export default async function MulaiPage({ searchParams }: MulaiPageProps) {
   }
 
   const params = await searchParams;
-  const rawTemplate = Array.isArray(params.template) ? params.template[0] : params.template;
+  const rawTemplate = Array.isArray(params.template)
+    ? params.template[0]
+    : params.template;
   // Validasi sisi server terhadap koleksi aktif — nilai lain diabaikan diam-diam
   // (rencana §2); diteruskan ke /editor saat selesai.
   const templateId =

@@ -17,9 +17,17 @@ export default function GuestLoading() {
         <Skeleton height="0.75rem" width="9rem" />
         <Skeleton height="2.75rem" width="12rem" />
         <Skeleton height="1rem" width="24rem" />
-        <div className="gst-loading__summary"><Skeleton height="5rem" /><Skeleton height="5rem" /><Skeleton height="5rem" /></div>
+        <div className="gst-loading__summary">
+          <Skeleton height="5rem" />
+          <Skeleton height="5rem" />
+          <Skeleton height="5rem" />
+        </div>
         <Skeleton height="5rem" />
-        <div className="gst-loading__cards"><Skeleton height="12rem" /><Skeleton height="12rem" /><Skeleton height="12rem" /></div>
+        <div className="gst-loading__cards">
+          <Skeleton height="12rem" />
+          <Skeleton height="12rem" />
+          <Skeleton height="12rem" />
+        </div>
       </div>
     </ApplicationShell>
   );

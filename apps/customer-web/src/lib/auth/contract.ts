@@ -44,9 +44,12 @@ export const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, string> = {
   INVALID_CREDENTIALS: "Email atau kata sandi tidak cocok.",
   VERIFICATION_REQUIRED:
     "Akun belum diverifikasi. Kami mengirimkan tautan verifikasi ke email Anda — silakan periksa kotak masuk Anda.",
-  SUSPENDED: "Akun Anda sedang ditangguhkan. Silakan hubungi dukungan untuk membuka kembali akun.",
-  RATE_LIMITED: "Terlalu banyak percobaan. Silakan coba lagi beberapa saat lagi.",
-  PROVIDER_UNAVAILABLE: "Layanan masuk sedang tidak tersedia. Silakan coba beberapa saat lagi.",
+  SUSPENDED:
+    "Akun Anda sedang ditangguhkan. Silakan hubungi dukungan untuk membuka kembali akun.",
+  RATE_LIMITED:
+    "Terlalu banyak percobaan. Silakan coba lagi beberapa saat lagi.",
+  PROVIDER_UNAVAILABLE:
+    "Layanan masuk sedang tidak tersedia. Silakan coba beberapa saat lagi.",
   TOKEN_EXPIRED: "", // handled by dedicated panels with flow-specific copy
   TOKEN_INVALID: "", // handled by dedicated panels with flow-specific copy
   VALIDATION: "Periksa kembali isian Anda.",

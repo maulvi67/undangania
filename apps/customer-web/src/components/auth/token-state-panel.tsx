@@ -14,7 +14,11 @@ type TokenStatePanelProps = {
  * both states are reachable only by link holders, so nothing is leaked.
  * The token itself is never rendered.
  */
-export function TokenStatePanel({ kind, flow, headingRef }: TokenStatePanelProps) {
+export function TokenStatePanel({
+  kind,
+  flow,
+  headingRef,
+}: TokenStatePanelProps) {
   const ttl = flow === "verification" ? "24 jam" : "1 jam";
   const flowName = flow === "verification" ? "verifikasi" : "pemulihan";
 
@@ -35,17 +39,26 @@ export function TokenStatePanel({ kind, flow, headingRef }: TokenStatePanelProps
       )}
       <div className="auth-panel__actions">
         {kind === "expired" && flow === "verification" ? (
-          <Link className="ui-button ui-button--primary ui-button--md" href="/verifikasi">
+          <Link
+            className="ui-button ui-button--primary ui-button--md"
+            href="/verifikasi"
+          >
             Kirim ulang tautan
           </Link>
         ) : null}
         {flow === "reset" ? (
-          <Link className="ui-button ui-button--primary ui-button--md" href="/lupa-sandi">
+          <Link
+            className="ui-button ui-button--primary ui-button--md"
+            href="/lupa-sandi"
+          >
             Minta tautan baru
           </Link>
         ) : null}
         {kind === "invalid" && flow === "verification" ? (
-          <Link className="ui-button ui-button--primary ui-button--md" href="/masuk">
+          <Link
+            className="ui-button ui-button--primary ui-button--md"
+            href="/masuk"
+          >
             Masuk
           </Link>
         ) : null}

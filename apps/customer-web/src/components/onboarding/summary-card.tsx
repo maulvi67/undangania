@@ -28,7 +28,8 @@ export function SummaryCard({ data, title, onEditStep }: SummaryCardProps) {
     .filter((part) => part !== "")
     .join(", ");
   const localeLabel =
-    LOCALE_OPTIONS.find((option) => option.value === data.locale)?.label ?? data.locale;
+    LOCALE_OPTIONS.find((option) => option.value === data.locale)?.label ??
+    data.locale;
   const address = data.venueAddress.trim();
 
   return (
@@ -41,7 +42,9 @@ export function SummaryCard({ data, title, onEditStep }: SummaryCardProps) {
         </div>
         <div className="onb-summary__row">
           <dt className="onb-summary__term">Tanggal pernikahan</dt>
-          <dd className="onb-summary__value">{formatWeddingDate(data, data.locale)}</dd>
+          <dd className="onb-summary__value">
+            {formatWeddingDate(data, data.locale)}
+          </dd>
         </div>
         <div className="onb-summary__row">
           <dt className="onb-summary__term">Acara pertama</dt>
@@ -68,10 +71,18 @@ export function SummaryCard({ data, title, onEditStep }: SummaryCardProps) {
       </dl>
       {onEditStep ? (
         <div className="onb-summary__edits">
-          <button type="button" className="onb-summary__edit" onClick={() => onEditStep(1)}>
+          <button
+            type="button"
+            className="onb-summary__edit"
+            onClick={() => onEditStep(1)}
+          >
             Ubah data mempelai
           </button>
-          <button type="button" className="onb-summary__edit" onClick={() => onEditStep(2)}>
+          <button
+            type="button"
+            className="onb-summary__edit"
+            onClick={() => onEditStep(2)}
+          >
             Ubah data acara
           </button>
         </div>

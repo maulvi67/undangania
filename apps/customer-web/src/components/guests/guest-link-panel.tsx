@@ -2,7 +2,10 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 import { Alert, Badge, Button, Input } from "@wedding/ui";
-import type { GuestHouseholdDetail, GuestManagementData } from "../../lib/guests/contract";
+import type {
+  GuestHouseholdDetail,
+  GuestManagementData,
+} from "../../lib/guests/contract";
 import { GuestConfirmDialog } from "./guest-dialog";
 
 function demoLink(householdId: string, version: number): string {
@@ -27,7 +30,10 @@ export function GuestLinkPanel({
   const disableTriggerRef = useRef<HTMLButtonElement>(null);
   const [notice, setNotice] = useState<string>("");
   const [linkAvailable, setLinkAvailable] = useState(false);
-  const link = useMemo(() => demoLink(household.id, tokenVersion), [household.id, tokenVersion]);
+  const link = useMemo(
+    () => demoLink(household.id, tokenVersion),
+    [household.id, tokenVersion],
+  );
   const shareMessage = useMemo(
     () =>
       `Halo ${household.displayName},\n\nDengan penuh sukacita, kami mengundang Anda untuk hadir di acara pernikahan kami.\n\nSilakan membuka undangan dan mengonfirmasi kehadiran melalui tautan berikut:\n\n${link}\n\nTerima kasih atas doa dan perhatian Anda.`,
@@ -36,7 +42,9 @@ export function GuestLinkPanel({
 
   const copy = async (value: string, success: string) => {
     if (!navigator.clipboard) {
-      setNotice("Penyalinan otomatis tidak tersedia. Tautan ditampilkan untuk disalin manual.");
+      setNotice(
+        "Penyalinan otomatis tidak tersedia. Tautan ditampilkan untuk disalin manual.",
+      );
       setLinkAvailable(true);
       return;
     }
@@ -45,7 +53,9 @@ export function GuestLinkPanel({
       setNotice(success);
       setLinkAvailable(true);
     } catch {
-      setNotice("Penyalinan otomatis tidak tersedia. Tautan ditampilkan untuk disalin manual.");
+      setNotice(
+        "Penyalinan otomatis tidak tersedia. Tautan ditampilkan untuk disalin manual.",
+      );
       setLinkAvailable(true);
     }
   };
@@ -54,7 +64,9 @@ export function GuestLinkPanel({
     setTokenVersion((current) => current + 1);
     setLinkStatus("ACTIVE");
     setLinkAvailable(true);
-    setNotice("Tautan baru siap disalin. Tautan ini hanya tersedia selama halaman ini terbuka.");
+    setNotice(
+      "Tautan baru siap disalin. Tautan ini hanya tersedia selama halaman ini terbuka.",
+    );
     setShowRotate(false);
   };
 
@@ -67,7 +79,10 @@ export function GuestLinkPanel({
   const canManage = management.capabilities.canManageLink;
   const active = linkStatus === "ACTIVE";
   return (
-    <section className="gst-detail__section gst-link-panel" aria-labelledby="gst-link-title">
+    <section
+      className="gst-detail__section gst-link-panel"
+      aria-labelledby="gst-link-title"
+    >
       <div className="gst-detail__section-head">
         <div>
           <p className="gst-eyebrow">Akses tamu</p>
@@ -78,13 +93,16 @@ export function GuestLinkPanel({
         </Badge>
       </div>
       <p className="gst-detail__copy">
-        Tautan ini memberi akses ke undangan dan konfirmasi untuk rumah tangga ini. Simpan dan bagikan hanya kepada penerima yang dituju.
+        Tautan ini memberi akses ke undangan dan konfirmasi untuk rumah tangga
+        ini. Simpan dan bagikan hanya kepada penerima yang dituju.
       </p>
       <div className="gst-link-panel__masked">
         <Input
           id="gst-masked-link"
           label="Tautan personal"
-          value={active ? `https://…/${household.id}/••••` : "Tautan tidak aktif"}
+          value={
+            active ? `https://…/${household.id}/••••` : "Tautan tidak aktif"
+          }
           readOnly
           disabled={!active}
           hint="Token asli tidak disimpan atau ditampilkan di daftar tamu."
@@ -94,15 +112,36 @@ export function GuestLinkPanel({
         <div className="gst-link-panel__one-time">
           <p className="gst-eyebrow">Tautan sementara untuk disalin</p>
           <code>{link}</code>
-          <p>Jangan kirimkan tautan ini ke penerima yang tidak dituju. Tautan tidak akan ditampilkan lagi setelah Anda meninggalkan halaman.</p>
+          <p>
+            Jangan kirimkan tautan ini ke penerima yang tidak dituju. Tautan
+            tidak akan ditampilkan lagi setelah Anda meninggalkan halaman.
+          </p>
         </div>
       ) : null}
-      {notice ? <div className="gst-link-panel__notice"><Alert variant={notice.includes("dinonaktifkan") ? "warning" : "success"} title="Status tautan">{notice}</Alert></div> : null}
+      {notice ? (
+        <div className="gst-link-panel__notice">
+          <Alert
+            variant={notice.includes("dinonaktifkan") ? "warning" : "success"}
+            title="Status tautan"
+          >
+            {notice}
+          </Alert>
+        </div>
+      ) : null}
       <div className="gst-detail__actions">
-        <Button type="button" disabled={!canManage || !active} onClick={() => void copy(link, "Tautan personal disalin.")}>
+        <Button
+          type="button"
+          disabled={!canManage || !active}
+          onClick={() => void copy(link, "Tautan personal disalin.")}
+        >
           Salin tautan
         </Button>
-        <Button type="button" variant="secondary" disabled={!canManage || !active} onClick={() => void copy(shareMessage, "Pesan undangan disalin.")}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!canManage || !active}
+          onClick={() => void copy(shareMessage, "Pesan undangan disalin.")}
+        >
           Salin pesan
         </Button>
       </div>
@@ -133,7 +172,12 @@ export function GuestLinkPanel({
             Nonaktifkan tautan
           </Button>
         </div>
-      ) : <p className="gst-muted">Anda dapat melihat status tautan, tetapi tidak memiliki izin untuk mengubahnya.</p>}
+      ) : (
+        <p className="gst-muted">
+          Anda dapat melihat status tautan, tetapi tidak memiliki izin untuk
+          mengubahnya.
+        </p>
+      )}
       <GuestConfirmDialog
         id={rotateDialogId}
         open={showRotate}

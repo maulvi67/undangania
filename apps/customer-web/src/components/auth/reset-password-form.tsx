@@ -50,7 +50,10 @@ export function ResetPasswordForm({ token }: { token: string }) {
           baru Anda.
         </p>
         <div className="auth-panel__actions">
-          <Link className="ui-button ui-button--primary ui-button--lg" href="/masuk">
+          <Link
+            className="ui-button ui-button--primary ui-button--lg"
+            href="/masuk"
+          >
             Masuk dengan kata sandi baru
           </Link>
         </div>

@@ -23,7 +23,11 @@ function relativeSavedAt(savedAt: number): string {
  * Awal di urutan tab, tidak pernah autofokus; konfirmasi "Mulai baru"
  * inline — bukan dialog.
  */
-export function ResumeBanner({ savedAt, onContinue, onRestart }: ResumeBannerProps) {
+export function ResumeBanner({
+  savedAt,
+  onContinue,
+  onRestart,
+}: ResumeBannerProps) {
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -33,9 +37,15 @@ export function ResumeBanner({ savedAt, onContinue, onRestart }: ResumeBannerPro
       </p>
       {confirming ? (
         <div className="onb-resume__confirm">
-          <p className="onb-resume__warning">Mulai baru menghapus draf saat ini.</p>
+          <p className="onb-resume__warning">
+            Mulai baru menghapus draf saat ini.
+          </p>
           <div className="onb-resume__row">
-            <Button variant="secondary" size="sm" onClick={() => setConfirming(false)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setConfirming(false)}
+            >
               Batal
             </Button>
             <Button variant="danger" size="sm" onClick={onRestart}>
@@ -48,7 +58,11 @@ export function ResumeBanner({ savedAt, onContinue, onRestart }: ResumeBannerPro
           <Button size="sm" onClick={onContinue}>
             Lanjutkan
           </Button>
-          <Button variant="tertiary" size="sm" onClick={() => setConfirming(true)}>
+          <Button
+            variant="tertiary"
+            size="sm"
+            onClick={() => setConfirming(true)}
+          >
             Mulai baru
           </Button>
         </div>

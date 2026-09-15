@@ -47,20 +47,26 @@ function err(code: AuthErrorCode): AuthTransportResult {
   return { ok: false, code };
 }
 
-export async function stubSignIn(input: SignInInput): Promise<AuthTransportResult> {
+export async function stubSignIn(
+  input: SignInInput,
+): Promise<AuthTransportResult> {
   await delay();
   // Rate limiting and provider outages precede credential checks in the
   // real world (and must in the stub: fixtures for those states use any password).
   if (input.email === "terbatas@example.com") return err("RATE_LIMITED");
-  if (input.email === "gangguan@example.com") return err("PROVIDER_UNAVAILABLE");
+  if (input.email === "gangguan@example.com")
+    return err("PROVIDER_UNAVAILABLE");
   if (input.password !== FIXTURE_PASSWORD) return err("INVALID_CREDENTIALS");
-  if (input.email === "belum-verifikasi@example.com") return err("VERIFICATION_REQUIRED");
+  if (input.email === "belum-verifikasi@example.com")
+    return err("VERIFICATION_REQUIRED");
   if (input.email === "ditangguhkan@example.com") return err("SUSPENDED");
   if (input.email === "terdaftar@example.com") return { ok: true };
   return err("INVALID_CREDENTIALS");
 }
 
-export async function stubRegister(_input: RegisterInput): Promise<AuthTransportResult> {
+export async function stubRegister(
+  _input: RegisterInput,
+): Promise<AuthTransportResult> {
   await delay();
   // Always "succeeds" (R4): duplicate vs fresh email is indistinguishable here;
   // differentiation would happen in email content on the real backend.
@@ -68,7 +74,9 @@ export async function stubRegister(_input: RegisterInput): Promise<AuthTransport
   return { ok: true };
 }
 
-export async function stubResendVerification(_input: EmailOnlyInput): Promise<AuthTransportResult> {
+export async function stubResendVerification(
+  _input: EmailOnlyInput,
+): Promise<AuthTransportResult> {
   await delay();
   void _input;
   return { ok: true }; // always (anti-enumeration R3/R4)
@@ -82,14 +90,18 @@ export async function stubRequestPasswordReset(
   return { ok: true }; // always (anti-enumeration R3)
 }
 
-export async function stubVerifyEmail(input: VerifyEmailInput): Promise<AuthTransportResult> {
+export async function stubVerifyEmail(
+  input: VerifyEmailInput,
+): Promise<AuthTransportResult> {
   await delay();
   if (input.token === "verifikasi-valid-verifikasi-valid") return { ok: true };
   if (input.token === "verifikasi-kedaluwarsa-x") return err("TOKEN_EXPIRED");
   return err("TOKEN_INVALID");
 }
 
-export async function stubResetPassword(input: ResetPasswordInput): Promise<AuthTransportResult> {
+export async function stubResetPassword(
+  input: ResetPasswordInput,
+): Promise<AuthTransportResult> {
   await delay();
   if (input.token === "reset-valid-reset-valid") return { ok: true };
   if (input.token === "reset-kedaluwarsa-xxxx") return err("TOKEN_EXPIRED");

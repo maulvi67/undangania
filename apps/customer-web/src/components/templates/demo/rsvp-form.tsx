@@ -29,8 +29,8 @@ export function RsvpForm() {
     return (
       <div aria-live="polite">
         <Alert variant="success" title={`Terima kasih, ${submitted}!`}>
-          Konfirmasi Anda tercatat di pratinjau demo ini. Pada undangan sungguhan, konfirmasi
-          langsung terkirim ke mempelai.
+          Konfirmasi Anda tercatat di pratinjau demo ini. Pada undangan
+          sungguhan, konfirmasi langsung terkirim ke mempelai.
         </Alert>
       </div>
     );
@@ -52,8 +52,16 @@ export function RsvpForm() {
         defaultValue="hadir"
         required
         options={[
-          { value: "hadir", label: "Hadir", hint: "Insya Allah dapat menghadiri" },
-          { value: "berhalangan", label: "Berhalangan", hint: "Tidak dapat menghadiri" },
+          {
+            value: "hadir",
+            label: "Hadir",
+            hint: "Insya Allah dapat menghadiri",
+          },
+          {
+            value: "berhalangan",
+            label: "Berhalangan",
+            hint: "Tidak dapat menghadiri",
+          },
         ]}
       />
       <Select

@@ -19,7 +19,10 @@ const alertIcons: Record<AlertVariant, ReactNode> = {
 
 export function Alert({ variant = "info", title, children }: AlertProps) {
   return (
-    <div className={cx("ui-alert", `ui-alert--${variant}`)} role={variant === "error" ? "alert" : "status"}>
+    <div
+      className={cx("ui-alert", `ui-alert--${variant}`)}
+      role={variant === "error" ? "alert" : "status"}
+    >
       <span className="ui-alert__icon" aria-hidden="true">
         {alertIcons[variant]}
       </span>
@@ -33,11 +36,25 @@ export function Alert({ variant = "info", title, children }: AlertProps) {
 
 export type BadgeTone = "neutral" | "olive" | "gold" | "blush";
 
-export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; children: ReactNode }) {
-  return <span className={cx("ui-badge", `ui-badge--${tone}`)}>{children}</span>;
+export function Badge({
+  tone = "neutral",
+  children,
+}: {
+  tone?: BadgeTone;
+  children: ReactNode;
+}) {
+  return (
+    <span className={cx("ui-badge", `ui-badge--${tone}`)}>{children}</span>
+  );
 }
 
-export function Toast({ open, children }: { open: boolean; children: ReactNode }) {
+export function Toast({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: ReactNode;
+}) {
   if (!open) return null;
   return (
     <div className="ui-toast" role="status">

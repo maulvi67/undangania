@@ -21,13 +21,20 @@ function fieldProps(field: OnboardingField, errors: FieldErrors) {
 }
 
 /** Langkah 1 — Mempelai (rencana §4). Tanggal pernikahan opsional. */
-export function StepCouple({ data, errors, headingRef, onFieldChange }: StepCoupleProps) {
+export function StepCouple({
+  data,
+  errors,
+  headingRef,
+  onFieldChange,
+}: StepCoupleProps) {
   return (
     <section className="onb-step">
       <h1 className="onb-title" tabIndex={-1} ref={headingRef}>
         Mempelai
       </h1>
-      <p className="onb-lede">Isi nama kedua mempelai yang akan tampil pada undangan.</p>
+      <p className="onb-lede">
+        Isi nama kedua mempelai yang akan tampil pada undangan.
+      </p>
       <div className="onb-fields">
         <Input
           id="onb-partner1Name"
@@ -39,7 +46,9 @@ export function StepCouple({ data, errors, headingRef, onFieldChange }: StepCoup
           autoComplete="off"
           enterKeyHint="next"
           required
-          onChange={(event) => onFieldChange({ partner1Name: event.target.value })}
+          onChange={(event) =>
+            onFieldChange({ partner1Name: event.target.value })
+          }
           {...fieldProps("partner1Name", errors)}
         />
         <Input
@@ -52,7 +61,9 @@ export function StepCouple({ data, errors, headingRef, onFieldChange }: StepCoup
           autoComplete="off"
           enterKeyHint="next"
           required
-          onChange={(event) => onFieldChange({ partner2Name: event.target.value })}
+          onChange={(event) =>
+            onFieldChange({ partner2Name: event.target.value })
+          }
           {...fieldProps("partner2Name", errors)}
         />
         <Input
@@ -64,7 +75,9 @@ export function StepCouple({ data, errors, headingRef, onFieldChange }: StepCoup
           value={data.weddingDate}
           disabled={data.weddingDateUndecided}
           enterKeyHint="next"
-          onChange={(event) => onFieldChange({ weddingDate: event.target.value })}
+          onChange={(event) =>
+            onFieldChange({ weddingDate: event.target.value })
+          }
           {...fieldProps("weddingDate", errors)}
         />
         <Checkbox
@@ -72,7 +85,9 @@ export function StepCouple({ data, errors, headingRef, onFieldChange }: StepCoup
           name="weddingDateUndecided"
           label="Tanggal pernikahan belum ditentukan"
           checked={data.weddingDateUndecided}
-          onChange={(event) => onFieldChange({ weddingDateUndecided: event.target.checked })}
+          onChange={(event) =>
+            onFieldChange({ weddingDateUndecided: event.target.checked })
+          }
         />
       </div>
     </section>

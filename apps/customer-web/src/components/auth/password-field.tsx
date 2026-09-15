@@ -52,7 +52,11 @@ export function PasswordField({
         <input
           id={inputId}
           name="password"
-          className={cx("ui-input", "auth-password__input", error ? "ui-input--error" : undefined)}
+          className={cx(
+            "ui-input",
+            "auth-password__input",
+            error ? "ui-input--error" : undefined,
+          )}
           type={visible ? "text" : "password"}
           autoComplete={autoComplete}
           autoCapitalize="none"
@@ -60,7 +64,12 @@ export function PasswordField({
           enterKeyHint={enterKeyHint}
           required
           aria-invalid={error ? true : undefined}
-          aria-describedby={cx(hint ? hintId : undefined, error ? `${inputId}-error` : undefined) || undefined}
+          aria-describedby={
+            cx(
+              hint ? hintId : undefined,
+              error ? `${inputId}-error` : undefined,
+            ) || undefined
+          }
         />
         <Button
           type="button"
@@ -68,7 +77,9 @@ export function PasswordField({
           size="sm"
           className="auth-password__toggle"
           aria-pressed={visible}
-          aria-label={visible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+          aria-label={
+            visible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"
+          }
           onClick={() => setVisible((value) => !value)}
         >
           {visible ? "Sembunyikan" : "Tampilkan"}

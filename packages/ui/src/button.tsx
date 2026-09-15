@@ -29,13 +29,15 @@ export function Button({
         `ui-button--${variant}`,
         `ui-button--${size}`,
         loading && "ui-button--loading",
-        className
+        className,
       )}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...rest}
     >
-      {loading ? <Spinner className="ui-button__spinner" labeled={false} /> : null}
+      {loading ? (
+        <Spinner className="ui-button__spinner" labeled={false} />
+      ) : null}
       {children}
     </button>
   );

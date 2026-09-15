@@ -12,7 +12,10 @@ import {
   parseCatalogQuery,
   type RawSearchParams,
 } from "../../components/catalog/catalog-query";
-import { TEMPLATES, getActiveTemplates } from "../../components/templates/template-data";
+import {
+  TEMPLATES,
+  getActiveTemplates,
+} from "../../components/templates/template-data";
 import "../catalog.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -73,8 +76,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           <header className="ctlg-header">
             <h1>Pilih desain undangan Anda</h1>
             <p className="ctlg-lede">
-              Semua desain dilengkapi fitur inti undangan digital yang sama — perbedaan
-              harga antar desain hanya mencerminkan kompleksitas visual dan asetnya.
+              Semua desain dilengkapi fitur inti undangan digital yang sama —
+              perbedaan harga antar desain hanya mencerminkan kompleksitas
+              visual dan asetnya.
             </p>
           </header>
 
@@ -90,7 +94,9 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
                   description="Coba ubah kata kunci pencarian atau hapus filter untuk melihat seluruh koleksi."
                   action={
                     hasActiveFilters(query) ? (
-                      <LinkButton href="/templates">Hapus semua filter</LinkButton>
+                      <LinkButton href="/templates">
+                        Hapus semua filter
+                      </LinkButton>
                     ) : null
                   }
                 />

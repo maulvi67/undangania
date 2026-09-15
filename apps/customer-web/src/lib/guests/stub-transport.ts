@@ -29,9 +29,10 @@ export async function loadGuests(
   if (fixture === "permission-denied") return { kind: "forbidden" };
   if (fixture === "unavailable") return { kind: "unavailable" };
   const parsedQuery = parseGuestQuery({ fixture, ...query });
-  const households = filterGuestHouseholds(management.households, parsedQuery).map((item) =>
-    guestListItemSchema.parse(item),
-  );
+  const households = filterGuestHouseholds(
+    management.households,
+    parsedQuery,
+  ).map((item) => guestListItemSchema.parse(item));
   return { kind: "ok", data: { ...management, households } };
 }
 
@@ -55,7 +56,9 @@ export function getGuestDetailForDevelopment(
   return getGuestHouseholdDetail(householdId, fixture);
 }
 
-export function guestLoadResultKind(result: GuestLoadResult): GuestLoadResult["kind"] {
+export function guestLoadResultKind(
+  result: GuestLoadResult,
+): GuestLoadResult["kind"] {
   return result.kind;
 }
 
@@ -82,7 +85,9 @@ export function assertHouseholdBelongsToWorkspace(
   }
 }
 
-export function managementDataForResult(result: GuestLoadResult): GuestManagementData | null {
+export function managementDataForResult(
+  result: GuestLoadResult,
+): GuestManagementData | null {
   if (result.kind !== "ok") return null;
   return result.data;
 }

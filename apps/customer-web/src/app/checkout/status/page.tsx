@@ -48,7 +48,9 @@ function ProductionPaymentStatusUnavailable({
           <div className="ck-status-layout">
             <header className="ck-heading ck-heading--status">
               <p className="ck-eyebrow">Konfirmasi pembayaran</p>
-              <h1 className="ck-title">Status pembayaran sedang diverifikasi</h1>
+              <h1 className="ck-title">
+                Status pembayaran sedang diverifikasi
+              </h1>
               <p className="ck-lede">
                 Status pembayaran belum dapat ditampilkan dari layanan produksi.
               </p>
