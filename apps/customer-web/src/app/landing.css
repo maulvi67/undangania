@@ -1,8 +1,58 @@
 /*
- * Wedding System — marketing landing page styles.
+ * Wedding System — marketing landing page.
  * Scope: `lnd-*` classes only; builds on @wedding/ui tokens and utilities.
- * Editorial, calm, hairline rules, no gradients, no universal radius.
+ *
+ * Direction (approved, preserved): editorial and calm — hairline rules, serif
+ * display type, no gradients, no universal radius, with a soft blue wedding
+ * palette and a restrained brass accent.
+ *
+ * This revision keeps that thesis and replaces the generic "centred heading
+ * plus three equal cards" rhythm with asymmetric composition, a larger display
+ * scale, and real depth in the hero.
+ *
+ * Typography: --font-display / --font-sans resolve to the self-hosted faces
+ * declared in layout.tsx; see packages/ui/src/tokens.css.
+ *
+ * Motion: every transition lives inside `prefers-reduced-motion: no-preference`.
  */
+
+/*
+ * The landing page gets its own palette without recolouring the catalog,
+ * dashboard, or invitation routes that share the UI tokens.
+ */
+.lnd-shell {
+  --color-ink: #2b4350;
+  --color-ink-soft: #506f7d;
+  --color-olive: #4d7185;
+  --color-olive-hover: #456b7e;
+  --color-olive-active: #395b6b;
+  --color-sage: #aac2ce;
+  --color-mist: #e5eff3;
+  --color-ivory: #f3f8fa;
+  --color-paper: #fffefd;
+  --color-clay: #b18a6c;
+  --color-clay-deep: #7b5e4d;
+  --color-blush: #d9e8ef;
+  --color-gold: #b89c6b;
+  --color-border: #c7d9e1;
+  --color-border-input: #668492;
+  --color-bg: var(--color-ivory);
+  --color-surface: var(--color-paper);
+  --color-text: var(--color-ink);
+  --color-text-muted: var(--color-ink-soft);
+  --color-primary: var(--color-olive);
+  --color-on-primary: var(--color-paper);
+  --color-focus: #2b4350;
+  --shadow-sm: 0 1px 2px rgba(43, 67, 80, 0.08);
+  --shadow-md: 0 2px 10px rgba(43, 67, 80, 0.1);
+  --shadow-lg: 0 14px 36px rgba(43, 67, 80, 0.16);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
 
 /* ---------- Kepala halaman ---------- */
 
@@ -22,11 +72,185 @@
   }
 }
 
+/* Primary action inside the mobile drawer, where the header bar hides it. */
+.lnd-drawer__cta {
+  margin-block-start: var(--space-6);
+  padding-block-start: var(--space-6);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.lnd-drawer__cta .ui-button {
+  width: 100%;
+}
+
+/* ---------- Kerangka bagian ---------- */
+
+.lnd-section {
+  border-top: 1px solid var(--color-border);
+  padding-block: var(--space-12) var(--space-16);
+  scroll-margin-top: 4.75rem;
+}
+
+@media (min-width: 48rem) {
+  .lnd-section {
+    padding-block: var(--space-16) calc(var(--space-16) + var(--space-6));
+  }
+}
+
+.lnd-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 42rem;
+}
+
+.lnd-head__title {
+  font-size: clamp(1.75rem, 1.25rem + 2.1vw, 2.5rem);
+  text-wrap: balance;
+}
+
+.lnd-lede {
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+.lnd-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.lnd-eyebrow::before {
+  content: "";
+  width: 2rem;
+  height: 1px;
+  background: var(--color-clay);
+  flex: none;
+}
+
+.lnd-textlink {
+  color: var(--color-clay-deep);
+  text-decoration: none;
+  font-weight: 600;
+  /* Keeps the tap area >= 24px without changing the visual text size. */
+  display: inline-block;
+  padding-block: var(--space-1);
+}
+
+.lnd-textlink:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.lnd-textlink:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Two-column editorial split: heading beside content. Heading order and
+ * landmark structure stay in the markup; only the composition changes.
+ */
+.lnd-split {
+  display: grid;
+  gap: var(--space-8);
+}
+
+@media (min-width: 64rem) {
+  .lnd-split {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--space-16);
+    align-items: start;
+  }
+
+  .lnd-split__head {
+    position: sticky;
+    top: 6rem;
+  }
+}
+
+/* Bordered fact panel — reused by the pricing and trust sections. */
+.lnd-panel {
+  background: var(--color-paper);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+@media (min-width: 48rem) {
+  .lnd-panel {
+    padding: var(--space-8);
+  }
+}
+
+.lnd-panel__title {
+  font-size: var(--text-lg);
+}
+
+.lnd-panel__list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+.lnd-panel__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.lnd-panel__row:first-child {
+  border-top: 0;
+  padding-block-start: 0;
+}
+
+.lnd-panel__row:last-child {
+  padding-block-end: 0;
+}
+
+.lnd-panel__mark {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  color: var(--color-olive);
+  margin-block-start: 0.2rem;
+}
+
+.lnd-panel__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.lnd-panel__body {
+  margin-block-start: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-wrap: pretty;
+}
+
 /* ---------- Hero ---------- */
 
 .lnd-hero {
-  padding-block: var(--space-12);
+  border-top: 0;
+  padding-block: var(--space-12) var(--space-16);
   background: var(--color-bg);
+}
+
+@media (min-width: 48rem) {
+  .lnd-hero {
+    padding-block: var(--space-16) calc(var(--space-16) + var(--space-8));
+  }
 }
 
 .lnd-hero__inner {
@@ -35,30 +259,31 @@
 }
 
 @media (min-width: 48rem) {
-  .lnd-hero {
-    padding-block: var(--space-16);
-  }
   .lnd-hero__inner {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     align-items: center;
-    gap: var(--space-16);
+    gap: var(--space-12);
   }
 }
 
 .lnd-hero__title {
-  margin-top: var(--space-5);
-  font-size: clamp(2.125rem, 1.5rem + 3vw, 3.25rem);
+  margin-block-start: var(--space-5);
+  font-size: clamp(2.125rem, 1.35rem + 3.4vw, 3.75rem);
+  letter-spacing: -0.015em;
+  max-width: 22ch;
+  text-wrap: balance;
 }
 
 .lnd-hero__sub {
-  margin-top: var(--space-5);
+  margin-block-start: var(--space-5);
   font-size: var(--text-lg);
   color: var(--color-text-muted);
-  max-width: 34rem;
+  max-width: 46ch;
+  text-wrap: pretty;
 }
 
 .lnd-hero__cta {
-  margin-top: var(--space-8);
+  margin-block-start: var(--space-8);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -68,10 +293,12 @@
   width: 100%;
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 30rem) {
   .lnd-hero__cta {
     flex-direction: row;
+    flex-wrap: wrap;
   }
+
   .lnd-hero__cta .ui-button {
     width: auto;
   }
@@ -79,13 +306,35 @@
 
 .lnd-hero__visual {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
 }
 
-/* Kartu undangan mini — dekoratif, disusun dari token */
+/* Honest labelling: the hero visual is illustrative sample data. */
+.lnd-hero__note {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  max-width: 22rem;
+  text-wrap: pretty;
+}
+
+/*
+ * Layered invitation stack. The offset lives in padding on the wrapper and in
+ * the back card's inset, so the composition can never push the document wider
+ * than the viewport. The back card is offset up-and-right of the front card.
+ */
+.lnd-stack {
+  position: relative;
+  width: min(19rem, 100%);
+  padding-block-start: var(--space-6);
+  padding-inline-end: var(--space-6);
+}
 
 .lnd-invite {
-  width: min(19rem, 100%);
+  position: relative;
+  z-index: 1;
   aspect-ratio: 3 / 4;
   background: var(--color-paper);
   border: 1px solid var(--color-border);
@@ -97,7 +346,6 @@
   justify-content: center;
   text-align: center;
   gap: var(--space-4);
-  position: relative;
 }
 
 .lnd-invite::before {
@@ -106,6 +354,26 @@
   inset: var(--space-3);
   border: 1px solid var(--color-sage);
   pointer-events: none;
+}
+
+.lnd-invite--back {
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 var(--space-6) var(--space-6);
+  background: var(--color-mist);
+  box-shadow: none;
+  padding: 0;
+}
+
+.lnd-invite--back::before {
+  display: none;
+}
+
+/* Rotation is a static composition choice, not motion; only on roomy widths. */
+@media (min-width: 48rem) {
+  .lnd-invite--back {
+    transform: rotate(2deg);
+  }
 }
 
 .lnd-invite__eyebrow {
@@ -132,106 +400,52 @@
   color: var(--color-ink-soft);
 }
 
-/* ---------- Bagian ---------- */
-
-.lnd-section {
-  border-top: 1px solid var(--color-border);
-  padding-block: var(--space-12);
-  scroll-margin-top: 4.75rem;
-}
-
-@media (min-width: 48rem) {
-  .lnd-section {
-    padding-block: var(--space-16);
-  }
-}
-
-.lnd-section__head {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-4);
-  max-width: 44rem;
-}
-
-.lnd-section__title {
-  font-size: clamp(1.625rem, 1.3rem + 1.5vw, 2.125rem);
-}
-
-.lnd-lede {
-  font-size: var(--text-lg);
-  color: var(--color-text-muted);
-}
-
-.lnd-section__tail {
-  margin-top: var(--space-8);
-}
-
-.lnd-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+.lnd-invite__open {
+  margin-block-start: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-olive);
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
-  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-ink-soft);
-}
-
-.lnd-eyebrow::before {
-  content: "";
-  width: 2rem;
-  height: 1px;
-  background: var(--color-clay);
-  flex: none;
-}
-
-.lnd-textlink {
-  color: var(--color-clay-deep);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.lnd-textlink:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.lnd-textlink:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  color: var(--color-ink);
 }
 
 /* ---------- Poin nilai ---------- */
 
-.lnd-points {
+.lnd-values {
   list-style: none;
-  margin: var(--space-10) 0 0;
+  margin: 0;
   padding: 0;
+}
+
+.lnd-value {
   display: grid;
-  gap: var(--space-8);
+  gap: var(--space-2);
+  padding-block: var(--space-6);
+  border-top: 1px solid var(--color-border);
 }
 
-@media (min-width: 48rem) {
-  .lnd-points {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-6);
-  }
+.lnd-value:last-child {
+  border-bottom: 1px solid var(--color-border);
 }
 
-.lnd-point {
-  border-top: 2px solid var(--color-sage);
-  padding-top: var(--space-4);
+.lnd-value__num {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  letter-spacing: 0.12em;
+  color: var(--color-clay-deep);
+  font-variant-numeric: tabular-nums;
 }
 
-.lnd-point__title {
+.lnd-value__title {
   font-size: var(--text-xl);
 }
 
-.lnd-point__body {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
+.lnd-value__body {
   color: var(--color-text-muted);
+  max-width: 52ch;
+  text-wrap: pretty;
 }
 
 /* ---------- Langkah ---------- */
@@ -240,41 +454,50 @@
   list-style: none;
   margin: var(--space-10) 0 0;
   padding: 0;
-  display: grid;
-  gap: var(--space-8);
-}
-
-@media (min-width: 48rem) {
-  .lnd-steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-6);
-  }
+  border-top: 1px solid var(--color-border);
 }
 
 .lnd-step {
-  border-top: 2px solid var(--color-sage);
-  padding-top: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .lnd-step__num {
   font-family: var(--font-display);
-  font-size: var(--text-sm);
+  font-size: var(--text-lg);
   letter-spacing: 0.08em;
   color: var(--color-clay-deep);
+  font-variant-numeric: tabular-nums;
 }
 
 .lnd-step__title {
-  margin-top: var(--space-2);
   font-size: var(--text-lg);
 }
 
 .lnd-step__body {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
   color: var(--color-text-muted);
+  max-width: 48ch;
+  text-wrap: pretty;
 }
 
-/* ---------- Kartu koleksi unggulan ---------- */
+@media (min-width: 48rem) {
+  .lnd-step {
+    grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1.4fr);
+    align-items: baseline;
+    gap: var(--space-6);
+    padding-block: var(--space-8);
+  }
+
+  .lnd-step__num,
+  .lnd-step__title,
+  .lnd-step__body {
+    margin: 0;
+  }
+}
+
+/* ---------- Koleksi unggulan ---------- */
 
 .lnd-tiles {
   list-style: none;
@@ -287,7 +510,17 @@
 @media (min-width: 48rem) {
   .lnd-tiles {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
     gap: var(--space-6);
+  }
+
+  /* Editorial cascade: a deliberate diagonal instead of three flat columns. */
+  .lnd-tile:nth-child(2) {
+    margin-block-start: var(--space-8);
+  }
+
+  .lnd-tile:nth-child(3) {
+    margin-block-start: var(--space-16);
   }
 }
 
@@ -299,110 +532,142 @@
 
 .lnd-tile__preview {
   aspect-ratio: 4 / 5;
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: var(--space-3);
-  padding: var(--space-6);
-  position: relative;
+  border: 1px solid var(--color-border);
+  background: var(--color-ivory);
   overflow: hidden;
 }
 
-.lnd-tile__preview--klasik::before {
-  content: "";
-  position: absolute;
-  inset: var(--space-2);
-  border: 1px solid var(--color-sage);
-  pointer-events: none;
+.lnd-tile__preview .tpl-preview {
+  max-width: none;
+  flex: 1;
+  padding: var(--space-6) var(--space-4);
 }
 
-.lnd-tile__preview--tradisional {
-  border-top: 4px solid var(--color-clay);
+.lnd-tile__preview .tpl-preview__names {
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+}
+
+.lnd-tile__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
 }
 
 .lnd-tile__eyebrow {
   font-size: var(--text-xs);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-ink-soft);
 }
 
-.lnd-tile__eyebrow--clay {
-  color: var(--color-clay-deep);
-}
-
-.lnd-tile__names {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  color: var(--color-ink);
-}
-
-.lnd-tile__rule {
-  width: 2.5rem;
-  height: 1px;
-  background: var(--color-sage);
-}
-
-.lnd-tile__rule--clay {
-  background: var(--color-clay);
-}
-
-.lnd-tile__date {
-  font-size: var(--text-xs);
-  color: var(--color-ink-soft);
-}
-
 .lnd-tile__title {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
+  font-weight: 400;
 }
 
-.lnd-tile__desc {
+.lnd-tile__title a {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.lnd-tile__title a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.lnd-tile__title a:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.lnd-tile__character {
   font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-wrap: pretty;
+}
+
+.lnd-tile__price {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: var(--space-1);
+  padding-block-start: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.lnd-tile__amount {
+  font-size: var(--text-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.lnd-tile__tier {
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
-/* ---------- Kartu fitur ---------- */
+.lnd-tile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: auto;
+  padding-block-start: var(--space-2);
+}
 
-.lnd-cards {
+.lnd-section__tail {
+  margin-block-start: var(--space-10);
+}
+
+/* ---------- Fitur inti ---------- */
+
+.lnd-features {
   list-style: none;
   margin: var(--space-10) 0 0;
   padding: 0;
-  display: grid;
-  gap: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 
-@media (min-width: 48rem) {
-  .lnd-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-6);
-  }
+.lnd-feature {
+  padding-block: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.lnd-card {
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-}
-
-.lnd-card__title {
+.lnd-feature__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-lg);
 }
 
-.lnd-card__body {
-  margin-top: var(--space-2);
+.lnd-feature__mark {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  color: var(--color-olive);
+}
+
+.lnd-feature__body {
+  margin-block-start: var(--space-2);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+  max-width: 48ch;
+  text-wrap: pretty;
+}
+
+@media (min-width: 48rem) {
+  .lnd-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-10);
+    display: grid;
+  }
 }
 
 /* ---------- Penjelasan harga ---------- */
 
 .lnd-pricing {
-  margin-top: var(--space-10);
   display: grid;
   gap: var(--space-8);
 }
@@ -419,102 +684,52 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  max-width: 38rem;
+  color: var(--color-text-muted);
+  max-width: 54ch;
+  text-wrap: pretty;
+}
+
+.lnd-pricing__range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  border-block: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.lnd-pricing__range-label {
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
+.lnd-pricing__range-value {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .lnd-pricing__period {
-  border-left: 3px solid var(--color-olive);
-  padding-left: var(--space-4);
+  border-inline-start: 3px solid var(--color-olive);
+  padding-inline-start: var(--space-4);
 }
 
 .lnd-pricing__period-label {
   display: block;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: var(--space-1);
-}
-
-.lnd-pricing__panel {
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-}
-
-.lnd-pricing__panel-title {
-  font-size: var(--text-xl);
-}
-
-.lnd-checklist {
-  list-style: none;
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.lnd-checklist li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.lnd-checklist li::before {
-  content: "✓";
-  color: var(--color-olive);
-  font-weight: 700;
-  flex: none;
-}
-
-/* ---------- Kepercayaan ---------- */
-
-.lnd-trust {
-  list-style: none;
-  margin: var(--space-10) 0 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-8);
-}
-
-@media (min-width: 48rem) {
-  .lnd-trust {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-6);
-  }
-}
-
-.lnd-trust__item {
-  border-top: 2px solid var(--color-sage);
-  padding-top: var(--space-4);
-}
-
-.lnd-trust__title {
-  font-size: var(--text-lg);
-}
-
-.lnd-trust__body {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  margin-block-end: var(--space-1);
 }
 
 /* ---------- FAQ ---------- */
 
-.lnd-faq {
-  margin-top: var(--space-10);
-  max-width: 40rem;
-}
-
 .lnd-faq__item {
-  border-bottom: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
 }
 
-.lnd-faq__item:first-child {
-  border-top: 1px solid var(--color-border);
+.lnd-faq__item:last-child {
+  border-bottom: 1px solid var(--color-border);
 }
 
 .lnd-faq__question {
@@ -546,19 +761,26 @@
 }
 
 .lnd-faq__answer {
-  padding-bottom: var(--space-5);
-  padding-right: var(--space-8);
+  padding-block-end: var(--space-5);
   color: var(--color-text-muted);
-  max-width: 36rem;
+  max-width: 60ch;
+  text-wrap: pretty;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .lnd-faq__chevron {
     transition: transform 120ms ease;
   }
+
   .lnd-faq__item[open] .lnd-faq__chevron {
     transform: rotate(180deg);
   }
+}
+
+.lnd-faq__aside {
+  margin-block-start: var(--space-6);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 /* ---------- CTA akhir ---------- */
@@ -567,27 +789,35 @@
   border-top: 1px solid var(--color-border);
   background: var(--color-mist);
   padding-block: var(--space-16);
-  text-align: center;
 }
 
 .lnd-final__inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  justify-items: start;
   gap: var(--space-4);
+  max-width: 42rem;
+}
+
+@media (min-width: 48rem) {
+  .lnd-final__inner {
+    padding-inline-start: var(--space-8);
+    border-inline-start: 3px solid var(--color-olive);
+  }
 }
 
 .lnd-final__title {
-  font-size: clamp(1.75rem, 1.4rem + 1.5vw, 2.25rem);
+  font-size: clamp(1.75rem, 1.25rem + 2.1vw, 2.5rem);
+  text-wrap: balance;
 }
 
 .lnd-final__sub {
   color: var(--color-text-muted);
-  max-width: 30rem;
+  max-width: 46ch;
+  text-wrap: pretty;
 }
 
 .lnd-final__cta {
-  margin-top: var(--space-4);
+  margin-block-start: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -598,14 +828,140 @@
   width: 100%;
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 30rem) {
   .lnd-final__cta {
     flex-direction: row;
-    justify-content: center;
+    flex-wrap: wrap;
     width: auto;
   }
+
   .lnd-final__cta .ui-button {
     width: auto;
+  }
+}
+
+/* ---------- Motion and interaction ---------- */
+
+@keyframes lnd-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lnd-header-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lnd-invite-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-0.45rem);
+  }
+}
+
+@keyframes lnd-section-reveal {
+  from {
+    opacity: 0.45;
+    transform: translateY(1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lnd-shell .ui-header {
+    animation: lnd-header-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .lnd-hero__content > *,
+  .lnd-hero__visual {
+    animation: lnd-rise-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .lnd-hero__content > :nth-child(1) {
+    animation-delay: 70ms;
+  }
+
+  .lnd-hero__content > :nth-child(2) {
+    animation-delay: 140ms;
+  }
+
+  .lnd-hero__content > :nth-child(3) {
+    animation-delay: 210ms;
+  }
+
+  .lnd-hero__content > :nth-child(4) {
+    animation-delay: 280ms;
+  }
+
+  .lnd-hero__visual {
+    animation-delay: 220ms;
+  }
+
+  .lnd-invite:not(.lnd-invite--back) {
+    animation: lnd-invite-float 7s cubic-bezier(0.37, 0, 0.63, 1) 700ms infinite;
+    will-change: transform;
+  }
+
+  .lnd-shell .ui-button {
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .lnd-shell .ui-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  .lnd-shell .ui-button:active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+  }
+
+  .lnd-tile__preview {
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .lnd-tile:hover .lnd-tile__preview {
+    transform: translateY(-0.4rem);
+    box-shadow: var(--shadow-md);
+  }
+
+  @supports (animation-timeline: view()) {
+    .lnd-section {
+      animation: lnd-section-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 24%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lnd-shell .ui-button,
+  .lnd-tile__preview {
+    transition: none;
   }
 }
 
@@ -613,19 +969,20 @@
 
 .lnd-footer {
   border-top: 1px solid var(--color-border);
-  padding-block: var(--space-10) var(--space-6);
+  padding-block: var(--space-12) var(--space-8);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
-.lnd-footer__grid {
+.lnd-footer__top {
   display: grid;
   gap: var(--space-8);
 }
 
 @media (min-width: 48rem) {
-  .lnd-footer__grid {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  .lnd-footer__top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
     gap: var(--space-10);
   }
 }
@@ -638,46 +995,35 @@
 }
 
 .lnd-footer__tagline {
-  margin-top: var(--space-2);
-  max-width: 22rem;
+  margin-block-start: var(--space-2);
+  max-width: 30ch;
 }
 
-.lnd-footer__heading {
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.lnd-footer__list {
-  list-style: none;
-  margin: var(--space-3) 0 0;
-  padding: 0;
+.lnd-footer__nav {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.lnd-footer__list a,
-.lnd-footer__note {
+.lnd-footer__nav a {
   color: var(--color-text-muted);
-}
-
-.lnd-footer__list a {
   text-decoration: none;
+  display: inline-block;
+  padding-block: var(--space-2);
 }
 
-.lnd-footer__list a:hover {
+.lnd-footer__nav a:hover {
   color: var(--color-text);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
-.lnd-footer__note {
-  margin-top: var(--space-3);
-  max-width: 18rem;
-}
-
 .lnd-footer__legal {
-  margin-top: var(--space-10);
-  padding-top: var(--space-4);
+  margin-block-start: var(--space-10);
+  padding-block-start: var(--space-4);
   border-top: 1px solid var(--color-border);
+  max-width: 60ch;
 }

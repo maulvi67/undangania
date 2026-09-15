@@ -25,7 +25,7 @@ function baseDashboard(fixture: AdminFixture): AdminDashboard {
       environmentLabel: "Local · data simulasi",
       role: "ADMIN",
       roleLabel: "Platform admin",
-      mfaActive: true,
+      mfaActive: false,
       scope: "Operasi, pembayaran, template, audit",
       lastRefreshed: REFRESHED_AT,
     },

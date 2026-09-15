@@ -8,6 +8,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
+      - run: sh scripts/check-secrets.sh
       - run: npm run validate:repo
       - run: npm run format:check
       - run: npm run lint

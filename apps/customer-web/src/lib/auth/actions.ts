@@ -11,6 +11,10 @@ import {
 } from "./contract";
 import { safeRedirectTarget } from "./redirect";
 import {
+  authenticateAndCreateSession,
+  registerAndProvisionAccount,
+} from "./server";
+import {
   stubRegister,
   stubRequestPasswordReset,
   stubResendVerification,
@@ -71,12 +75,20 @@ export async function signInAction(
   }
 
   const next = safeRedirectTarget(String(formData.get("next") ?? ""));
-  const result = await stubSignIn(parsed.data);
+  const result =
+    process.env.NODE_ENV === "production"
+      ? await authenticateAndCreateSession(parsed.data)
+      : await stubSignIn(parsed.data);
   if (result.ok) {
     redirect(next); // throws NEXT_REDIRECT; useActionState propagates
   }
-  // VERIFICATION_REQUIRED also (re)sends the verification email server-side.
-  if (result.code === "VERIFICATION_REQUIRED") {
+  // VERIFICATION_REQUIRED also (re)sends the verification email server-side
+  // in the development fixture flow. Production notification delivery is a
+  // separate provider boundary and never uses fixture email behavior.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    result.code === "VERIFICATION_REQUIRED"
+  ) {
     await stubResendVerification(parsed.data);
   }
   return { status: "error", fieldErrors: {}, code: result.code };
@@ -101,9 +113,17 @@ export async function registerAction(
     );
   }
 
+  if (process.env.NODE_ENV === "production") {
+    const result = await registerAndProvisionAccount(parsed.data);
+    if (result === "unavailable") {
+      return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+    }
+    // Duplicate and fresh addresses intentionally share this interstitial to
+    // preserve anti-enumeration behavior.
+    return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
+  }
+
   const result = await stubRegister(parsed.data);
-  // Always the interstitial (R4) — including duplicate-email "failures",
-  // which the real backend differentiates only in email content.
   if (!result.ok) {
     return { status: "error", fieldErrors: {}, code: result.code };
   }
@@ -120,6 +140,9 @@ export async function resendVerificationAction(
   if (!parsed.success) {
     return validationState({ email: EMAIL_FIELD_ERROR });
   }
+  if (process.env.NODE_ENV === "production") {
+    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+  }
   await stubResendVerification(parsed.data);
   return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
 }
@@ -134,9 +157,12 @@ export async function requestPasswordResetAction(
   if (!parsed.success) {
     return validationState({ email: EMAIL_FIELD_ERROR });
   }
+  if (process.env.NODE_ENV === "production") {
+    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+  }
   await stubRequestPasswordReset(parsed.data);
   // Always identical success state (R3) — unknown and known emails are
-  // indistinguishable in UI copy, timing, and result.
+  // indistinguishable in UI, timing, and result.
   return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
 }
 
@@ -157,6 +183,9 @@ export async function resetPasswordAction(
     return validationState({ password: PASSWORD_POLICY_ERROR });
   }
 
+  if (process.env.NODE_ENV === "production") {
+    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+  }
   const result = await stubResetPassword(parsed.data);
   if (result.ok) {
     // No auto-login (R6): success lands on a panel that hands off to /masuk.

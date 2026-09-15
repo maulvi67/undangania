@@ -1,3 +1,5 @@
+import { IconCheck } from "@wedding/ui";
+
 const CORE_FEATURES = [
   {
     title: "Halaman acara",
@@ -28,22 +30,25 @@ const CORE_FEATURES = [
 export function CoreFeatures() {
   return (
     <section className="lnd-section" aria-labelledby="fitur-title" id="fitur">
-      <div className="ui-container">
-        <header className="lnd-section__head">
+      <div className="ui-container lnd-split">
+        <header className="lnd-split__head lnd-head">
           <p className="lnd-eyebrow">Fitur</p>
-          <h2 className="lnd-section__title" id="fitur-title">
+          <h2 className="lnd-head__title" id="fitur-title">
             Semua desain termasuk fitur undangan lengkap
           </h2>
           <p className="lnd-lede">
-            Setiap desain dilengkapi inti undangan digital yang sama. Desain yang lebih mahal tidak
-            menambah fitur — karakter visualnya yang berbeda.
+            Setiap desain memakai inti undangan digital yang sama. Desain yang
+            lebih mahal tidak menambah fitur — karakter visualnya yang berbeda.
           </p>
         </header>
-        <ul className="lnd-cards">
+        <ul className="lnd-features">
           {CORE_FEATURES.map((feature) => (
-            <li key={feature.title} className="lnd-card">
-              <h3 className="lnd-card__title">{feature.title}</h3>
-              <p className="lnd-card__body">{feature.body}</p>
+            <li key={feature.title} className="lnd-feature">
+              <h3 className="lnd-feature__title">
+                <IconCheck className="lnd-feature__mark" />
+                {feature.title}
+              </h3>
+              <p className="lnd-feature__body">{feature.body}</p>
             </li>
           ))}
         </ul>

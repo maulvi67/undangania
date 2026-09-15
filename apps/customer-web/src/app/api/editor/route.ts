@@ -28,6 +28,16 @@ function fixtureFromRequest(request: Request): EditorFixture {
   return fixture && isEditorFixture(fixture) ? fixture : "normal";
 }
 
+function productionGuardResponse(): NextResponse {
+  return NextResponse.json(
+    {
+      kind: "unavailable",
+      message: "Editor production API belum tersedia.",
+    },
+    { status: 503 },
+  );
+}
+
 async function requestBody(request: Request): Promise<unknown> {
   try {
     return await request.json();
@@ -37,6 +47,10 @@ async function requestBody(request: Request): Promise<unknown> {
 }
 
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return productionGuardResponse();
+  }
+
   const url = new URL(request.url);
   const invitation = getEditorInvitationId(
     url.searchParams.get("invitation") ?? undefined,
@@ -53,6 +67,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return productionGuardResponse();
+  }
+
   const parsed = editorSaveCommandSchema.safeParse(await requestBody(request));
   if (!parsed.success) {
     return NextResponse.json(

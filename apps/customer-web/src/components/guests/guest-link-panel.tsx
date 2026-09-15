@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { Alert, Badge, Button, Input } from "@wedding/ui";
 import type { GuestHouseholdDetail, GuestManagementData } from "../../lib/guests/contract";
 import { GuestConfirmDialog } from "./guest-dialog";
@@ -20,6 +20,9 @@ export function GuestLinkPanel({
   const [tokenVersion, setTokenVersion] = useState(household.tokenVersion);
   const [showRotate, setShowRotate] = useState(false);
   const [showDisable, setShowDisable] = useState(false);
+  const panelId = useId();
+  const rotateDialogId = `${panelId}-rotate`;
+  const disableDialogId = `${panelId}-disable`;
   const rotateTriggerRef = useRef<HTMLButtonElement>(null);
   const disableTriggerRef = useRef<HTMLButtonElement>(null);
   const [notice, setNotice] = useState<string>("");
@@ -105,15 +108,34 @@ export function GuestLinkPanel({
       </div>
       {canManage ? (
         <div className="gst-link-panel__danger-actions">
-          <Button ref={rotateTriggerRef} type="button" variant="tertiary" disabled={!active} onClick={() => setShowRotate(true)}>
+          <Button
+            ref={rotateTriggerRef}
+            type="button"
+            variant="tertiary"
+            disabled={!active}
+            onClick={() => setShowRotate(true)}
+            aria-expanded={showRotate}
+            aria-controls={rotateDialogId}
+            aria-haspopup="dialog"
+          >
             Ganti tautan
           </Button>
-          <Button ref={disableTriggerRef} type="button" variant="tertiary" disabled={!active} onClick={() => setShowDisable(true)}>
+          <Button
+            ref={disableTriggerRef}
+            type="button"
+            variant="tertiary"
+            disabled={!active}
+            onClick={() => setShowDisable(true)}
+            aria-expanded={showDisable}
+            aria-controls={disableDialogId}
+            aria-haspopup="dialog"
+          >
             Nonaktifkan tautan
           </Button>
         </div>
       ) : <p className="gst-muted">Anda dapat melihat status tautan, tetapi tidak memiliki izin untuk mengubahnya.</p>}
       <GuestConfirmDialog
+        id={rotateDialogId}
         open={showRotate}
         title="Ganti tautan personal?"
         description="Tautan lama akan langsung berhenti berfungsi. Tautan baru hanya akan ditampilkan sekali setelah proses ini selesai."
@@ -123,6 +145,7 @@ export function GuestLinkPanel({
         triggerRef={rotateTriggerRef}
       />
       <GuestConfirmDialog
+        id={disableDialogId}
         open={showDisable}
         title="Nonaktifkan tautan personal?"
         description="Tamu yang menggunakan tautan ini tidak dapat lagi membuka undangan atau mengirim konfirmasi melalui tautan tersebut."

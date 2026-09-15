@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@wedding/ui": "*",
+    "@wedding/database": "*",
     "@wedding/template-engine": "*",
     "@wedding/template-editor": "*",
     "next": "^16.0.0",

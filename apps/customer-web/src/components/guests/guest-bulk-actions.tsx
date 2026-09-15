@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Alert, Button } from "@wedding/ui";
 import { GuestDialog } from "./guest-dialog";
 
 export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState(false);
+  const dialogId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   if (selectedCount === 0) return null;
   return (
@@ -12,7 +13,15 @@ export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
       <p>
         <strong>{selectedCount}</strong> dipilih
       </p>
-      <Button ref={triggerRef} type="button" variant="secondary" onClick={() => setOpen(true)}>
+      <Button
+        ref={triggerRef}
+        type="button"
+        variant="secondary"
+        onClick={() => setOpen(true)}
+        aria-expanded={open}
+        aria-controls={dialogId}
+        aria-haspopup="dialog"
+      >
         Tindakan
       </Button>
       {notice ? (
@@ -23,6 +32,7 @@ export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
         </div>
       ) : null}
       <GuestDialog
+        id={dialogId}
         open={open}
         title={`${selectedCount} rumah tangga dipilih`}
         description="Pilih tindakan yang aman untuk beberapa rumah tangga sekaligus."

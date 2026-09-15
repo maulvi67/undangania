@@ -157,7 +157,7 @@ const auditRowSchema = z.object({
 });
 
 const sessionSchema = z.object({
-  environment: z.literal("SIMULATION"),
+  environment: z.enum(["SIMULATION", "PRODUCTION"]),
   environmentLabel: z.string().min(1),
   role: z.enum(["ADMIN", "FINANCE", "SUPPORT", "MODERATOR"]),
   roleLabel: z.string().min(1),

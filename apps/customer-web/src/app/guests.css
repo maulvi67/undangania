@@ -798,7 +798,9 @@
 }
 
 @keyframes gst-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .gst-import__review-header {
@@ -974,7 +976,7 @@
   .gst-page__actions,
   .gst-page__actions > *,
   .gst-form__actions > *,
-  .gst-import__upload-actions > *,
+  .gst-import__upload-actions > *:not(.gst-file-input),
   .gst-import__review-actions > * {
     width: 100%;
   }

@@ -33,8 +33,14 @@ interface ResetSandiPageProps {
 export default async function ResetSandiPage({ searchParams }: ResetSandiPageProps) {
   const params = await searchParams;
   const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
-  // Validated server-side before the form ever renders; never rendered.
-  const check = rawToken ? await checkResetToken(rawToken) : undefined;
+  // Deterministic token fixtures are development-only. Production requires the
+  // real token repository/provider before it may render a reset form.
+  const check =
+    process.env.NODE_ENV === "production"
+      ? undefined
+      : rawToken
+        ? await checkResetToken(rawToken)
+        : undefined;
 
   return (
     <AuthShell>

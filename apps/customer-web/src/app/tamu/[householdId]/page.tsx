@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { ApplicationShell } from "@wedding/ui";
+import { ApplicationShell, StatePanel } from "@wedding/ui";
 import { GuestHouseholdDetailView, GuestNotFound } from "../../../components/guests/guest-household-detail";
 import { GuestPermissionDenied, GuestUnavailable } from "../../../components/guests/guest-state-panels";
 import { parseGuestFixture } from "../../../lib/guests/contract";
 import { loadGuestHousehold } from "../../../lib/guests/stub-transport";
+import { getAuthenticatedRequest } from "../../../lib/auth/server";
 import "../../guests.css";
 
 export const metadata: Metadata = { title: "Rumah tangga — Wedding System", robots: { index: false, follow: false } };
@@ -20,6 +21,28 @@ const NAV = [
 type Props = { params: Promise<{ householdId: string }>; searchParams: Promise<{ fixture?: string | string[] }> };
 
 export default async function GuestHouseholdPage({ params, searchParams }: Props) {
+  if (process.env.NODE_ENV === "production") {
+    const authenticated = await getAuthenticatedRequest();
+    return (
+      <ApplicationShell nav={NAV} footerNote="Kelola tautan personal dengan aman.">
+        <div className="gst-state">
+          <StatePanel
+            title={authenticated === null ? "Masuk untuk melihat rumah tangga" : "Rumah tangga belum tersedia"}
+            description={authenticated === null ? "Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal." : "Data rumah tangga belum dapat dimuat dari layanan workspace."}
+            action={
+              <a
+                className="ui-button ui-button--primary ui-button--md"
+                href={authenticated === null ? "/masuk?next=%2Ftamu" : "/tamu"}
+              >
+                {authenticated === null ? "Masuk" : "Kembali ke daftar tamu"}
+              </a>
+            }
+          />
+        </div>
+      </ApplicationShell>
+    );
+  }
+
   const { householdId } = await params;
   const query = await searchParams;
   const fixture = parseGuestFixture(query.fixture);

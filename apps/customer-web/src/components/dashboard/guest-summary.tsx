@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   formatNumber,
   type DashboardAggregate,
@@ -21,8 +22,8 @@ export function GuestSummary({ aggregate }: { aggregate: DashboardAggregate }) {
             Ringkasan tamu belum tersedia.
           </p>
           <p>
-            <a href="/tamu">Kelola tamu</a> atau{" "}
-            <a href="/dashboard">muat ulang</a> halaman ini.
+            <Link href="/tamu">Kelola tamu</Link> atau{" "}
+            <Link href="/dashboard">muat ulang</Link> halaman ini.
           </p>
         </div>
       ) : aggregate.guests.data.guestCount === 0 ? (
@@ -30,9 +31,9 @@ export function GuestSummary({ aggregate }: { aggregate: DashboardAggregate }) {
           <p className="dash-summary__empty">
             Belum ada tamu — impor daftar tamu Anda.
           </p>
-          <a className="dash-section-link" href="/tamu">
+          <Link className="dash-section-link" href="/tamu">
             Kelola tamu
-          </a>
+          </Link>
         </>
       ) : (
         <>
@@ -44,9 +45,9 @@ export function GuestSummary({ aggregate }: { aggregate: DashboardAggregate }) {
             Ringkasan ini hanya menampilkan jumlah. Detail tamu tersedia di
             halaman pengelolaan tamu.
           </p>
-          <a className="dash-section-link" href="/tamu">
+          <Link className="dash-section-link" href="/tamu">
             Kelola tamu
-          </a>
+          </Link>
         </>
       )}
     </section>

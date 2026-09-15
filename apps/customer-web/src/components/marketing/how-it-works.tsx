@@ -19,15 +19,20 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="lnd-section" aria-labelledby="cara-kerja-title" id="cara-kerja">
+    <section
+      className="lnd-section"
+      aria-labelledby="cara-kerja-title"
+      id="cara-kerja"
+    >
       <div className="ui-container">
-        <header className="lnd-section__head">
+        <header className="lnd-head">
           <p className="lnd-eyebrow">Cara kerja</p>
-          <h2 className="lnd-section__title" id="cara-kerja-title">
+          <h2 className="lnd-head__title" id="cara-kerja-title">
             Cara kerjanya sederhana
           </h2>
           <p className="lnd-lede">
-            Empat langkah dari memilih desain hingga undangan sampai ke tangan tamu Anda.
+            Empat langkah dari memilih desain hingga undangan sampai ke tangan
+            tamu Anda.
           </p>
         </header>
         <ol className="lnd-steps">

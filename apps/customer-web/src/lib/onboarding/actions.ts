@@ -80,6 +80,10 @@ function validateStep(step: StepId, formData: FormData): StepValidation {
 }
 
 export async function saveStepAction(formData: FormData): Promise<FlowState> {
+  if (process.env.NODE_ENV === "production") {
+    return { kind: "retryable", code: "UNAVAILABLE" };
+  }
+
   const draftId = text(formData, "draftId");
   const stepId = parseStepId(text(formData, "step"));
   const baseVersion = parseVersion(text(formData, "baseVersion"));
@@ -107,6 +111,10 @@ export async function saveStepAction(formData: FormData): Promise<FlowState> {
 }
 
 export async function completeAction(formData: FormData): Promise<FlowState> {
+  if (process.env.NODE_ENV === "production") {
+    return { kind: "retryable", code: "UNAVAILABLE" };
+  }
+
   const draftId = text(formData, "draftId");
   const baseVersion = parseVersion(text(formData, "baseVersion"));
   const force = text(formData, "force") === "1";
@@ -136,6 +144,8 @@ export async function completeAction(formData: FormData): Promise<FlowState> {
 export async function loadDraftAction(
   draftId: string,
 ): Promise<{ step: StepId; version: number; data: OnboardingData } | null> {
+  if (process.env.NODE_ENV === "production") return null;
+
   const id = draftId.trim();
   if (id === "") return null;
   return stubGetDraft(id);

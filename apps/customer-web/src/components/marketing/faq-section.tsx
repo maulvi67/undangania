@@ -1,4 +1,5 @@
 import { IconChevronDown } from "@wedding/ui";
+import { LinkButton } from "./link-button";
 import { INVITATION_ACTIVE_PERIOD } from "./pricing-explanation";
 
 const FAQ_ITEMS = [
@@ -41,12 +42,23 @@ const faqJsonLd = {
 export function FaqSection() {
   return (
     <section className="lnd-section" aria-labelledby="faq-title" id="faq">
-      <div className="ui-container">
-        <header className="lnd-section__head">
+      <div className="ui-container lnd-split">
+        <header className="lnd-split__head lnd-head">
           <p className="lnd-eyebrow">Bantuan</p>
-          <h2 className="lnd-section__title" id="faq-title">
+          <h2 className="lnd-head__title" id="faq-title">
             Pertanyaan umum
           </h2>
+          <p className="lnd-lede">
+            Pertanyaan yang paling sering muncul sebelum pasangan memilih
+            desain.
+          </p>
+          <p className="lnd-faq__aside">
+            Belum menemukan jawabannya? Buka demo undangan lengkap untuk melihat
+            sendiri cara kerjanya.
+          </p>
+          <LinkButton href="/demo" variant="secondary" size="sm">
+            Buka demo undangan
+          </LinkButton>
         </header>
         <div className="lnd-faq">
           {FAQ_ITEMS.map((item) => (

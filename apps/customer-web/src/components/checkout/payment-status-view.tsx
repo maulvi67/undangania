@@ -124,7 +124,7 @@ export function PaymentStatusView({
   state,
 }: {
   order: CheckoutOrder;
-  template: TemplateRecord;
+  template: Pick<TemplateRecord, "name">;
   state: PaymentStatusState;
 }) {
   const copy = statusCopy(state);

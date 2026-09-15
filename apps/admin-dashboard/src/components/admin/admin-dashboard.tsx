@@ -48,7 +48,7 @@ function DashboardContent({ data }: { data: AdminDashboard }) {
           </p>
         </div>
         <div className="admin-page__actions">
-          <span className="admin-fixture-label">Fixture: {data.fixture}</span>
+          <span className="admin-fixture-label">Mode: {data.session.environmentLabel}</span>
           <Link
             className="ui-button ui-button--secondary ui-button--md"
             href="/?state=healthy"
@@ -58,11 +58,13 @@ function DashboardContent({ data }: { data: AdminDashboard }) {
         </div>
       </header>
 
-      <Alert variant="info" title="Data simulasi — bukan data produksi">
-        Konsol ini sedang menggunakan fixture lokal untuk memvalidasi informasi,
-        masking, dan state UI. Tidak ada pembayaran, retry, perubahan template,
-        atau data pelanggan yang dimutasi.
-      </Alert>
+      {data.session.environment === "SIMULATION" ? (
+        <Alert variant="info" title="Data simulasi — bukan data produksi">
+          Konsol ini sedang menggunakan fixture lokal untuk memvalidasi informasi,
+          masking, dan state UI. Tidak ada pembayaran, retry, perubahan template,
+          atau data pelanggan yang dimutasi.
+        </Alert>
+      ) : null}
 
       {data.freshness.status === "stale" ? (
         <Alert variant="warning" title="Data perlu diperbarui">

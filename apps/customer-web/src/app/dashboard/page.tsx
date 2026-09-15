@@ -4,6 +4,7 @@ import {
   loadDashboard,
   parseDashboardFixture,
 } from "../../lib/dashboard/stub-transport";
+import { getAuthenticatedRequest } from "../../lib/auth/server";
 import "../dashboard.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,15 @@ type DashboardPageProps = {
 export default async function DashboardPage({
   searchParams,
 }: DashboardPageProps) {
+  if (process.env.NODE_ENV === "production") {
+    const authenticated = await getAuthenticatedRequest();
+    return authenticated === null ? (
+      <DashboardView result={{ kind: "unauthenticated" }} />
+    ) : (
+      <DashboardView result={{ kind: "unavailable" }} />
+    );
+  }
+
   const params = await searchParams;
   const fixture = parseDashboardFixture(params.state);
   const result = await loadDashboard(fixture);

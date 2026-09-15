@@ -34,11 +34,39 @@
   --color-on-primary: var(--color-paper);
   --color-focus: var(--color-ink);
 
-  /* Tipografi — editorial: serif display, sans untuk UI */
-  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua",
-    "Times New Roman", serif;
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /*
+   * Tipografi — editorial: serif display, sans untuk UI.
+   *
+   * The webfaces are self-hosted by `next/font` in the consuming app and
+   * exposed as `--font-display-face` / `--font-sans-face` on <body>. The
+   * fallback argument inside `var()` keeps every other app (and any render
+   * before the font resolves) on the previous stacks, so a missing face can
+   * never leave `font-family` undefined.
+   *
+   * `next/font` also emits a metric-adjusted local fallback, so the swap does
+   * not measurably shift layout.
+   */
+  --font-display: var(
+    --font-display-face,
+    Georgia,
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    "Times New Roman",
+    serif
+  );
+  --font-sans: var(
+    --font-sans-face,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans",
+    sans-serif
+  );
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;

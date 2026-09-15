@@ -10,8 +10,9 @@ export function Hero() {
             Undangan pernikahan digital yang elegan, tanpa perlu jago desain.
           </h1>
           <p className="lnd-hero__sub">
-            Pilih desain, isi detail acara, dan bagikan undangan ke tamu dalam hitungan menit.
-            Semua desain sudah dilengkapi fitur undangan lengkap — dari RSVP hingga galeri foto.
+            Pilih desain, isi detail acara, dan bagikan undangan ke tamu dalam
+            hitungan menit. Semua desain sudah dilengkapi fitur undangan lengkap
+            — dari RSVP hingga galeri foto.
           </p>
           <div className="lnd-hero__cta">
             <LinkButton href="/templates" variant="primary" size="lg">
@@ -22,13 +23,26 @@ export function Hero() {
             </LinkButton>
           </div>
         </div>
-        <div className="lnd-hero__visual" aria-hidden="true">
-          <div className="lnd-invite">
-            <span className="lnd-invite__eyebrow">Undangan Pernikahan</span>
-            <span className="lnd-invite__names">Rai &amp; Anisa</span>
-            <span className="lnd-invite__rule" />
-            <span className="lnd-invite__date">Sabtu, 12 September 2026</span>
+        <div className="lnd-hero__visual">
+          {/*
+            Layered cover stack. Purely decorative — the same illustrative
+            couple used in the catalog previews, so the hero never implies a
+            real customer.
+          */}
+          <div className="lnd-stack" aria-hidden="true">
+            <div className="lnd-invite lnd-invite--back" />
+            <div className="lnd-invite">
+              <span className="lnd-invite__eyebrow">Undangan Pernikahan</span>
+              <span className="lnd-invite__names">Rai &amp; Anisa</span>
+              <span className="lnd-invite__rule" />
+              <span className="lnd-invite__date">Sabtu, 12 September 2026</span>
+              <span className="lnd-invite__open">Buka Undangan</span>
+            </div>
           </div>
+          <p className="lnd-hero__note">
+            Contoh tampilan undangan. Nama dan tanggal pada pratinjau adalah
+            data contoh.
+          </p>
         </div>
       </div>
     </section>

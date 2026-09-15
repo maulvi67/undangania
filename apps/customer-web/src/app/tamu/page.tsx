@@ -4,6 +4,7 @@ import { GuestManagementView } from "../../components/guests/guest-management-vi
 import { GuestPermissionDenied, GuestUnavailable } from "../../components/guests/guest-state-panels";
 import { parseGuestQuery } from "../../lib/guests/contract";
 import { loadGuests } from "../../lib/guests/stub-transport";
+import { getAuthenticatedRequest } from "../../lib/auth/server";
 import "../guests.css";
 
 export const metadata: Metadata = {
@@ -38,6 +39,30 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 export default async function GuestPage({ searchParams }: GuestPageProps) {
+  if (process.env.NODE_ENV === "production") {
+    const authenticated = await getAuthenticatedRequest();
+    return authenticated === null ? (
+      <Shell>
+        <div className="gst-state">
+          <StatePanel
+            title="Masuk untuk melihat tamu"
+            description="Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
+            action={
+              <a
+                className="ui-button ui-button--primary ui-button--md"
+                href="/masuk?next=%2Ftamu"
+              >
+                Masuk
+              </a>
+            }
+          />
+        </div>
+      </Shell>
+    ) : (
+      <Shell><GuestUnavailable /></Shell>
+    );
+  }
+
   const params = await searchParams;
   const query = parseGuestQuery(params);
   const result = await loadGuests(query.fixture, query);

@@ -10,6 +10,7 @@ import {
   parseEditorFixture,
   type EditorSectionId,
 } from "../../lib/editor/contract";
+import { getAuthenticatedRequest } from "../../lib/auth/server";
 import "../editor.css";
 
 export const metadata: Metadata = {
@@ -36,6 +37,17 @@ function parseSection(value: string | string[] | undefined): EditorSectionId {
 }
 
 export default async function EditorPage({ searchParams }: EditorPageProps) {
+  if (process.env.NODE_ENV === "production") {
+    const authenticated = await getAuthenticatedRequest();
+    return (
+      <EditorRouteView
+        result={authenticated === null ? { kind: "forbidden" } : { kind: "unavailable" }}
+        fixture="normal"
+        initialSection="couple"
+      />
+    );
+  }
+
   const params = await searchParams;
   const fixture = parseEditorFixture(params.fixture);
   const invitationId = getEditorInvitationId(params.invitation);

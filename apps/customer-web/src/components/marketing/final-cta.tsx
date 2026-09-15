@@ -8,7 +8,8 @@ export function FinalCta() {
           Temukan desain undangan Anda
         </h2>
         <p className="lnd-final__sub">
-          Jelajahi koleksi desain, atau lihat dulu seperti apa undangan yang lengkap.
+          Jelajahi koleksi desain, atau lihat dulu seperti apa undangan yang
+          lengkap.
         </p>
         <div className="lnd-final__cta">
           <LinkButton href="/templates" variant="primary" size="lg">

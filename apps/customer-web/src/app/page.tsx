@@ -42,7 +42,7 @@ const websiteJsonLd = {
 
 export default function LandingPage() {
   return (
-    <div className="ui-shell">
+    <div className="ui-shell lnd-shell">
       <a className="ui-skip-link" href="#konten-utama">
         Langsung ke konten utama
       </a>

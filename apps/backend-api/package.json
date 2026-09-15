@@ -10,6 +10,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@wedding/payments": "*",
+    "@wedding/database": "*",
     "zod": "^4.0.0",
     "@wedding/application": "*",
     "@wedding/contracts": "*"

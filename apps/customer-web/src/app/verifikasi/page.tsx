@@ -35,8 +35,14 @@ interface VerifikasiPageProps {
 export default async function VerifikasiPage({ searchParams }: VerifikasiPageProps) {
   const params = await searchParams;
   const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
-  // The token is validated server-side before render and never rendered.
-  const check = rawToken ? await checkVerificationToken(rawToken) : undefined;
+  // Deterministic token fixtures are development-only. Production requires the
+  // real token repository/provider before it may assert verification success.
+  const check =
+    process.env.NODE_ENV === "production"
+      ? undefined
+      : rawToken
+        ? await checkVerificationToken(rawToken)
+        : undefined;
 
   return (
     <AuthShell>

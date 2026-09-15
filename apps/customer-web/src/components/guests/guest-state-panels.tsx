@@ -8,7 +8,14 @@ export function GuestPermissionDenied() {
       <StatePanel
         title="Anda tidak memiliki akses ke daftar tamu"
         description="Minta pemilik workspace memberi Anda izin untuk melihat dan mengelola tamu."
-        action={<Link className="ui-button ui-button--secondary ui-button--md" href="/dashboard">Kembali ke dasbor</Link>}
+        action={
+          <Link
+            className="ui-button ui-button--secondary ui-button--md"
+            href="/dashboard"
+          >
+            Kembali ke dasbor
+          </Link>
+        }
         tone="danger"
       />
     </div>
@@ -27,9 +34,12 @@ export function GuestUnavailable({ onRetry }: { onRetry?: () => void }) {
               Coba lagi
             </Button>
           ) : (
-            <a className="ui-button ui-button--primary ui-button--md" href="/tamu">
+            <Link
+              className="ui-button ui-button--primary ui-button--md"
+              href="/tamu"
+            >
               Coba lagi
-            </a>
+            </Link>
           )
         }
       />
@@ -44,9 +54,12 @@ export function GuestEmpty({ filtered = false }: { filtered?: boolean }) {
         title="Tidak ada rumah tangga yang cocok"
         description="Coba ubah kata kunci atau hapus filter untuk melihat rumah tangga lainnya."
         action={
-          <a className="ui-button ui-button--secondary ui-button--md" href="/tamu">
+          <Link
+            className="ui-button ui-button--secondary ui-button--md"
+            href="/tamu"
+          >
             Hapus semua filter
-          </a>
+          </Link>
         }
       />
     );
@@ -57,10 +70,16 @@ export function GuestEmpty({ filtered = false }: { filtered?: boolean }) {
       description="Mulai dengan menambahkan rumah tangga pertama, atau unggah daftar tamu dari template CSV."
       action={
         <div className="gst-empty__actions">
-          <Link className="ui-button ui-button--primary ui-button--md" href="/tamu/baru">
+          <Link
+            className="ui-button ui-button--primary ui-button--md"
+            href="/tamu/baru"
+          >
             Tambah rumah tangga
           </Link>
-          <Link className="ui-button ui-button--secondary ui-button--md" href="/tamu/impor">
+          <Link
+            className="ui-button ui-button--secondary ui-button--md"
+            href="/tamu/impor"
+          >
             Impor CSV
           </Link>
         </div>

@@ -52,11 +52,18 @@ function useNativeDialog() {
 
 export function Dialog({ triggerLabel, triggerVariant = "secondary", title, children, footer }: OverlayProps) {
   const id = useId();
-  const { setOpen, dialogRef, triggerRef, requestClose } = useNativeDialog();
+  const { open, setOpen, dialogRef, triggerRef, requestClose } = useNativeDialog();
 
   return (
     <>
-      <Button ref={triggerRef} variant={triggerVariant} onClick={() => setOpen(true)}>
+      <Button
+        ref={triggerRef}
+        variant={triggerVariant}
+        onClick={() => setOpen(true)}
+        aria-expanded={open}
+        aria-controls={id}
+        aria-haspopup="dialog"
+      >
         {triggerLabel}
       </Button>
       <dialog
@@ -91,11 +98,18 @@ export function Drawer({
   side = "right",
 }: OverlayProps & { side?: "left" | "right" }) {
   const id = useId();
-  const { setOpen, dialogRef, triggerRef, requestClose } = useNativeDialog();
+  const { open, setOpen, dialogRef, triggerRef, requestClose } = useNativeDialog();
 
   return (
     <>
-      <Button ref={triggerRef} variant={triggerVariant} onClick={() => setOpen(true)}>
+      <Button
+        ref={triggerRef}
+        variant={triggerVariant}
+        onClick={() => setOpen(true)}
+        aria-expanded={open}
+        aria-controls={id}
+        aria-haspopup="dialog"
+      >
         {triggerLabel}
       </Button>
       <dialog

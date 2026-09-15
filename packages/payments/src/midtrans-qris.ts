@@ -1,15 +1,68 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { z } from "zod";
 
 import type { PaymentStatus } from "./index";
 
+const QRIS_ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
+const QRIS_AMOUNT_PATTERN = /^\d+(?:\.\d{1,2})?$/;
+
+const MIDTRANS_TRANSACTION_STATUSES = [
+  "pending",
+  "settlement",
+  "expire",
+  "deny",
+  "cancel",
+  "failure",
+  "refund",
+] as const;
+
 /**
- * Midtrans QRIS adapter primitives (sandbox boundary, MVP-UI-012).
- *
- * This module intentionally contains no HTTP client and no credentials. A
- * server-side adapter can use these pure helpers when it calls Midtrans. Raw
- * provider payloads must remain server-side and must not cross into the
- * customer-web bundle.
+ * Midtrans's notification contract is deliberately strict. Known optional
+ * provider fields are accepted, but an unexpected field is rejected at the
+ * server boundary instead of being silently ignored.
  */
+export const midtransNotificationSchema = z
+  .object({
+    signature_key: z.string().regex(/^[a-f0-9]{128}$/i),
+    order_id: z.string().regex(QRIS_ORDER_ID_PATTERN),
+    status_code: z.string().regex(/^\d{3}$/),
+    gross_amount: z.string().regex(QRIS_AMOUNT_PATTERN),
+    transaction_status: z.enum(MIDTRANS_TRANSACTION_STATUSES),
+    payment_type: z.string().min(1).max(40),
+    transaction_id: z.string().min(1).max(100),
+    currency: z.string().regex(/^[A-Z]{3}$/),
+    transaction_time: z.string().min(1).max(64).optional(),
+    status_message: z.string().min(1).max(256).optional(),
+    merchant_id: z.string().min(1).max(100).optional(),
+    fraud_status: z.string().min(1).max(40).optional(),
+    settlement_time: z.string().min(1).max(64).optional(),
+    expiry_time: z.string().min(1).max(64).optional(),
+    issuer: z.string().min(1).max(100).optional(),
+    acquirer: z.string().min(1).max(100).optional(),
+    channel_response_code: z.string().min(1).max(40).optional(),
+    channel_response_message: z.string().min(1).max(256).optional(),
+  })
+  .strict();
+
+export type MidtransNotification = z.infer<typeof midtransNotificationSchema>;
+
+export class MidtransNotificationPayloadError extends Error {
+  public readonly code = "INVALID_PAYLOAD" as const;
+
+  public constructor() {
+    super("Invalid Midtrans notification payload");
+    this.name = "MidtransNotificationPayloadError";
+  }
+}
+
+export class MidtransNotificationSignatureError extends Error {
+  public readonly code = "INVALID_SIGNATURE" as const;
+
+  public constructor() {
+    super("Invalid Midtrans notification signature");
+    this.name = "MidtransNotificationSignatureError";
+  }
+}
 
 export type MidtransQrisChargeRequest = {
   payment_type: "qris";
@@ -36,25 +89,18 @@ export type MidtransQrisChargeResponse = {
   }>;
 };
 
-export type MidtransNotification = {
-  signature_key: string;
-  order_id: string;
-  status_code: string;
-  gross_amount: string;
-  transaction_status: string;
-  payment_type: string;
-  transaction_id: string;
-  currency: string;
-};
+export function assertValidQrisOrderId(orderId: string): void {
+  if (!QRIS_ORDER_ID_PATTERN.test(orderId)) {
+    throw new Error("Invalid order id");
+  }
+}
 
 export function createQrisChargeRequest(input: {
   orderId: string;
   amountMinor: bigint;
   acquirer?: "gopay" | "airpay";
 }): MidtransQrisChargeRequest {
-  if (!/^[A-Za-z0-9_-]{1,100}$/.test(input.orderId)) {
-    throw new Error("Invalid order id");
-  }
+  assertValidQrisOrderId(input.orderId);
   if (
     input.amountMinor <= 0n ||
     input.amountMinor > BigInt(Number.MAX_SAFE_INTEGER)
@@ -131,33 +177,163 @@ export function verifyMidtransSignature(input: {
   );
 }
 
+export function parseMidtransNotification(
+  rawBody: string,
+): MidtransNotification {
+  if (typeof rawBody !== "string") {
+    throw new MidtransNotificationPayloadError();
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawBody) as unknown;
+  } catch {
+    throw new MidtransNotificationPayloadError();
+  }
+
+  const result = midtransNotificationSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new MidtransNotificationPayloadError();
+  }
+  return result.data;
+}
+
+/**
+ * The handler must receive the untouched request body. Midtrans signs fields
+ * in the notification, so parsing happens once here and verification is
+ * performed before any repository lookup or state mutation.
+ */
+export function parseAndVerifyMidtransNotification(input: {
+  rawBody: string;
+  serverKey: string;
+}): MidtransNotification {
+  const notification = parseMidtransNotification(input.rawBody);
+  let isValid = false;
+  try {
+    isValid = verifyMidtransSignature({
+      signatureKey: notification.signature_key,
+      orderId: notification.order_id,
+      statusCode: notification.status_code,
+      grossAmount: notification.gross_amount,
+      serverKey: input.serverKey,
+    });
+  } catch {
+    throw new MidtransNotificationSignatureError();
+  }
+  if (!isValid) {
+    throw new MidtransNotificationSignatureError();
+  }
+  return notification;
+}
+
+export function createMidtransNotificationEventId(
+  notification: Pick<
+    MidtransNotification,
+    | "order_id"
+    | "transaction_id"
+    | "status_code"
+    | "gross_amount"
+    | "transaction_status"
+    | "currency"
+  >,
+): string {
+  const fingerprint = [
+    notification.order_id,
+    notification.transaction_id,
+    notification.status_code,
+    notification.gross_amount,
+    notification.transaction_status,
+    notification.currency,
+  ].join("\u001f");
+  return `midtrans:${createHash("sha256")
+    .update(fingerprint, "utf8")
+    .digest("hex")}`;
+}
+
+export type QrisNotificationValidationCode =
+  | "ORDER_MISMATCH"
+  | "METHOD_MISMATCH"
+  | "CURRENCY_MISMATCH"
+  | "INVALID_AMOUNT"
+  | "AMOUNT_MISMATCH";
+
+export class QrisNotificationValidationError extends Error {
+  public constructor(
+    public readonly code: QrisNotificationValidationCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "QrisNotificationValidationError";
+  }
+}
+
+export function parseIdrAmountMinor(grossAmount: string): bigint {
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(grossAmount);
+  const wholeAmount = match?.[1];
+  const fractionalAmount = match?.[2];
+  if (
+    !wholeAmount ||
+    (fractionalAmount !== undefined && !/^0+$/.test(fractionalAmount))
+  ) {
+    throw new QrisNotificationValidationError(
+      "INVALID_AMOUNT",
+      "Invalid payment amount",
+    );
+  }
+
+  let amountMinor: bigint;
+  try {
+    amountMinor = BigInt(wholeAmount);
+  } catch {
+    throw new QrisNotificationValidationError(
+      "INVALID_AMOUNT",
+      "Invalid payment amount",
+    );
+  }
+  if (
+    amountMinor <= 0n ||
+    amountMinor > BigInt(Number.MAX_SAFE_INTEGER)
+  ) {
+    throw new QrisNotificationValidationError(
+      "INVALID_AMOUNT",
+      "Invalid payment amount",
+    );
+  }
+  return amountMinor;
+}
+
 export function assertQrisNotification(input: {
   notification: MidtransNotification;
   expectedOrderId: string;
   expectedAmountMinor: bigint;
 }): void {
   const { notification } = input;
+  assertValidQrisOrderId(input.expectedOrderId);
   if (notification.order_id !== input.expectedOrderId) {
-    throw new Error("Payment order mismatch");
+    throw new QrisNotificationValidationError(
+      "ORDER_MISMATCH",
+      "Payment order mismatch",
+    );
   }
   if (notification.payment_type !== "qris") {
-    throw new Error("Payment method mismatch");
+    throw new QrisNotificationValidationError(
+      "METHOD_MISMATCH",
+      "Payment method mismatch",
+    );
   }
   if (notification.currency !== "IDR") {
-    throw new Error("Payment currency mismatch");
+    throw new QrisNotificationValidationError(
+      "CURRENCY_MISMATCH",
+      "Payment currency mismatch",
+    );
   }
-  const amountParts = notification.gross_amount.split(".");
-  const wholeAmount = amountParts[0];
-  const fractionalAmount = amountParts[1];
-  if (
-    !wholeAmount ||
-    !/^\d+$/.test(wholeAmount) ||
-    (fractionalAmount !== undefined && !/^0+$/.test(fractionalAmount))
-  ) {
-    throw new Error("Invalid payment amount");
-  }
-  if (BigInt(wholeAmount) !== input.expectedAmountMinor) {
-    throw new Error("Payment amount mismatch");
+
+  const amountMinor = parseIdrAmountMinor(notification.gross_amount);
+  if (amountMinor !== input.expectedAmountMinor) {
+    throw new QrisNotificationValidationError(
+      "AMOUNT_MISMATCH",
+      "Payment amount mismatch",
+    );
   }
 }
 

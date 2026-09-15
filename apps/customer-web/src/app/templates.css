@@ -3,51 +3,10 @@
    Editorial system carried over from the landing page: hairline rules,
    serif display type, no gradients. Themes are allowlisted token classes
    (never raw CSS from data).
-   ========================================================================== */
 
-/* Theme tokens — composable classes set --tpl-* custom properties. */
-.tpl-theme--palette-ivory {
-  --tpl-bg: var(--color-ivory);
-  --tpl-ink: var(--color-ink);
-  --tpl-muted: var(--color-ink-soft);
-  --tpl-line: var(--color-border);
-}
-.tpl-theme--palette-paper {
-  --tpl-bg: var(--color-paper);
-  --tpl-ink: var(--color-ink);
-  --tpl-muted: var(--color-ink-soft);
-  --tpl-line: var(--color-border);
-}
-.tpl-theme--palette-blush {
-  --tpl-bg: var(--color-blush);
-  --tpl-ink: var(--color-ink);
-  --tpl-muted: var(--color-ink-soft);
-  --tpl-line: var(--color-clay);
-}
-.tpl-theme--accent-olive {
-  --tpl-accent: var(--color-olive);
-}
-.tpl-theme--accent-clay {
-  --tpl-accent: var(--color-clay-deep);
-}
-.tpl-theme--accent-gold {
-  --tpl-accent: var(--color-gold);
-}
-.tpl-theme--type-serif {
-  --tpl-display: var(--font-display);
-  --tpl-display-weight: 400;
-}
-.tpl-theme--type-sans {
-  --tpl-display: var(--font-sans);
-  --tpl-display-weight: 300;
-  --tpl-display-tracking: 0.02em;
-}
-.tpl-theme--ornament-hairline {
-  --tpl-ornament-rule: 1;
-}
-.tpl-theme--ornament-frame {
-  --tpl-ornament-frame: 1;
-}
+   The theme tokens and the `.tpl-preview` cover composition live in
+   template-preview.css (shared with the landing page and catalog).
+   ========================================================================== */
 
 /* Reserve space so keyboard focus never lands under the mobile sticky bar. */
 html {
@@ -150,7 +109,9 @@ html {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: max-width 0.2s ease, border-radius 0.2s ease;
+  transition:
+    max-width 0.2s ease,
+    border-radius 0.2s ease;
 }
 @media (prefers-reduced-motion: reduce) {
   .tpl-device__frame {
@@ -181,96 +142,30 @@ html {
   display: flex;
 }
 /* Desktop mode: browser window. */
-.tpl-device:has(.tpl-device__input[value="desktop"]:checked) .tpl-device__frame {
+.tpl-device:has(.tpl-device__input[value="desktop"]:checked)
+  .tpl-device__frame {
   max-width: 100%;
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-md);
 }
-.tpl-device:has(.tpl-device__input[value="desktop"]:checked) .tpl-device__frame-bar {
+.tpl-device:has(.tpl-device__input[value="desktop"]:checked)
+  .tpl-device__frame-bar {
   justify-content: flex-start;
   padding-left: var(--space-3);
 }
-.tpl-device:has(.tpl-device__input[value="desktop"]:checked) .tpl-device__frame-bar::before {
+.tpl-device:has(.tpl-device__input[value="desktop"]:checked)
+  .tpl-device__frame-bar::before {
   width: 0.5rem;
   height: 0.5rem;
   background: var(--color-border);
 }
-.tpl-device:has(.tpl-device__input[value="desktop"]:checked) .tpl-device__frame-bar::after {
+.tpl-device:has(.tpl-device__input[value="desktop"]:checked)
+  .tpl-device__frame-bar::after {
   width: 100%;
   max-width: 24rem;
   height: 0.875rem;
   margin-left: var(--space-2);
   border-radius: var(--radius-pill);
-}
-
-/* --------------------------------------------------------------------------
-   Large preview composition (decorative, aria-hidden in markup)
-   -------------------------------------------------------------------------- */
-
-.tpl-preview {
-  margin: auto;
-  width: 100%;
-  max-width: 20rem;
-  padding: var(--space-8) var(--space-6);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: var(--space-4);
-  position: relative;
-  color: var(--tpl-ink, var(--color-ink));
-}
-.tpl-preview--wide {
-  max-width: 36rem;
-  padding: var(--space-10);
-}
-.tpl-theme--ornament-frame .tpl-preview::before {
-  content: "";
-  position: absolute;
-  inset: var(--space-3);
-  border: 1px solid var(--tpl-accent, var(--color-sage));
-  pointer-events: none;
-}
-.tpl-preview__eyebrow {
-  font-size: var(--text-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--tpl-muted, var(--color-ink-soft));
-}
-.tpl-preview__names {
-  font-family: var(--tpl-display, var(--font-display));
-  font-weight: var(--tpl-display-weight, 400);
-  letter-spacing: var(--tpl-display-tracking, 0);
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  line-height: 1.2;
-  color: var(--tpl-ink, var(--color-ink));
-}
-.tpl-preview__amp {
-  font-family: var(--font-display);
-  font-style: italic;
-  color: var(--tpl-accent, var(--color-olive));
-  font-size: 0.75em;
-}
-.tpl-preview__rule {
-  display: var(--tpl-ornament-rule, none) flex;
-  width: 3rem;
-  height: 1px;
-  background: var(--tpl-accent, var(--color-sage));
-}
-.tpl-preview__date {
-  font-size: var(--text-sm);
-  color: var(--tpl-muted, var(--color-ink-soft));
-}
-.tpl-preview__open {
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-6);
-  border: 1px solid var(--tpl-accent, var(--color-olive));
-  border-radius: var(--radius-pill);
-  font-size: var(--text-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--tpl-ink, var(--color-ink));
 }
 
 /* --------------------------------------------------------------------------
@@ -464,7 +359,8 @@ html {
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
-    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    padding: var(--space-3) var(--space-4)
+      calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
     box-shadow: 0 -4px 16px rgba(36, 52, 47, 0.08);
