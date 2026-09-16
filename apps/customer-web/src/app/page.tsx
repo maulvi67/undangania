@@ -10,6 +10,7 @@ import { PricingExplanation } from "../components/marketing/pricing-explanation"
 import { TrustSection } from "../components/marketing/trust-section";
 import { FaqSection } from "../components/marketing/faq-section";
 import { FinalCta } from "../components/marketing/final-cta";
+import { ScrollReveal } from "../components/marketing/scroll-reveal";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -59,6 +60,12 @@ export default function LandingPage() {
         <FinalCta />
       </main>
       <MarketingFooter />
+      {/*
+        Only interactive leaf on the page. It renders nothing — it marks
+        sections for their entry animation — so every section above stays a
+        Server Component.
+      */}
+      <ScrollReveal />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}

@@ -27,11 +27,14 @@ export function Hero() {
           {/*
             Layered cover stack. Purely decorative — the same illustrative
             couple used in the catalog previews, so the hero never implies a
-            real customer.
+            real customer. The halo and sheen are inside the same `aria-hidden`
+            subtree, so a screen reader is told nothing about them.
           */}
           <div className="lnd-stack" aria-hidden="true">
+            <span className="lnd-hero__halo" />
             <div className="lnd-invite lnd-invite--back" />
             <div className="lnd-invite">
+              <span className="lnd-invite__sheen" />
               <span className="lnd-invite__eyebrow">Undangan Pernikahan</span>
               <span className="lnd-invite__names">Rai &amp; Anisa</span>
               <span className="lnd-invite__rule" />

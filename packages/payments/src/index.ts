@@ -25,6 +25,15 @@ export interface PaymentPort {
 
 export * from "./midtrans-qris";
 export {
+  createMidtransQrisPaymentPortFromEnv,
+  MidtransQrisPaymentPort,
+  QrisProviderError,
+  resolveQrisEnvironment,
+  type MidtransQrisEnvironment,
+  type MidtransQrisPaymentPortOptions,
+  type QrisProviderErrorCode,
+} from "./midtrans-qris-port";
+export {
   processQrisNotification,
   QrisProcessingError,
   type ProcessQrisNotificationInput,

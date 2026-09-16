@@ -242,9 +242,61 @@
 /* ---------- Hero ---------- */
 
 .lnd-hero {
+  position: relative;
   border-top: 0;
   padding-block: var(--space-12) var(--space-16);
   background: var(--color-bg);
+  /* Contains the halo so it can bleed without widening the document. */
+  overflow: hidden;
+}
+
+/*
+ * Ambient depth. Two very low-contrast radial washes in the palette's own blues
+ * — enough to stop the hero reading as flat paper, faint enough that the heading
+ * contrast is untouched. Not a decorative image, so it costs no request.
+ *
+ * Literal rgba rather than `color-mix()`: the palette values are fixed in this
+ * file, and a wedding invitation is opened on whatever phone the guest owns.
+ */
+.lnd-hero::before {
+  content: "";
+  position: absolute;
+  /*
+   * Explicitly behind the content. An absolutely positioned pseudo-element
+   * paints above in-flow block content in the same stacking context, so without
+   * this the wash would sit over the heading and tint the text.
+   */
+  z-index: 0;
+  inset: -20% -10% auto;
+  height: 130%;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      42% 55% at 78% 18%,
+      rgba(170, 194, 206, 0.55) 0%,
+      rgba(170, 194, 206, 0) 68%
+    ),
+    radial-gradient(
+      38% 48% at 12% 82%,
+      rgba(229, 239, 243, 0.9) 0%,
+      rgba(229, 239, 243, 0) 70%
+    );
+}
+
+/* Soft halo that drifts behind the invitation stack. */
+.lnd-hero__halo {
+  position: absolute;
+  z-index: 0;
+  inset-inline: -18% 0;
+  inset-block: -8% 4%;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+  background: radial-gradient(
+    50% 50% at 50% 45%,
+    rgba(217, 232, 239, 0.95) 0%,
+    rgba(217, 232, 239, 0) 72%
+  );
+  filter: blur(0.5rem);
 }
 
 @media (min-width: 48rem) {
@@ -254,6 +306,9 @@
 }
 
 .lnd-hero__inner {
+  position: relative;
+  /* Above the ambient wash. */
+  z-index: 1;
   display: grid;
   gap: var(--space-10);
 }
@@ -305,6 +360,7 @@
 }
 
 .lnd-hero__visual {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -327,6 +383,7 @@
  */
 .lnd-stack {
   position: relative;
+  z-index: 1;
   width: min(19rem, 100%);
   padding-block-start: var(--space-6);
   padding-inline-end: var(--space-6);
@@ -346,6 +403,8 @@
   justify-content: center;
   text-align: center;
   gap: var(--space-4);
+  /* Clips the sheen to the card so it reads as light, not as a sliding box. */
+  overflow: hidden;
 }
 
 .lnd-invite::before {
@@ -354,6 +413,24 @@
   inset: var(--space-3);
   border: 1px solid var(--color-sage);
   pointer-events: none;
+}
+
+/*
+ * Travelling highlight on the front card. Clipped by the card's own overflow,
+ * so it reads as light moving across paper rather than a moving box.
+ */
+.lnd-invite__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 254, 253, 0) 0%,
+    rgba(255, 254, 253, 0.7) 45%,
+    rgba(229, 239, 243, 0.45) 55%,
+    rgba(255, 254, 253, 0) 100%
+  );
+  opacity: 0.55;
 }
 
 .lnd-invite--back {
@@ -879,13 +956,43 @@
 
 @keyframes lnd-section-reveal {
   from {
-    opacity: 0.45;
-    transform: translateY(1rem);
+    opacity: 0;
+    transform: translateY(1.25rem);
   }
 
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/*
+ * Sheen that travels across the invitation card. Purely decorative depth on an
+ * element that is already `aria-hidden`, and slow enough to read as light
+ * moving across paper rather than a loading indicator.
+ */
+@keyframes lnd-invite-sheen {
+  0% {
+    transform: translateX(-120%) skewX(-12deg);
+  }
+
+  55%,
+  100% {
+    transform: translateX(220%) skewX(-12deg);
+  }
+}
+
+/* Soft breathing halo behind the card stack. */
+@keyframes lnd-halo-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+
+  50% {
+    transform: translate3d(0, -1.25rem, 0) scale(1.06);
+    opacity: 1;
   }
 }
 
@@ -914,6 +1021,13 @@
   .lnd-hero__content > :nth-child(4) {
     animation-delay: 280ms;
   }
+
+  /*
+   * The CTA group is the fourth child above and already animates as one unit.
+   * Animating its buttons too would multiply the two opacities — the buttons
+   * would spend most of the sequence at a fraction of full opacity — so the
+   * cascade stops at the group and the buttons keep only their hover motion.
+   */
 
   .lnd-hero__visual {
     animation-delay: 220ms;
@@ -951,12 +1065,34 @@
     box-shadow: var(--shadow-md);
   }
 
-  @supports (animation-timeline: view()) {
-    .lnd-section {
-      animation: lnd-section-reveal linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 24%;
-    }
+  /*
+   * Scroll reveal, driven by `scroll-reveal.tsx` via IntersectionObserver.
+   *
+   * The previous implementation used `animation-timeline: view()` here. Only
+   * Chromium ships that, so Safari and Firefox — which is most of the audience
+   * opening an invitation link on a phone — fell through to no reveal at all.
+   * The attribute is set by the client component, and only ever to `pending`
+   * once JavaScript is running, so a script failure leaves content visible.
+   */
+  .lnd-section[data-reveal="pending"],
+  .lnd-final[data-reveal="pending"] {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+
+  .lnd-section[data-reveal="in"],
+  .lnd-final[data-reveal="in"] {
+    animation: lnd-section-reveal 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Without the observer the attribute is never set, so nothing is hidden. */
+
+  .lnd-invite__sheen {
+    animation: lnd-invite-sheen 9s cubic-bezier(0.37, 0, 0.63, 1) 1.4s infinite;
+  }
+
+  .lnd-hero__halo {
+    animation: lnd-halo-drift 13s cubic-bezier(0.37, 0, 0.63, 1) infinite;
   }
 }
 
@@ -964,6 +1100,23 @@
   .lnd-shell .ui-button,
   .lnd-tile__preview {
     transition: none;
+  }
+
+  /*
+   * Belt and braces. The client component already refuses to hide anything when
+   * motion is reduced, but if the attribute is ever set by other means the
+   * reveal must still resolve to a visible state rather than sticking at 0.
+   */
+  .lnd-section[data-reveal],
+  .lnd-final[data-reveal] {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .lnd-invite__sheen,
+  .lnd-hero__halo {
+    animation: none;
   }
 }
 

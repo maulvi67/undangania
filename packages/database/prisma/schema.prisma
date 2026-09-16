@@ -109,6 +109,7 @@ model Tenant {
   orders       Order[]
   auditEvents  AuditEvent[]
   outboxEvents OutboxEvent[]
+  supportCases SupportCase[]
 
   @@index([createdAt])
 }
@@ -128,6 +129,7 @@ model User {
   auditEvents     AuditEvent[]
   sessions        Session[]
   authTokens      AuthToken[]
+  mfaCredentials  MfaCredential[]
 }
 
 model Session {
@@ -157,6 +159,42 @@ model AuthToken {
   @@index([userId, type, expiresAt])
 }
 
+/**
+ * MFA enrolment. `secretEncrypted` holds the TOTP secret and must never be
+ * returned to a client or written to a log; only `confirmedAt` distinguishes a
+ * pending enrolment from an active second factor.
+ *
+ * `User.mfaEnabled` remains the fast read used by request authorization, and is
+ * only ever set true once a credential has been confirmed.
+ */
+model MfaCredential {
+  id              String    @id @default(uuid())
+  userId          String
+  type            String    @db.VarChar(32) @default("TOTP")
+  secretEncrypted String    @db.VarChar(512)
+  confirmedAt     DateTime?
+  lastUsedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, revokedAt])
+}
+
+/**
+ * Single-use recovery codes. Codes are stored hashed: a database read must not
+ * yield anything a person could sign in with.
+ */
+model MfaRecoveryCode {
+  id           String    @id @default(uuid())
+  userId       String
+  codeHash     String    @unique @db.VarChar(128)
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, usedAt])
+}
+
 model TenantMembership {
   id       String     @id @default(uuid())
   tenantId String
@@ -171,23 +209,29 @@ model TenantMembership {
 }
 
 model Wedding {
-  id             String           @id @default(uuid())
-  tenantId       String
-  displayName    String           @db.VarChar(150)
-  weddingDate    DateTime?        @db.Date
-  timezone       String           @default("Asia/Jakarta")
-  locale         String           @default("id-ID")
-  currency       String           @default("IDR")
-  status         String           @default("DRAFT")
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  events         WeddingEvent[]
-  invitation     Invitation?
-  households     GuestHousehold[]
-  media          MediaAsset[]
-  orders         Order[]
-  printingOrders PrintingOrder[]
+  id                     String           @id @default(uuid())
+  tenantId               String
+  displayName            String           @db.VarChar(150)
+  partner1Name           String?          @db.VarChar(100)
+  partner2Name           String?          @db.VarChar(100)
+  weddingDate            DateTime?        @db.Date
+  weddingDateUndecided   Boolean          @default(false)
+  city                   String?          @db.VarChar(100)
+  timezone               String           @default("Asia/Jakarta")
+  locale                 String           @default("id-ID")
+  currency               String           @default("IDR")
+  status                 String           @default("DRAFT")
+  version                Int              @default(1)
+  onboardingCompletedAt  DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  tenant                 Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  events                 WeddingEvent[]
+  invitation             Invitation?
+  households             GuestHousehold[]
+  media                  MediaAsset[]
+  orders                 Order[]
+  printingOrders         PrintingOrder[]
 
   @@index([tenantId, status])
 }
@@ -582,11 +626,41 @@ model Notification {
   idempotencyKey        String             @unique
   status                NotificationStatus @default(QUEUED)
   providerMessageId     String?
+  attemptCount          Int                @default(0)
+  lastError             String?
   scheduledAt           DateTime?
   sentAt                DateTime?
+  deliveredAt           DateTime?
   createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
   @@index([tenantId, status, scheduledAt])
+  @@index([status, createdAt])
+}
+
+/**
+ * Support cases surfaced in the admin console. Kept separate from
+ * `ModerationCase` because a support conversation has a category, a last
+ * response, and an escalation state that a policy decision does not.
+ */
+model SupportCase {
+  id              String    @id @default(uuid())
+  tenantId        String
+  reference       String    @unique @db.VarChar(64)
+  category        String    @db.VarChar(64)
+  severity        String    @default("info") @db.VarChar(16)
+  status          String    @default("OPEN") @db.VarChar(32)
+  owner           String?   @db.VarChar(150)
+  escalationState String    @default("NONE") @db.VarChar(32)
+  lastResponseAt  DateTime?
+  lastResponseBy  String?   @db.VarChar(150)
+  openedAt        DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, status, createdAt])
+  @@index([status, escalationState])
 }
 
 model CustomDomain {
@@ -661,6 +735,7 @@ model OutboxEvent {
   status         String    @default("PENDING")
   attemptCount   Int       @default(0)
   availableAt    DateTime  @default(now())
+  lastAttemptAt  DateTime?
   processedAt    DateTime?
   lastError      String?
   createdAt      DateTime  @default(now())
@@ -668,4 +743,5 @@ model OutboxEvent {
 
   @@index([status, availableAt])
   @@index([aggregateType, aggregateId])
+  @@index([status, attemptCount])
 }
