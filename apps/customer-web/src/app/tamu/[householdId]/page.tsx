@@ -8,9 +8,8 @@ import {
   GuestPermissionDenied,
   GuestUnavailable,
 } from "../../../components/guests/guest-state-panels";
-import { parseGuestFixture } from "../../../lib/guests/contract";
-import { loadGuestHousehold } from "../../../lib/guests/stub-transport";
-import { getAuthenticatedRequest } from "../../../lib/auth/server";
+import { loadGuestHouseholdDetail } from "../../../lib/guests/server";
+import { guestRequestScope } from "../../../lib/guests/request";
 import "../../guests.css";
 
 export const metadata: Metadata = {
@@ -27,57 +26,37 @@ const NAV = [
   { href: "/buku-tamu", label: "Buku tamu" },
 ] as const;
 
-type Props = {
-  params: Promise<{ householdId: string }>;
-  searchParams: Promise<{ fixture?: string | string[] }>;
-};
+type Props = { params: Promise<{ householdId: string }> };
 
-export default async function GuestHouseholdPage({
-  params,
-  searchParams,
-}: Props) {
-  if (process.env.NODE_ENV === "production") {
-    const authenticated = await getAuthenticatedRequest();
-    return (
-      <ApplicationShell
-        nav={NAV}
-        footerNote="Kelola tautan personal dengan aman."
-      >
-        <div className="gst-state">
-          <StatePanel
-            title={
-              authenticated === null
-                ? "Masuk untuk melihat rumah tangga"
-                : "Rumah tangga belum tersedia"
-            }
-            description={
-              authenticated === null
-                ? "Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
-                : "Data rumah tangga belum dapat dimuat dari layanan workspace."
-            }
-            action={
-              <a
-                className="ui-button ui-button--primary ui-button--md"
-                href={authenticated === null ? "/masuk?next=%2Ftamu" : "/tamu"}
-              >
-                {authenticated === null ? "Masuk" : "Kembali ke daftar tamu"}
-              </a>
-            }
-          />
-        </div>
-      </ApplicationShell>
-    );
-  }
-
+export default async function GuestHouseholdPage({ params }: Props) {
   const { householdId } = await params;
-  const query = await searchParams;
-  const fixture = parseGuestFixture(query.fixture);
-  const result = await loadGuestHousehold(householdId, fixture);
+  const { request } = await guestRequestScope();
+  const result = await loadGuestHouseholdDetail(
+    { context: request?.context ?? null },
+    householdId,
+  );
+
   return (
     <ApplicationShell
       nav={NAV}
       footerNote="Kelola tautan personal dengan aman."
     >
+      {result.kind === "unauthenticated" ? (
+        <div className="gst-state">
+          <StatePanel
+            title="Masuk untuk melihat rumah tangga"
+            description="Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
+            action={
+              <a
+                className="ui-button ui-button--primary ui-button--md"
+                href="/masuk?next=%2Ftamu"
+              >
+                Masuk
+              </a>
+            }
+          />
+        </div>
+      ) : null}
       {result.kind === "forbidden" ? <GuestPermissionDenied /> : null}
       {result.kind === "unavailable" ? <GuestUnavailable /> : null}
       {result.kind === "not-found" ? <GuestNotFound /> : null}
@@ -85,7 +64,7 @@ export default async function GuestHouseholdPage({
         <GuestHouseholdDetailView
           household={result.data.household}
           management={result.data.management}
-          fixture={fixture}
+          invitationSlug={result.data.invitationSlug}
         />
       ) : null}
     </ApplicationShell>

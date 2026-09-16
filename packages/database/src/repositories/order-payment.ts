@@ -44,6 +44,12 @@ type OrderPaymentRepositoryClient = {
       where: Prisma.OrderWhereInput;
       select: typeof orderPaymentSelect;
     }): Promise<OrderPaymentRow | null>;
+    /** Optional so the read-only `findOwned` path can be tested without it. */
+    findMany?(args: {
+      where: Prisma.OrderWhereInput;
+      orderBy: Prisma.OrderOrderByWithRelationInput[];
+      select: typeof orderPaymentSelect;
+    }): Promise<OrderPaymentRow[]>;
   };
 };
 
@@ -51,6 +57,11 @@ export type OrderPaymentScope = Readonly<{
   tenantId: string;
   userId: string;
   orderNumber: string;
+}>;
+
+/** Tenant-wide scope for the order list, which spans every member's purchases. */
+export type OrderListScope = Readonly<{
+  tenantId: string;
 }>;
 
 export type OrderPaymentDto = Readonly<{
@@ -84,6 +95,17 @@ export interface OrderPaymentRepository {
   findOwned(scope: OrderPaymentScope): Promise<OrderPaymentDto | null>;
 }
 
+export interface OrderListRepository {
+  /**
+   * The workspace's orders, newest first.
+   *
+   * Scoped by tenant rather than by user: an order is paid for once and belongs to
+   * the workspace, so a co-organizer who did not press the button must still be able
+   * to see whether the invitation was paid for.
+   */
+  listForTenant(scope: OrderListScope): Promise<readonly OrderPaymentDto[]>;
+}
+
 function toDto(row: OrderPaymentRow): OrderPaymentDto {
   return {
     id: row.id,
@@ -113,7 +135,9 @@ function toDto(row: OrderPaymentRow): OrderPaymentDto {
   };
 }
 
-export class PrismaOrderPaymentRepository implements OrderPaymentRepository {
+export class PrismaOrderPaymentRepository
+  implements OrderPaymentRepository, OrderListRepository
+{
   public constructor(
     private readonly client: OrderPaymentRepositoryClient = prisma,
   ) {}
@@ -130,5 +154,20 @@ export class PrismaOrderPaymentRepository implements OrderPaymentRepository {
       select: orderPaymentSelect,
     });
     return row === null ? null : toDto(row);
+  }
+
+  public async listForTenant(
+    scope: OrderListScope,
+  ): Promise<readonly OrderPaymentDto[]> {
+    if (this.client.order.findMany === undefined) {
+      throw new Error("Order list client is unavailable");
+    }
+
+    const rows = await this.client.order.findMany({
+      where: { tenantId: scope.tenantId },
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      select: orderPaymentSelect,
+    });
+    return rows.map(toDto);
   }
 }

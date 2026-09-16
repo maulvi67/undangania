@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ApplicationShell, StatePanel } from "@wedding/ui";
 import { GuestHouseholdForm } from "../../../components/guests/guest-household-form";
 import { GuestPermissionDenied } from "../../../components/guests/guest-state-panels";
-import { parseGuestFixture } from "../../../lib/guests/contract";
-import { getGuestManagementData } from "../../../lib/guests/fixtures";
-import { getAuthenticatedRequest } from "../../../lib/auth/server";
+import { loadGuestFormOptions } from "../../../lib/guests/actions";
+import { guestRequestScope } from "../../../lib/guests/request";
 import "../../guests.css";
 
 export const metadata: Metadata = {
@@ -21,77 +21,87 @@ const NAV = [
   { href: "/buku-tamu", label: "Buku tamu" },
 ] as const;
 
-type Props = { searchParams: Promise<{ fixture?: string | string[] }> };
-
-export default async function NewGuestHouseholdPage({ searchParams }: Props) {
-  if (process.env.NODE_ENV === "production") {
-    const authenticated = await getAuthenticatedRequest();
-    return (
-      <ApplicationShell
-        nav={NAV}
-        footerNote="Kelola tamu dengan tenang, dari satu workspace."
-      >
-        <div className="gst-state">
-          <StatePanel
-            title={
-              authenticated === null
-                ? "Masuk untuk menambah tamu"
-                : "Penambahan tamu belum tersedia"
-            }
-            description={
-              authenticated === null
-                ? "Masuk ke akun Wedding System untuk mengelola rumah tangga di workspace Anda."
-                : "Data tamu belum dapat disimpan dari layanan workspace."
-            }
-            action={
-              <a
-                className="ui-button ui-button--primary ui-button--md"
-                href={
-                  authenticated === null
-                    ? "/masuk?next=%2Ftamu%2Fbaru"
-                    : "/tamu"
-                }
-              >
-                {authenticated === null ? "Masuk" : "Kembali ke daftar tamu"}
-              </a>
-            }
-          />
-        </div>
-      </ApplicationShell>
-    );
-  }
-
-  const params = await searchParams;
-  const fixture = parseGuestFixture(params.fixture);
-  const data = getGuestManagementData(fixture);
+function Shell({ children }: { children: React.ReactNode }) {
   return (
     <ApplicationShell
       nav={NAV}
       footerNote="Kelola tamu dengan tenang, dari satu workspace."
     >
-      {!data.capabilities.canWrite ? (
-        <GuestPermissionDenied />
-      ) : (
-        <div className="gst-page gst-page--detail">
-          <a
-            className="gst-backlink"
-            href={`/tamu${fixture === "normal" ? "" : `?fixture=${fixture}`}`}
-          >
-            ← Kembali ke daftar tamu
-          </a>
-          <header className="gst-page__header">
-            <div>
-              <p className="gst-eyebrow">Tambah tamu</p>
-              <h1>Rumah tangga baru</h1>
-              <p className="gst-page__lead">
-                Buat satu rumah tangga, tambahkan anggota, lalu tentukan acara
-                yang dapat mereka akses.
-              </p>
-            </div>
-          </header>
-          <GuestHouseholdForm events={data.events} tags={data.tags} />
-        </div>
-      )}
+      {children}
     </ApplicationShell>
+  );
+}
+
+export default async function NewGuestHouseholdPage() {
+  const { request } = await guestRequestScope();
+  if (request === null) {
+    return (
+      <Shell>
+        <div className="gst-state">
+          <StatePanel
+            title="Masuk untuk menambah tamu"
+            description="Masuk ke akun Wedding System untuk mengelola rumah tangga di workspace Anda."
+            action={
+              <a
+                className="ui-button ui-button--primary ui-button--md"
+                href="/masuk?next=%2Ftamu%2Fbaru"
+              >
+                Masuk
+              </a>
+            }
+          />
+        </div>
+      </Shell>
+    );
+  }
+
+  const options = await loadGuestFormOptions();
+  if (options.kind === "forbidden") {
+    return (
+      <Shell>
+        <GuestPermissionDenied />
+      </Shell>
+    );
+  }
+  if (options.kind === "unavailable") {
+    return (
+      <Shell>
+        <div className="gst-state">
+          <StatePanel
+            title="Formulir tamu belum dapat dimuat"
+            description="Layanan workspace sedang tidak tersedia. Coba muat ulang halaman ini."
+            action={
+              <Link
+                className="ui-button ui-button--primary ui-button--md"
+                href="/tamu"
+              >
+                Kembali ke daftar tamu
+              </Link>
+            }
+          />
+        </div>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <div className="gst-page gst-page--detail">
+        <Link className="gst-backlink" href="/tamu">
+          ← Kembali ke daftar tamu
+        </Link>
+        <header className="gst-page__header">
+          <div>
+            <p className="gst-eyebrow">Tambah tamu</p>
+            <h1>Rumah tangga baru</h1>
+            <p className="gst-page__lead">
+              Buat satu rumah tangga dan tambahkan anggotanya. Tautan personal
+              dibuat otomatis dan dapat Anda bagikan dari halaman detail.
+            </p>
+          </div>
+        </header>
+        <GuestHouseholdForm events={options.events} tags={[]} />
+      </div>
+    </Shell>
   );
 }

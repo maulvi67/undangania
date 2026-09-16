@@ -5,9 +5,13 @@ import {
   GuestPermissionDenied,
   GuestUnavailable,
 } from "../../components/guests/guest-state-panels";
-import { parseGuestQuery } from "../../lib/guests/contract";
-import { loadGuests } from "../../lib/guests/stub-transport";
-import { getAuthenticatedRequest } from "../../lib/auth/server";
+import {
+  filterGuestHouseholds,
+  guestListItemSchema,
+  parseGuestQuery,
+} from "../../lib/guests/contract";
+import { loadGuestManagement } from "../../lib/guests/server";
+import { guestRequestScope } from "../../lib/guests/request";
 import "../guests.css";
 
 export const metadata: Metadata = {
@@ -29,7 +33,6 @@ const NAV = [
 
 type GuestPageProps = {
   searchParams: Promise<{
-    fixture?: string | string[];
     q?: string | string[];
     tag?: string | string[];
     event?: string | string[];
@@ -49,77 +52,67 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default async function GuestPage({ searchParams }: GuestPageProps) {
-  if (process.env.NODE_ENV === "production") {
-    const authenticated = await getAuthenticatedRequest();
-    return authenticated === null ? (
-      <Shell>
-        <div className="gst-state">
-          <StatePanel
-            title="Masuk untuk melihat tamu"
-            description="Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
-            action={
-              <a
-                className="ui-button ui-button--primary ui-button--md"
-                href="/masuk?next=%2Ftamu"
-              >
-                Masuk
-              </a>
-            }
-          />
-        </div>
-      </Shell>
-    ) : (
-      <Shell>
-        <GuestUnavailable />
-      </Shell>
-    );
-  }
+function SignInPrompt() {
+  return (
+    <div className="gst-state">
+      <StatePanel
+        title="Masuk untuk melihat tamu"
+        description="Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
+        action={
+          <a
+            className="ui-button ui-button--primary ui-button--md"
+            href="/masuk?next=%2Ftamu"
+          >
+            Masuk
+          </a>
+        }
+      />
+    </div>
+  );
+}
 
-  const params = await searchParams;
-  const query = parseGuestQuery(params);
-  const result = await loadGuests(query.fixture, query);
+export default async function GuestPage({ searchParams }: GuestPageProps) {
+  const { request } = await guestRequestScope();
+  const result = await loadGuestManagement({
+    context: request?.context ?? null,
+  });
+
   if (result.kind === "unauthenticated") {
     return (
       <Shell>
-        <div className="gst-state">
-          <StatePanel
-            title="Masuk untuk melihat tamu"
-            description="Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
-            action={
-              <a
-                className="ui-button ui-button--primary ui-button--md"
-                href="/masuk?next=%2Ftamu"
-              >
-                Masuk
-              </a>
-            }
-          />
-        </div>
+        <SignInPrompt />
       </Shell>
     );
   }
-  if (result.kind === "forbidden")
+  if (result.kind === "forbidden") {
     return (
       <Shell>
         <GuestPermissionDenied />
       </Shell>
     );
-  if (result.kind === "unavailable")
+  }
+  if (result.kind === "unavailable") {
     return (
       <Shell>
         <GuestUnavailable />
       </Shell>
     );
+  }
+
+  // Filtering is applied to the loaded rows rather than pushed into the query, so
+  // the same predicate the UI displays is the one that decided the result.
+  const params = await searchParams;
+  const query = parseGuestQuery(params);
+  const households = filterGuestHouseholds(result.data.households, query).map(
+    (household) => guestListItemSchema.parse(household),
+  );
+
   return (
     <Shell>
-      <GuestManagementView data={result.data} query={query} />
+      <GuestManagementView
+        data={{ ...result.data, households }}
+        query={query}
+      />
     </Shell>
-  );
-}
-
-export function GuestRoutePlaceholder() {
-  return (
-    <StatePanel title="Daftar tamu" description="Memuat data rumah tangga…" />
   );
 }

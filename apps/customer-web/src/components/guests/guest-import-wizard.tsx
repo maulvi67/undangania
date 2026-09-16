@@ -6,11 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, StatePanel } from "@wedding/ui";
 import {
   parseGuestCsv,
+  type GuestEvent,
   type GuestFixture,
+  type GuestHouseholdListItem,
   type GuestImportPreview,
-  type GuestManagementData,
   type GuestImportRow,
 } from "../../lib/guests/contract";
+import { importGuestHouseholdsAction } from "../../lib/guests/actions";
+import type { GuestImportOutcome } from "../../lib/guests/outcomes";
 
 const CSV_TEMPLATE = [
   "nama_rumah_tangga,nama_tamu,telepon,email,maksimal_pax,akses_acara,tag",
@@ -47,32 +50,86 @@ function rowLabel(status: GuestImportRow["status"]): string {
   return "Perlu diperbaiki";
 }
 
+/**
+ * Groups the reviewed rows into one entry per household.
+ *
+ * The CSV repeats the household name on every row, so the same name across several
+ * rows is one household with several members — not several households. Grouping by
+ * the normalized name is what keeps `Keluarga Budi Santoso` from being created three
+ * times.
+ */
+function toImportRows(
+  preview: GuestImportPreview,
+  acceptedDuplicates: ReadonlySet<number>,
+): readonly {
+  householdName: string;
+  memberNames: readonly string[];
+  maximumPax: number;
+}[] {
+  const byName = new Map<
+    string,
+    { householdName: string; memberNames: string[]; maximumPax: number }
+  >();
+  for (const row of preview.rows) {
+    const accepted =
+      row.status === "valid" ||
+      (row.status === "duplicate" && acceptedDuplicates.has(row.rowNumber));
+    if (!accepted) continue;
+
+    const key = row.householdName.trim().toLocaleLowerCase("id-ID");
+    const existing = byName.get(key);
+    if (existing === undefined) {
+      byName.set(key, {
+        householdName: row.householdName.trim(),
+        memberNames: [row.guestName.trim()],
+        maximumPax: row.maximumPax ?? 1,
+      });
+      continue;
+    }
+    existing.memberNames.push(row.guestName.trim());
+    // The largest figure wins: a household is imported once, and taking the smaller
+    // of two stated allowances would silently drop someone the couple listed.
+    existing.maximumPax = Math.max(existing.maximumPax, row.maximumPax ?? 1);
+  }
+  return [...byName.values()].map((entry) => ({
+    householdName: entry.householdName,
+    memberNames: entry.memberNames,
+    // The allowance can never be smaller than the members actually named, which is
+    // a rule the form enforces too.
+    maximumPax: Math.max(entry.maximumPax, entry.memberNames.length),
+  }));
+}
+
 export function GuestImportWizard({
-  management,
+  events,
+  existingHouseholds,
   fixture,
 }: {
-  management: GuestManagementData;
+  events: readonly GuestEvent[];
+  existingHouseholds: readonly GuestHouseholdListItem[];
   fixture: GuestFixture;
 }) {
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState<GuestImportPreview | null>(null);
   const [processing, setProcessing] = useState(fixture === "import-processing");
   const [confirmed, setConfirmed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [outcome, setOutcome] = useState<GuestImportOutcome | null>(null);
   const [selectedDuplicateRows, setSelectedDuplicateRows] = useState<
     ReadonlySet<number>
   >(new Set());
-  const events = management.events;
   const hasPreview = preview !== null;
 
   const readFile = (file: File) => {
     setFileName(file.name);
     setProcessing(true);
     setConfirmed(false);
+    setOutcome(null);
     const reader = new FileReader();
     reader.addEventListener("load", () => {
       const value = typeof reader.result === "string" ? reader.result : "";
       window.setTimeout(() => {
-        setPreview(parseGuestCsv(value, events, management.households));
+        setPreview(parseGuestCsv(value, events, existingHouseholds));
         setProcessing(false);
       }, 220);
     });
@@ -86,14 +143,14 @@ export function GuestImportWizard({
         parseGuestCsv(
           fixtureCsv("potential-duplicate"),
           events,
-          management.households,
+          existingHouseholds,
         ),
       );
       setProcessing(false);
       setFileName("daftar-tamu.csv");
     }, 450);
     return () => window.clearTimeout(timer);
-  }, [events, fixture, management.households, processing]);
+  }, [events, fixture, existingHouseholds, processing]);
 
   const loadFixture = () => {
     setFileName("contoh-tamu.csv");
@@ -101,7 +158,7 @@ export function GuestImportWizard({
     setConfirmed(false);
     window.setTimeout(() => {
       setPreview(
-        parseGuestCsv(fixtureCsv(fixture), events, management.households),
+        parseGuestCsv(fixtureCsv(fixture), events, existingHouseholds),
       );
       setProcessing(false);
     }, 220);
@@ -131,13 +188,30 @@ export function GuestImportWizard({
     URL.revokeObjectURL(url);
   };
 
+  const commit = async () => {
+    if (preview === null) return;
+    const rows = toImportRows(preview, selectedDuplicateRows);
+    if (rows.length === 0) return;
+
+    // The step advances before the write, so the panel's own pending and outcome
+    // states are what the customer watches rather than a stale review table.
+    setConfirmed(true);
+    setPending(true);
+    setOutcome(null);
+    try {
+      setOutcome(await importGuestHouseholdsAction(rows));
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
     <div className="gst-import">
       <header className="gst-page__header">
         <div>
           <Link
             className="gst-backlink"
-            href={`/tamu${fixture === "normal" ? "" : `?fixture=${fixture}`}`}
+            href={fixture === "normal" ? "/tamu" : `/tamu?fixture=${fixture}`}
           >
             ← Kembali ke daftar tamu
           </Link>
@@ -330,14 +404,15 @@ export function GuestImportWizard({
               <div className="gst-import__review-actions">
                 <Link
                   className="ui-button ui-button--secondary ui-button--md"
-                  href={`/tamu${fixture === "normal" ? "" : `?fixture=${fixture}`}`}
+                  href="/tamu"
                 >
                   Batalkan
                 </Link>
                 <Button
                   type="button"
-                  disabled={acceptedCount === 0}
-                  onClick={() => setConfirmed(true)}
+                  loading={pending}
+                  disabled={acceptedCount === 0 || pending}
+                  onClick={() => void commit()}
                 >
                   Konfirmasi impor ({acceptedCount})
                 </Button>
@@ -352,18 +427,61 @@ export function GuestImportWizard({
           className="gst-import__complete"
           aria-labelledby="gst-import-complete-title"
         >
-          <StatePanel
-            title="Impor siap diproses"
-            description={`${acceptedCount} baris akan dimasukkan melalui layanan tenant-scoped pada versi produksi. Baris yang tidak dipilih tetap tidak akan dibuat.`}
-            action={
-              <Link
-                className="ui-button ui-button--primary ui-button--md"
-                href="/tamu"
-              >
-                Kembali ke daftar tamu
-              </Link>
-            }
-          />
+          {outcome === null ? (
+            <StatePanel
+              title={pending ? "Menjalankan impor" : "Impor belum diproses"}
+              description={
+                pending
+                  ? "Jangan menutup halaman ini. Data tamu sedang disimpan."
+                  : "Tinjau kembali baris yang dipilih, lalu jalankan impor."
+              }
+              action={
+                <Button
+                  type="button"
+                  loading={pending}
+                  disabled={pending}
+                  onClick={() => void commit()}
+                >
+                  Jalankan impor
+                </Button>
+              }
+            />
+          ) : outcome.kind === "ok" ? (
+            <StatePanel
+              title="Impor selesai"
+              description={`${outcome.createdHouseholds} rumah tangga dan ${outcome.createdGuests} tamu ditambahkan. Tautan personal untuk setiap rumah tangga dapat dibuat dari halaman detailnya.`}
+              action={
+                <Link
+                  className="ui-button ui-button--primary ui-button--md"
+                  href="/tamu"
+                >
+                  Kembali ke daftar tamu
+                </Link>
+              }
+            />
+          ) : (
+            <StatePanel
+              title="Impor belum berhasil"
+              description={
+                outcome.kind === "invalid"
+                  ? (outcome.errors[0] ??
+                    "Data impor perlu diperbaiki sebelum dijalankan.")
+                  : outcome.kind === "forbidden"
+                    ? "Anda tidak memiliki izin untuk menambah tamu di workspace ini."
+                    : "Data belum dapat disimpan. Periksa koneksi Anda lalu coba lagi."
+              }
+              action={
+                <Button
+                  type="button"
+                  loading={pending}
+                  disabled={pending}
+                  onClick={() => void commit()}
+                >
+                  Coba lagi
+                </Button>
+              }
+            />
+          )}
         </section>
       ) : null}
     </div>

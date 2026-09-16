@@ -103,6 +103,8 @@ export type GuestDetailLoadResult =
       data: Readonly<{
         household: GuestHouseholdDetail;
         management: GuestManagementData;
+        /** Null until the invitation is published. */
+        invitationSlug: string | null;
       }>;
     }>
   | Readonly<{ kind: "not-found" }>
@@ -434,3 +436,56 @@ export function parseGuestCsv(
 export function guestSortValues(): readonly GuestSort[] {
   return sortValues;
 }
+
+export const GUEST_HOUSEHOLD_NAME_MAX = 200;
+export const GUEST_MEMBER_NAME_MAX = 200;
+export const GUEST_MAXIMUM_PAX_CEILING = 20;
+
+const guestMemberInputSchema = z.object({
+  displayName: z.string().trim().min(1).max(GUEST_MEMBER_NAME_MAX),
+  category: z.enum(["ADULT", "CHILD", "OTHER"]).default("ADULT"),
+});
+
+export const guestHouseholdCreateSchema = z.object({
+  displayName: z.string().trim().min(1).max(GUEST_HOUSEHOLD_NAME_MAX),
+  maximumPax: z.number().int().min(1).max(GUEST_MAXIMUM_PAX_CEILING),
+  members: z.array(guestMemberInputSchema).min(1),
+});
+
+export type GuestHouseholdCreateInput = z.infer<
+  typeof guestHouseholdCreateSchema
+>;
+
+/**
+ * The update body. Every field is required because the form always submits the
+ * whole household; a partial patch would let a stale client silently revert a
+ * field it never rendered.
+ */
+export const guestHouseholdUpdateSchema = z.object({
+  displayName: z.string().trim().min(1).max(GUEST_HOUSEHOLD_NAME_MAX),
+  maximumPax: z.number().int().min(1).max(GUEST_MAXIMUM_PAX_CEILING),
+  members: z.array(guestMemberInputSchema).min(1),
+});
+
+export type GuestHouseholdUpdateInput = z.infer<
+  typeof guestHouseholdUpdateSchema
+>;
+
+/**
+ * One imported household: its display name, its members, and its allowance.
+ *
+ * The CSV parser already groups rows by household, so this is the shape the wizard
+ * hands over — one entry per household rather than one per person, which is what
+ * makes the import a bounded set of inserts rather than a per-row write.
+ */
+export const guestImportRowSchema = z.object({
+  householdName: z.string().trim().min(1).max(GUEST_HOUSEHOLD_NAME_MAX),
+  memberNames: z
+    .array(z.string().trim().min(1).max(GUEST_MEMBER_NAME_MAX))
+    .min(1),
+  maximumPax: z.number().int().min(1).max(GUEST_MAXIMUM_PAX_CEILING),
+});
+
+export const guestImportRowsSchema = z.array(guestImportRowSchema);
+
+export type GuestImportRowInput = z.infer<typeof guestImportRowSchema>;

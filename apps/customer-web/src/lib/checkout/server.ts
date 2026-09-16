@@ -1,5 +1,8 @@
 import {
   PrismaOrderPaymentRepository,
+  PrismaCheckoutPricingRepository,
+  prisma,
+  adaptCheckoutClient,
   type OrderPaymentDto,
 } from "@wedding/database";
 import type {
@@ -84,5 +87,67 @@ export async function loadOwnedPaymentStatus(
     },
     state: stateForPayment(order),
     templateName: name,
+  };
+}
+
+/**
+ * The price a template is actually sold at.
+ *
+ * Read from the catalog tables rather than from the UI fixture, because this is the
+ * same figure `createCheckout` will charge: showing one number and charging another
+ * would make the confirmation step meaningless. A template with no active price is
+ * reported as not sellable rather than priced at zero.
+ */
+export async function loadTemplatePriceMinor(input: {
+  templateId: string;
+  at: Date;
+}): Promise<bigint | null> {
+  try {
+    return await new PrismaCheckoutPricingRepository(
+      adaptCheckoutClient(prisma),
+    ).findPackagePrice({
+      productCode: input.templateId,
+      currency: "IDR",
+      at: input.at,
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Builds the order preview for a template the customer is about to buy.
+ *
+ * The order does not exist yet: `createCheckout` mints the real row when the
+ * customer confirms. `orderNumber` is therefore empty and the view renders without a
+ * reference, rather than showing an identifier for something that has not happened.
+ */
+export function previewOrder(input: {
+  templateId: string;
+  templateName: string;
+  templateCategory: string;
+  templateCharacter: string;
+  templateTierLabel: string;
+  unitPriceMinor: bigint;
+  quantity: number;
+}): CheckoutOrder {
+  const subtotalMinor = input.unitPriceMinor * BigInt(input.quantity);
+  return {
+    orderId: "",
+    orderNumber: "",
+    templateId: input.templateId,
+    templateName: input.templateName,
+    templateCategory: input.templateCategory,
+    templateCharacter: input.templateCharacter,
+    templateTierLabel: input.templateTierLabel,
+    currency: "IDR",
+    subtotalMinor: subtotalMinor.toString(),
+    discountMinor: "0",
+    taxMinor: "0",
+    totalMinor: subtotalMinor.toString(),
+    coreFeatures: CORE_FEATURES,
+    fairUsage: FAIR_USAGE,
+    lifecycle: lifecycle(),
+    paymentMethod: "QRIS",
   };
 }

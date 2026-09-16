@@ -46,7 +46,10 @@ export async function loadGuestHousehold(
   const management = getGuestManagementData(fixture, role);
   const household = getGuestHouseholdDetail(householdId, fixture, role);
   if (!household) return { kind: "not-found" };
-  return { kind: "ok", data: { household, management } };
+  return {
+    kind: "ok",
+    data: { household, management, invitationSlug: null },
+  };
 }
 
 export function getGuestDetailForDevelopment(

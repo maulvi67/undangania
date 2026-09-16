@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { Badge, Button, StatePanel } from "@wedding/ui";
 import type {
-  GuestFixture,
   GuestHouseholdDetail,
   GuestManagementData,
 } from "../../lib/guests/contract";
@@ -14,18 +13,18 @@ import { GuestLinkPanel } from "./guest-link-panel";
 export function GuestHouseholdDetailView({
   household,
   management,
-  fixture,
+  invitationSlug,
 }: {
   household: GuestHouseholdDetail;
   management: GuestManagementData;
-  fixture: GuestFixture;
+  /** Null until the couple has published; the link has nowhere to point yet. */
+  invitationSlug: string | null;
 }) {
   const [edit, setEdit] = React.useState(false);
-  const query = fixture === "normal" ? "" : `?fixture=${fixture}`;
   if (edit) {
     return (
       <div className="gst-page gst-page--detail">
-        <Link className="gst-backlink" href={`/tamu/${household.id}${query}`}>
+        <Link className="gst-backlink" href={`/tamu/${household.id}`}>
           ← Kembali ke detail rumah tangga
         </Link>
         <header className="gst-page__header">
@@ -41,6 +40,7 @@ export function GuestHouseholdDetailView({
           events={management.events}
           tags={management.tags}
           mode="edit"
+          householdId={household.id}
           initial={{
             displayName: household.displayName,
             maximumPax: household.maximumPax,
@@ -60,7 +60,7 @@ export function GuestHouseholdDetailView({
   }
   return (
     <div className="gst-page gst-page--detail">
-      <Link className="gst-backlink" href={`/tamu${query}`}>
+      <Link className="gst-backlink" href="/tamu">
         ← Kembali ke daftar tamu
       </Link>
       <header className="gst-page__header gst-page__header--detail">
@@ -166,7 +166,11 @@ export function GuestHouseholdDetailView({
           )}
         </section>
       </div>
-      <GuestLinkPanel household={household} management={management} />
+      <GuestLinkPanel
+        household={household}
+        management={management}
+        invitationSlug={invitationSlug}
+      />
     </div>
   );
 }

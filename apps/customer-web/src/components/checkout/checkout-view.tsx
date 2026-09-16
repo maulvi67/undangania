@@ -7,11 +7,14 @@ import {
   addMinorUnits,
   formatIdrMinor,
   subtractMinorUnits,
-  type CheckoutOrder,
-  type CheckoutState,
-  type CouponValidation,
 } from "../../lib/checkout/contract";
-import { validateCoupon } from "../../lib/checkout/stub-transport";
+import type {
+  CheckoutOrder,
+  CheckoutState,
+  CouponValidation,
+} from "../../lib/checkout/contract";
+import { startCheckoutAction } from "../../lib/checkout/actions";
+import type { CheckoutActionOutcome } from "../../lib/checkout/outcomes";
 import type { TemplateRecord } from "../templates/template-contract";
 import { LinkButton } from "../marketing/link-button";
 import { CheckoutLifecycle } from "./checkout-lifecycle";
@@ -34,15 +37,16 @@ function stateAlert(state: CheckoutState, orderNumber: string) {
     case "PAYMENT_CREATING":
       return (
         <Alert title="Menyiapkan pembayaran">
-          Jangan menutup halaman. Kami sedang membuat sesi QRIS untuk pesanan{" "}
-          {orderNumber}.
+          Jangan menutup halaman. Kami sedang membuat sesi QRIS
+          {orderNumber === "" ? "" : ` untuk pesanan ${orderNumber}`}.
         </Alert>
       );
     case "PROVIDER_UNAVAILABLE":
       return (
         <Alert variant="error" title="Pembayaran sedang tidak tersedia">
-          Pesanan Anda tetap dapat dirujuk dengan nomor {orderNumber}. Silakan
-          coba lagi nanti atau hubungi bantuan.
+          {orderNumber === ""
+            ? "Pesanan belum dibuat dan tidak ada pembayaran yang berjalan. Silakan coba lagi nanti."
+            : `Pesanan Anda tetap dapat dirujuk dengan nomor ${orderNumber}. Silakan coba lagi nanti atau hubungi bantuan.`}
         </Alert>
       );
     case "DUPLICATE_ACTION":
@@ -82,6 +86,45 @@ function couponAlert(coupon: CouponValidation | null) {
   );
 }
 
+/**
+ * Maps a checkout outcome onto the view's own state machine.
+ *
+ * `not-found` is reported as provider-unavailable rather than a coupon error: the
+ * purchase button was pressed, so the useful message is "this cannot be paid right
+ * now", not a complaint about a promotion field the customer may not have touched.
+ */
+function stateFor(outcome: CheckoutActionOutcome): CheckoutState {
+  switch (outcome.kind) {
+    case "created":
+      return "READY";
+    case "invalid":
+      return "COUPON_INVALID";
+    case "not-found":
+    case "provider-unavailable":
+    case "unavailable":
+      return "PROVIDER_UNAVAILABLE";
+    case "unauthenticated":
+      return "DUPLICATE_ACTION";
+  }
+}
+
+function messageFor(outcome: CheckoutActionOutcome): string | null {
+  switch (outcome.kind) {
+    case "created":
+      return null;
+    case "invalid":
+      return outcome.message;
+    case "not-found":
+      return "Desain ini belum memiliki harga yang aktif. Hubungi bantuan bila masalah berlanjut.";
+    case "unauthenticated":
+      return "Masuk ke akun Wedding System untuk melanjutkan pembayaran.";
+    case "provider-unavailable":
+      return "Pembayaran belum dapat dimulai. Tidak ada pembayaran yang berjalan.";
+    case "unavailable":
+      return "Layanan pesanan sedang tidak tersedia. Silakan coba lagi nanti.";
+  }
+}
+
 export function CheckoutView({
   order,
   template,
@@ -102,6 +145,10 @@ export function CheckoutView({
       : null,
   );
   const [isCouponPending, startCouponTransition] = useTransition();
+  const [state, setState] = useState<CheckoutState>(initialState);
+  const [orderNumber, setOrderNumber] = useState(order.orderNumber);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const appliedCouponDiscount =
     coupon?.status === "VALID" ? coupon.discountMinor : "0";
@@ -113,30 +160,62 @@ export function CheckoutView({
     order.totalMinor,
     appliedCouponDiscount,
   );
-  const isLoading = initialState === "ORDER_LOADING";
+  const isLoading = state === "ORDER_LOADING";
   const isBlocked =
     isLoading ||
-    initialState === "COUPON_VALIDATING" ||
-    initialState === "PAYMENT_CREATING" ||
-    initialState === "PROVIDER_UNAVAILABLE" ||
-    initialState === "DUPLICATE_ACTION" ||
-    initialState === "OFFLINE" ||
-    isCouponPending;
+    state === "COUPON_VALIDATING" ||
+    state === "PAYMENT_CREATING" ||
+    state === "PROVIDER_UNAVAILABLE" ||
+    state === "DUPLICATE_ACTION" ||
+    state === "OFFLINE" ||
+    isCouponPending ||
+    isCreating;
 
   function submitCoupon(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     startCouponTransition(() => {
-      void validateCoupon(couponCode).then(setCoupon);
+      // The code is carried to the server with the purchase request, so the discount
+      // shown here is only an estimate until the order is actually created. Nothing
+      // is charged from this handler.
+      setCoupon(null);
     });
   }
 
-  function startPayment() {
+  async function startPayment() {
     if (isBlocked) return;
-    // The fixture goes to VERIFYING, never to a paid state. Production must
-    // create the payment server-side and use verified provider confirmation.
-    router.push(
-      `/checkout/status?order=${encodeURIComponent(order.orderNumber)}&template=${encodeURIComponent(order.templateId)}&state=verifying`,
-    );
+    setState("PAYMENT_CREATING");
+    setMessage(null);
+    setIsCreating(true);
+    try {
+      const outcome = await startCheckoutAction({
+        templateId: order.templateId,
+        quantity: 1,
+        ...(couponCode.trim() === ""
+          ? {}
+          : { promotionCode: couponCode.trim() }),
+      });
+      const next = stateFor(outcome);
+      setState(next);
+      setMessage(messageFor(outcome));
+
+      if (outcome.kind === "created") {
+        setOrderNumber(outcome.orderNumber);
+        // The provider's QR page is where the customer pays. Returning from it is
+        // not evidence of payment, so the status page re-reads the payment row.
+        router.push(outcome.redirectUrl);
+        return;
+      }
+      if (outcome.kind === "unauthenticated") {
+        router.push("/masuk?next=%2Fcheckout");
+      }
+    } catch {
+      setState("PROVIDER_UNAVAILABLE");
+      setMessage(
+        "Pembayaran belum dapat dimulai. Tidak ada pembayaran yang berjalan.",
+      );
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   if (isLoading) {
@@ -163,10 +242,18 @@ export function CheckoutView({
         </header>
 
         <div className="ck-alert-region" aria-live="polite">
-          {stateAlert(initialState, order.orderNumber)}
+          {stateAlert(state, orderNumber)}
+          {message === null ? null : (
+            <Alert variant="warning" title="Perlu diperhatikan">
+              {message}
+            </Alert>
+          )}
         </div>
 
-        <CheckoutOrderSummary order={order} template={template} />
+        <CheckoutOrderSummary
+          order={{ ...order, orderNumber }}
+          template={template}
+        />
         <CheckoutLifecycle lifecycle={order.lifecycle} />
         <FairUsagePanel items={order.fairUsage} />
 
@@ -238,7 +325,8 @@ export function CheckoutView({
               </Button>
             </div>
             <p className="ck-coupon__hint" id="ck-promo-hint">
-              Kode promo akan divalidasi sebelum harga diperbarui.
+              Kode promo diperiksa saat pesanan dibuat, sehingga harga akhir
+              ditentukan oleh pesanan yang tersimpan.
             </p>
             {couponAlert(coupon)}
           </form>
@@ -254,9 +342,9 @@ export function CheckoutView({
             type="button"
             size="lg"
             className="ck-pay-button"
-            loading={initialState === "PAYMENT_CREATING"}
+            loading={state === "PAYMENT_CREATING"}
             disabled={isBlocked}
-            onClick={startPayment}
+            onClick={() => void startPayment()}
           >
             Lanjutkan ke pembayaran
           </Button>
