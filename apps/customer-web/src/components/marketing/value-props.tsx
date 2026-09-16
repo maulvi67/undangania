@@ -15,8 +15,11 @@ const VALUE_PROPS = [
 
 export function ValueProps() {
   return (
-    <section className="lnd-section" aria-labelledby="nilai-title">
-      <div className="ui-container lnd-split">
+    <section
+      className="lnd-section lnd-stagger-host"
+      aria-labelledby="nilai-title"
+    >
+      <div className="ui-container lnd-split lnd-stagger">
         <header className="lnd-split__head lnd-head">
           <p className="lnd-eyebrow">Nilai</p>
           <h2 className="lnd-head__title" id="nilai-title">
@@ -27,7 +30,7 @@ export function ValueProps() {
             yang ingin Anda rayakan.
           </p>
         </header>
-        <ul className="lnd-values">
+        <ul className="lnd-values lnd-cascade">
           {VALUE_PROPS.map((item, index) => (
             <li key={item.title} className="lnd-value">
               <span className="lnd-value__num" aria-hidden="true">

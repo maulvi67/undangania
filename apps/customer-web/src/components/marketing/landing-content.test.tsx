@@ -4,6 +4,8 @@ import * as React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { FeaturedTemplates } from "./featured-templates";
+import { Hero } from "./hero";
+import { LandingMarquee } from "./landing-marquee";
 import {
   PricingExplanation,
   INVITATION_ACTIVE_PERIOD,
@@ -132,6 +134,87 @@ describe("landing trust and FAQ copy", () => {
     render(<TrustSection />);
 
     expect(screen.getByText(/tidak bisa diverifikasi/i)).toBeTruthy();
+  });
+});
+
+describe("landing hero", () => {
+  it("labels its sample invitation as sample data", () => {
+    render(<Hero />);
+
+    // The hero shows an illustrative couple, so the page must say so rather
+    // than let it read as a real customer or a real wedding date.
+    expect(screen.getByText(/data contoh/i)).toBeTruthy();
+  });
+
+  it("hides the decorative depth layers from assistive technology", () => {
+    const { container } = render(<Hero />);
+
+    // Halo, bokeh, aurora, and the two empty backing cards exist only to give
+    // the front card physical depth. None of them carries meaning.
+    for (const selector of [
+      ".lnd-hero__aurora",
+      ".lnd-hero__bokeh",
+      ".lnd-stack",
+    ]) {
+      expect(
+        container.querySelector(selector)?.getAttribute("aria-hidden"),
+        `${selector} must be aria-hidden`,
+      ).toBe("true");
+    }
+  });
+
+  it("renders the sample names only inside the aria-hidden deck", () => {
+    const { container } = render(<Hero />);
+
+    // The names must still render — the layered card is the hero's visual — but
+    // they belong to a decorative sample, not to the page's content. Asserting
+    // both halves keeps this from passing vacuously if the deck is ever
+    // emptied, and keeps a screen reader from hearing a fake couple as if they
+    // were real customers.
+    const names = container.querySelector(".lnd-invite__names");
+    expect(names?.textContent).toContain("Rai");
+    expect(names?.closest("[aria-hidden='true']")).not.toBeNull();
+  });
+});
+
+describe("landing capability marquee", () => {
+  it("stays out of the accessibility tree so features are not announced twice", () => {
+    render(<LandingMarquee />);
+
+    // The same six capabilities are listed semantically under "Fitur inti".
+    // The strip is decorative reinforcement, so it must contribute no roles to
+    // the accessibility tree — otherwise a screen reader reads the list twice.
+    //
+    // Role queries are the right probe here: unlike `queryByText`, they respect
+    // `aria-hidden` and therefore describe what a screen reader actually sees.
+    expect(screen.queryAllByRole("list")).toHaveLength(0);
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("marks the whole track aria-hidden", () => {
+    const { container } = render(<LandingMarquee />);
+
+    expect(
+      container
+        .querySelector(".lnd-marquee__track")
+        ?.getAttribute("aria-hidden"),
+    ).toBe("true");
+  });
+
+  it("renders exactly two identical copies for the seamless loop", () => {
+    const { container } = render(<LandingMarquee />);
+
+    // The track translates by half its own width, which is one full copy. Two
+    // groups of equal length is what makes that valid without measuring in JS.
+    const groups = container.querySelectorAll(".lnd-marquee__group");
+    expect(groups).toHaveLength(2);
+    expect(groups[0]?.textContent).toBe(groups[1]?.textContent);
+
+    // Exactly one is flagged as the clone, which is what the reduced-motion
+    // rule hides once the strip stops looping.
+    expect(
+      container.querySelectorAll(".lnd-marquee__group--clone"),
+    ).toHaveLength(1);
   });
 });
 

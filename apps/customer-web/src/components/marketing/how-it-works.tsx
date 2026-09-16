@@ -20,11 +20,11 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section
-      className="lnd-section"
+      className="lnd-section lnd-stagger-host"
       aria-labelledby="cara-kerja-title"
       id="cara-kerja"
     >
-      <div className="ui-container">
+      <div className="ui-container lnd-stagger">
         <header className="lnd-head">
           <p className="lnd-eyebrow">Cara kerja</p>
           <h2 className="lnd-head__title" id="cara-kerja-title">
@@ -35,7 +35,7 @@ export function HowItWorks() {
             tamu Anda.
           </p>
         </header>
-        <ol className="lnd-steps">
+        <ol className="lnd-steps lnd-cascade">
           {STEPS.map((step, index) => (
             <li key={step.title} className="lnd-step">
               <span className="lnd-step__num" aria-hidden="true">

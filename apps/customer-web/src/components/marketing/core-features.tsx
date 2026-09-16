@@ -29,8 +29,12 @@ const CORE_FEATURES = [
 
 export function CoreFeatures() {
   return (
-    <section className="lnd-section" aria-labelledby="fitur-title" id="fitur">
-      <div className="ui-container lnd-split">
+    <section
+      className="lnd-section lnd-stagger-host"
+      aria-labelledby="fitur-title"
+      id="fitur"
+    >
+      <div className="ui-container lnd-split lnd-stagger">
         <header className="lnd-split__head lnd-head">
           <p className="lnd-eyebrow">Fitur</p>
           <h2 className="lnd-head__title" id="fitur-title">
@@ -41,7 +45,7 @@ export function CoreFeatures() {
             lebih mahal tidak menambah fitur — karakter visualnya yang berbeda.
           </p>
         </header>
-        <ul className="lnd-features">
+        <ul className="lnd-features lnd-cascade">
           {CORE_FEATURES.map((feature) => (
             <li key={feature.title} className="lnd-feature">
               <h3 className="lnd-feature__title">

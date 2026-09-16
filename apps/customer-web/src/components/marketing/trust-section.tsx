@@ -22,8 +22,11 @@ const TRUST_ITEMS = [
 
 export function TrustSection() {
   return (
-    <section className="lnd-section" aria-labelledby="kepercayaan-title">
-      <div className="ui-container lnd-split">
+    <section
+      className="lnd-section lnd-stagger-host"
+      aria-labelledby="kepercayaan-title"
+    >
+      <div className="ui-container lnd-split lnd-stagger">
         <header className="lnd-split__head lnd-head">
           <p className="lnd-eyebrow">Kepercayaan</p>
           <h2 className="lnd-head__title" id="kepercayaan-title">
@@ -35,7 +38,14 @@ export function TrustSection() {
             langsung.
           </p>
         </header>
-        <div className="lnd-panel">
+        {/*
+          The cascade sits on the panel itself, matching the pricing panel.
+          Putting it on the inner list instead would leave the panel animating
+          as a level-one block at the same time as its own rows, and the two
+          opacities would multiply — the rows would finish dimmer than every
+          other section.
+        */}
+        <div className="lnd-panel lnd-cascade">
           <ul className="lnd-panel__list">
             {TRUST_ITEMS.map((item) => (
               <li key={item.title} className="lnd-panel__row">

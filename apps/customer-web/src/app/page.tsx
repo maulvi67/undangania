@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { MarketingHeader } from "../components/marketing/marketing-header";
 import { MarketingFooter } from "../components/marketing/marketing-footer";
 import { Hero } from "../components/marketing/hero";
+import { LandingMarquee } from "../components/marketing/landing-marquee";
 import { ValueProps } from "../components/marketing/value-props";
 import { HowItWorks } from "../components/marketing/how-it-works";
 import { FeaturedTemplates } from "../components/marketing/featured-templates";
@@ -50,6 +51,7 @@ export default function LandingPage() {
       <MarketingHeader />
       <main id="konten-utama" tabIndex={-1}>
         <Hero />
+        <LandingMarquee />
         <ValueProps />
         <HowItWorks />
         <FeaturedTemplates />

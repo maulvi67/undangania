@@ -2,8 +2,11 @@ import { LinkButton } from "./link-button";
 
 export function FinalCta() {
   return (
-    <section className="lnd-final" aria-labelledby="final-title">
-      <div className="ui-container lnd-final__inner">
+    <section
+      className="lnd-final lnd-stagger-host"
+      aria-labelledby="final-title"
+    >
+      <div className="ui-container lnd-final__inner lnd-stagger">
         <h2 className="lnd-final__title" id="final-title">
           Temukan desain undangan Anda
         </h2>

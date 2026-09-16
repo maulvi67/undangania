@@ -19,11 +19,11 @@ export function FeaturedTemplates() {
 
   return (
     <section
-      className="lnd-section"
+      className="lnd-section lnd-stagger-host"
       aria-labelledby="koleksi-title"
       id="koleksi"
     >
-      <div className="ui-container">
+      <div className="ui-container lnd-stagger">
         <header className="lnd-head">
           <p className="lnd-eyebrow">Koleksi</p>
           <h2 className="lnd-head__title" id="koleksi-title">
@@ -35,7 +35,7 @@ export function FeaturedTemplates() {
           </p>
         </header>
         {templates.length > 0 ? (
-          <ul className="lnd-tiles">
+          <ul className="lnd-tiles lnd-cascade">
             {templates.map((template) => (
               <li key={template.id} className="lnd-tile">
                 <div className="lnd-tile__preview">

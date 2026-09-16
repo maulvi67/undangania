@@ -41,8 +41,12 @@ const faqJsonLd = {
 
 export function FaqSection() {
   return (
-    <section className="lnd-section" aria-labelledby="faq-title" id="faq">
-      <div className="ui-container lnd-split">
+    <section
+      className="lnd-section lnd-stagger-host"
+      aria-labelledby="faq-title"
+      id="faq"
+    >
+      <div className="ui-container lnd-split lnd-stagger">
         <header className="lnd-split__head lnd-head">
           <p className="lnd-eyebrow">Bantuan</p>
           <h2 className="lnd-head__title" id="faq-title">
@@ -60,7 +64,7 @@ export function FaqSection() {
             Buka demo undangan
           </LinkButton>
         </header>
-        <div className="lnd-faq">
+        <div className="lnd-faq lnd-cascade">
           {FAQ_ITEMS.map((item) => (
             <details key={item.q} className="lnd-faq__item">
               <summary className="lnd-faq__question">

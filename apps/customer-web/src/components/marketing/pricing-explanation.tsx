@@ -41,8 +41,12 @@ export function PricingExplanation() {
   const range = priceRange();
 
   return (
-    <section className="lnd-section" aria-labelledby="harga-title" id="harga">
-      <div className="ui-container">
+    <section
+      className="lnd-section lnd-stagger-host"
+      aria-labelledby="harga-title"
+      id="harga"
+    >
+      <div className="ui-container lnd-stagger">
         <header className="lnd-head">
           <p className="lnd-eyebrow">Harga</p>
           <h2 className="lnd-head__title" id="harga-title">
@@ -53,7 +57,7 @@ export function PricingExplanation() {
             dan lisensi desainnya — bukan dari kelengkapan fitur.
           </p>
         </header>
-        <div className="lnd-pricing">
+        <div className="lnd-pricing lnd-cascade">
           <div className="lnd-pricing__body">
             <p>
               Undangan dengan desain yang sederhana bekerja sama baiknya dengan
