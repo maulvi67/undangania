@@ -46,19 +46,26 @@ export {
 /**
  * Builds the link that a verification or reset email sends the recipient to.
  *
- * The token is placed in the path rather than a query string so it does not end
- * up in referrer headers or analytics, and it is URL-encoded because issued
- * tokens are base64url but must not be assumed to stay that way.
+ * The token is a query parameter because that is what the landing pages read
+ * (`searchParams.token`), and there is no dynamic `[token]` route to serve a path
+ * form. Emitting a path would produce an email whose link 404s.
+ *
+ * The link ends up in the customer's inbox, so it is treated as public: the token
+ * is URL-encoded, the pages that consume it are `noindex`, and nothing about the
+ * address is logged alongside it.
+ *
+ * The path union mirrors the routes that actually exist in `customer-web`
+ * (`/verifikasi` and `/reset-sandi`).
  */
 export function buildAuthActionUrl(input: {
   appUrl: string;
-  path: "/verifikasi" | "/atur-ulang-sandi";
+  path: "/verifikasi" | "/reset-sandi";
   token: string;
 }): string {
   const base = input.appUrl.endsWith("/")
     ? input.appUrl.slice(0, -1)
     : input.appUrl;
-  return `${base}${input.path}/${encodeURIComponent(input.token)}`;
+  return `${base}${input.path}?token=${encodeURIComponent(input.token)}`;
 }
 
 /**

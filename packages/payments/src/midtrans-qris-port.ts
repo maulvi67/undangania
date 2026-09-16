@@ -362,6 +362,27 @@ export class MidtransQrisPaymentPort implements PaymentPort {
 }
 
 /**
+ * Resolves the Midtrans server key from the environment.
+ *
+ * `MIDTRANS_SERVER_KEY` is the canonical name. `PAYMENT_SERVER_KEY` is accepted as
+ * a fallback because it is the name the tracked `.env.example` shipped, so a
+ * deployment set up from that template would otherwise start with payments
+ * silently disabled — the port returns `null` and the webhook answers 503, which
+ * looks like a provider outage rather than a configuration mistake.
+ *
+ * Returns `null` when neither is set so callers stay fail-closed.
+ */
+export function resolveMidtransServerKey(
+  env: Readonly<Record<string, string | undefined>>,
+): string | null {
+  for (const name of ["MIDTRANS_SERVER_KEY", "PAYMENT_SERVER_KEY"] as const) {
+    const value = env[name];
+    if (value !== undefined && value.trim().length > 0) return value;
+  }
+  return null;
+}
+
+/**
  * Builds the port from environment variables, or returns `null` when the
  * deployment is not configured for QRIS. Callers must treat `null` as
  * fail-closed rather than falling back to a simulated charge.
@@ -373,8 +394,8 @@ export function createMidtransQrisPaymentPortFromEnv(
     fetchImpl?: typeof fetch;
   }> = {},
 ): MidtransQrisPaymentPort | null {
-  const serverKey = env.MIDTRANS_SERVER_KEY;
-  if (serverKey === undefined || serverKey.trim().length === 0) return null;
+  const serverKey = resolveMidtransServerKey(env);
+  if (serverKey === null) return null;
 
   return new MidtransQrisPaymentPort({
     serverKey,

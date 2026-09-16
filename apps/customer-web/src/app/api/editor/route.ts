@@ -1,88 +1,124 @@
 import { NextResponse } from "next/server";
 import {
   editorSaveCommandSchema,
-  isEditorFixture,
+  editorPublishCommandSchema,
   type EditorActionResult,
-  type EditorFixture,
 } from "../../../lib/editor/contract";
 import {
-  getEditorInvitationId,
-  getEditorTemplateId,
-} from "../../../lib/editor/stub-transport";
-import { loadEditor, saveEditor } from "../../../lib/editor/stub-transport";
+  loadEditorForSession,
+  resolveEditorSession,
+  saveEditorForSession,
+  type EditorSessionResolution,
+} from "../../../lib/editor/server";
+import { publishInvitationAction } from "../../../lib/editor/publish-action";
+import { getEditorTemplateId } from "../../../lib/editor/stub-transport";
 
 /**
- * ⚠️ SIMULATION ONLY — MVP-UI-008 browser-audit transport. ⚠️
+ * Invitation editor API.
  *
- * This route deliberately has no session, tenant, resource authorization,
- * database persistence, signed upload, or provider integration. It exists so
- * browser refreshes exercise the same process-level simulation store as the
- * editor page. Replace it with the authorized invitation application API
- * before using customer data.
+ * The session is the only source of the invitation being edited:
+ * `resolveEditorSession` derives the tenant and the invitation from the
+ * authenticated membership, so the request body can never name another tenant's
+ * row. The body supplies draft content and the version it was based on, and both
+ * are validated before use.
+ *
+ * Responses reuse the editor contract's action union, so the client's existing
+ * state machine handles them without a translation layer.
  */
 
-const API_FIXTURE_HEADER = "x-editor-fixture";
-
-function fixtureFromRequest(request: Request): EditorFixture {
-  const fixture = request.headers.get(API_FIXTURE_HEADER);
-  return fixture && isEditorFixture(fixture) ? fixture : "normal";
+function json(body: unknown, status = 200): NextResponse {
+  return NextResponse.json(body, { status });
 }
 
-function productionGuardResponse(): NextResponse {
-  return NextResponse.json(
-    {
-      kind: "unavailable",
-      message: "Editor production API belum tersedia.",
-    },
-    { status: 503 },
+function unavailable(): NextResponse {
+  return json({ kind: "provider-unavailable" }, 503);
+}
+
+function forbidden(): NextResponse {
+  return json({ kind: "forbidden" }, 403);
+}
+
+/**
+ * Resolves the session, mapping infrastructure failure onto the same
+ * unavailable state the client already understands.
+ */
+async function sessionFor(
+  request: Request,
+): Promise<EditorSessionResolution | "unavailable"> {
+  // The query parameter only seeds a *first* visit; an existing invitation always
+  // wins, so this cannot re-bind content the couple has already written. It is
+  // resolved through the same validator the page uses, so a missing or unknown
+  // value falls back to the default design instead of an unusable id.
+  const templateId = getEditorTemplateId(
+    new URL(request.url).searchParams.get("template") ?? undefined,
   );
-}
 
-async function requestBody(request: Request): Promise<unknown> {
   try {
-    return await request.json();
+    return await resolveEditorSession(templateId);
   } catch {
-    return null;
+    return "unavailable";
   }
 }
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return productionGuardResponse();
-  }
+  const session = await sessionFor(request);
+  if (session === "unavailable") return unavailable();
+  if (session.kind === "forbidden") return forbidden();
+  // An unknown or retired design: there is no invitation to edit, and the action
+  // is to choose one from the catalog.
+  if (session.kind === "template-unavailable") return forbidden();
 
-  const url = new URL(request.url);
-  const invitation = getEditorInvitationId(
-    url.searchParams.get("invitation") ?? undefined,
-  );
-  const template = getEditorTemplateId(
-    url.searchParams.get("template") ?? undefined,
-  );
-  const result = await loadEditor(
-    fixtureFromRequest(request),
-    invitation,
-    template,
-  );
-  return NextResponse.json(result);
+  const loaded = await loadEditorForSession(session);
+  if (loaded.kind === "forbidden") return forbidden();
+  if (loaded.kind === "unavailable") return unavailable();
+
+  return json({
+    kind: "ok",
+    document: loaded.document,
+    template: loaded.template,
+    initialSaveState: "saved",
+    initialUploadState: null,
+  });
 }
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return productionGuardResponse();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ kind: "invalid" }, 400);
   }
 
-  const parsed = editorSaveCommandSchema.safeParse(await requestBody(request));
-  if (!parsed.success) {
-    return NextResponse.json(
-      { kind: "invalid", issues: [] satisfies ReadonlyArray<never> },
-      { status: 400 },
-    );
+  // Publishing and saving share the endpoint because they are the same document
+  // under the same authorization. The discriminator is validated before either
+  // branch runs, so an unexpected body cannot reach the wrong use-case.
+  const publish = editorPublishCommandSchema.safeParse(body);
+  if (publish.success) {
+    const outcome = await publishInvitationAction({
+      baseVersion: publish.data.baseVersion,
+      templateId: publish.data.templateId,
+    });
+    return json(outcome);
   }
 
-  const command = {
-    ...parsed.data,
-    fixture: fixtureFromRequest(request),
-  };
-  const result: EditorActionResult = await saveEditor(command);
-  return NextResponse.json(result);
+  const parsed = editorSaveCommandSchema.safeParse(body);
+  if (!parsed.success) return json({ kind: "invalid", issues: [] }, 400);
+
+  const session = await sessionFor(request);
+  if (session === "unavailable") return unavailable();
+  if (session.kind === "forbidden") return forbidden();
+  if (session.kind === "template-unavailable") return forbidden();
+
+  const result = await saveEditorForSession(session, {
+    document: parsed.data.document,
+    baseVersion: parsed.data.baseVersion,
+  });
+  if (result.kind === "forbidden") return forbidden();
+
+  // `invalid` without issues means the body failed a check the client's schema
+  // already passed, which can only be a contract mismatch rather than a
+  // publication issue the editor knows how to highlight.
+  const action: EditorActionResult =
+    result.kind === "invalid" ? { kind: "invalid", issues: [] } : result;
+  return json(action);
 }

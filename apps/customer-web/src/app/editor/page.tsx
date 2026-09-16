@@ -3,13 +3,18 @@ import { EditorRouteView } from "../../components/editor/editor-shell";
 import {
   getEditorInvitationId,
   getEditorTemplateId,
-  loadEditor,
+  loadEditor as loadEditorFixture,
 } from "../../lib/editor/stub-transport";
 import {
   isEditorSectionId,
   parseEditorFixture,
+  type EditorLoadResult,
   type EditorSectionId,
 } from "../../lib/editor/contract";
+import {
+  loadEditorForSession,
+  resolveEditorSession,
+} from "../../lib/editor/server";
 import { getAuthenticatedRequest } from "../../lib/auth/server";
 import "../editor.css";
 
@@ -36,33 +41,77 @@ function parseSection(value: string | string[] | undefined): EditorSectionId {
   return candidate && isEditorSectionId(candidate) ? candidate : "couple";
 }
 
+/**
+ * The editor loads real, tenant-scoped persistence.
+ *
+ * The invitation is resolved from the session, never from the query string. The
+ * `?template=` parameter is only consulted when the wedding has no invitation
+ * yet, which is what lets a first visit land directly in the editor from the
+ * catalog.
+ *
+ * The fixture transport remains available on a development server so the guided
+ * states (stale draft, failed save, rejected upload) stay reachable without
+ * provoking them against real data. It is unreachable in production, and it is
+ * not consulted when a real invitation exists.
+ */
 export default async function EditorPage({ searchParams }: EditorPageProps) {
-  if (process.env.NODE_ENV === "production") {
-    const authenticated = await getAuthenticatedRequest();
+  const params = await searchParams;
+  const section = parseSection(params.section);
+  const fixture = parseEditorFixture(params.fixture);
+
+  if (process.env.NODE_ENV !== "production" && params.fixture !== undefined) {
+    const result = await loadEditorFixture(
+      fixture,
+      getEditorInvitationId(params.invitation),
+      getEditorTemplateId(params.template),
+    );
     return (
       <EditorRouteView
-        result={
-          authenticated === null
-            ? { kind: "forbidden" }
-            : { kind: "unavailable" }
-        }
-        fixture="normal"
-        initialSection="couple"
+        result={result}
+        fixture={fixture}
+        initialSection={section}
       />
     );
   }
 
-  const params = await searchParams;
-  const fixture = parseEditorFixture(params.fixture);
-  const invitationId = getEditorInvitationId(params.invitation);
-  const templateId = getEditorTemplateId(params.template);
-  const result = await loadEditor(fixture, invitationId, templateId);
+  const authenticated = await getAuthenticatedRequest();
+  if (authenticated === null) {
+    return (
+      <EditorRouteView
+        result={{ kind: "forbidden" }}
+        fixture="normal"
+        initialSection={section}
+      />
+    );
+  }
+
+  const session = await resolveEditorSession(
+    getEditorTemplateId(params.template),
+  );
+
+  // An unknown or retired design is reported as forbidden: the couple cannot
+  // edit an invitation that has no renderable template behind it, and the action
+  // is to choose a design from the catalog.
+  const result: EditorLoadResult =
+    session.kind === "forbidden" || session.kind === "template-unavailable"
+      ? { kind: "forbidden" }
+      : await loadEditorForSession(session).then((loaded) =>
+          loaded.kind === "ok"
+            ? {
+                kind: "ok" as const,
+                document: loaded.document,
+                template: loaded.template,
+                initialSaveState: "saved" as const,
+                initialUploadState: null,
+              }
+            : { kind: "unavailable" as const },
+        );
 
   return (
     <EditorRouteView
       result={result}
-      fixture={fixture}
-      initialSection={parseSection(params.section)}
+      fixture="normal"
+      initialSection={section}
     />
   );
 }

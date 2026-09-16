@@ -5,9 +5,12 @@ import { invitationViewModelSchema } from "@wedding/template-engine";
 import {
   getPublicInvitationSnapshot,
   getPublicInvitationSlugs,
-  isPublicInvitationFixture,
   type PublicInvitationFixture,
 } from "../../../lib/public-invitation/fixtures";
+import {
+  fixtureAllowed,
+  resolvePublicInvitation,
+} from "../../../lib/public-invitation/server";
 import {
   getGuestExperienceFixture,
   isGuestExperienceFixture,
@@ -22,36 +25,64 @@ interface PublicInvitationPageProps {
   searchParams: Promise<{ fixture?: string; guestFixture?: string }>;
 }
 
+/**
+ * Only development fixtures are prerendered. Real invitations depend on the
+ * request's slug and on whether a publication is currently active, so they are
+ * rendered on demand.
+ */
 export function generateStaticParams() {
+  if (process.env.NODE_ENV === "production") return [];
   return getPublicInvitationSlugs().map((slug) => ({ slug }));
+}
+
+/**
+ * The snapshot a request should render.
+ *
+ * A real, active publication always wins. The fixture path is consulted only in
+ * development and only when the search parameter names a known fixture, so
+ * production content can never be replaced from the query string.
+ */
+async function snapshotFor(slug: string, fixture: PublicInvitationFixture) {
+  if (fixtureAllowed(fixture) && fixture !== "normal") {
+    return getPublicInvitationSnapshot(slug, fixture) ?? null;
+  }
+
+  const resolved = await resolvePublicInvitation({ slug });
+  if (resolved.kind === "published") return resolved;
+
+  // Nothing published under this slug; fall back to a fixture only in dev.
+  return fixtureAllowed(fixture)
+    ? (getPublicInvitationSnapshot(slug, fixture) ?? null)
+    : null;
 }
 
 export async function generateMetadata({
   params,
 }: PublicInvitationPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const snapshot = getPublicInvitationSnapshot(slug);
+  const snapshot = await snapshotFor(slug, "normal");
   if (!snapshot) return { title: "Undangan tidak tersedia — Wedding System" };
-  const model = invitationViewModelSchema.parse(snapshot.model);
-  const title = `Undangan pernikahan ${model.couple.displayNames}`;
+
+  const parsed = invitationViewModelSchema.safeParse(snapshot.model);
+  if (!parsed.success) {
+    return { title: "Undangan tidak tersedia — Wedding System" };
+  }
+
   return {
-    title,
-    description: `Undangan pernikahan ${model.couple.displayNames}.`,
+    title: `Undangan pernikahan ${parsed.data.couple.displayNames}`,
+    description: `Undangan pernikahan ${parsed.data.couple.displayNames}.`,
     robots: { index: false, follow: false },
   };
 }
 
 function fixtureFromSearch(value: string | undefined): PublicInvitationFixture {
-  if (process.env.NODE_ENV !== "production" && isPublicInvitationFixture(value))
-    return value;
-  return "normal";
+  return fixtureAllowed(value) ? value : "normal";
 }
 
 function guestFixtureFromSearch(
   value: string | undefined,
 ): GuestExperienceFixture {
-  if (process.env.NODE_ENV !== "production" && isGuestExperienceFixture(value))
-    return value;
+  if (fixtureAllowed(value) && isGuestExperienceFixture(value)) return value;
   return "normal";
 }
 
@@ -66,7 +97,8 @@ export default async function PublicInvitationPage({
     process.env.NODE_ENV !== "production" &&
     isGuestExperienceFixture(query.guestFixture);
   const guestFixture = guestFixtureFromSearch(query.guestFixture);
-  const snapshot = getPublicInvitationSnapshot(slug, fixture);
+
+  const snapshot = await snapshotFor(slug, fixture);
   if (!snapshot) notFound();
 
   const model = invitationViewModelSchema.parse(snapshot.model);

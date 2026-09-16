@@ -453,7 +453,6 @@
 }
 
 .ed-readiness--ready {
-  grid-template-columns: minmax(0, 1fr) auto;
   border-left-color: var(--color-olive);
   background: var(--color-mist);
 }
@@ -465,8 +464,7 @@
   gap: var(--space-4);
 }
 
-.ed-readiness__heading > div,
-.ed-readiness--ready > div {
+.ed-readiness__heading > div {
   display: grid;
   gap: var(--space-2);
 }
@@ -487,6 +485,14 @@
   border-radius: 50%;
   color: var(--color-olive);
   font-weight: 700;
+}
+
+/* Publish action and its public-link shortcut, laid out in source order. */
+.ed-readiness__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .ed-issue-list {
@@ -915,7 +921,7 @@
   }
 
   .ed-readiness--ready {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

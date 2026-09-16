@@ -28,6 +28,7 @@ export {
   createMidtransQrisPaymentPortFromEnv,
   MidtransQrisPaymentPort,
   QrisProviderError,
+  resolveMidtransServerKey,
   resolveQrisEnvironment,
   type MidtransQrisEnvironment,
   type MidtransQrisPaymentPortOptions,

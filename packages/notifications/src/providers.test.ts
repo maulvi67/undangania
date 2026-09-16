@@ -69,7 +69,7 @@ describe("buildAuthActionUrl", () => {
         path: "/verifikasi",
         token: TOKEN,
       }),
-    ).toBe(`https://app.contoh.id/verifikasi/${TOKEN}`);
+    ).toBe(`https://app.contoh.id/verifikasi?token=${TOKEN}`);
   });
 
   it("tolerates a trailing slash on the app URL", () => {
@@ -79,19 +79,19 @@ describe("buildAuthActionUrl", () => {
         path: "/verifikasi",
         token: TOKEN,
       }),
-    ).toBe(`https://app.contoh.id/verifikasi/${TOKEN}`);
+    ).toBe(`https://app.contoh.id/verifikasi?token=${TOKEN}`);
   });
 
-  it("escapes characters that would break out of the path", () => {
+  it("escapes characters that would break out of the query value", () => {
     // A token that ever contained a reserved character must not be able to alter
-    // the link's structure.
+    // the link's structure or inject a second parameter.
     const url = buildAuthActionUrl({
       appUrl: "https://app.contoh.id",
-      path: "/atur-ulang-sandi",
+      path: "/reset-sandi",
       token: "a/b?c#d",
     });
-    expect(url).toBe("https://app.contoh.id/atur-ulang-sandi/a%2Fb%3Fc%23d");
-    expect(url).not.toContain("?c");
+    expect(url).toBe("https://app.contoh.id/reset-sandi?token=a%2Fb%3Fc%23d");
+    expect(url.match(/token=/g)).toHaveLength(1);
   });
 });
 
@@ -195,7 +195,7 @@ describe("ConsoleNotificationPort", () => {
       channel: "EMAIL",
       recipientRef: "rani@contoh.id",
       templateCode: NOTIFICATION_TEMPLATES.PASSWORD_RESET,
-      variables: { actionUrl: `https://app/atur-ulang-sandi/${TOKEN}` },
+      variables: { actionUrl: `https://app/reset-sandi?token=${TOKEN}` },
     });
 
     expect(result.status).toBe("QUEUED");

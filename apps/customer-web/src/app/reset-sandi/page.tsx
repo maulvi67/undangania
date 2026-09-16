@@ -35,14 +35,9 @@ export default async function ResetSandiPage({
 }: ResetSandiPageProps) {
   const params = await searchParams;
   const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
-  // Deterministic token fixtures are development-only. Production requires the
-  // real token repository/provider before it may render a reset form.
-  const check =
-    process.env.NODE_ENV === "production"
-      ? undefined
-      : rawToken
-        ? await checkResetToken(rawToken)
-        : undefined;
+  // Inspection only — the token is spent when the form is submitted, not when the
+  // page is loaded, so a prefetching mail client cannot burn the link.
+  const check = rawToken ? await checkResetToken(rawToken) : undefined;
 
   return (
     <AuthShell>

@@ -115,6 +115,21 @@ export type AuthTokenVerificationRedemption = Readonly<{
   userId: string;
 }>;
 
+/**
+ * The result of looking at a token without consuming it.
+ *
+ * The password-reset landing page must decide whether to render a form, and it
+ * must do that before the customer has typed a new password. Consuming the token
+ * to answer that question would burn the link on the first page load — including
+ * a load by a mail scanner that prefetches URLs. So a separate, non-consuming
+ * read exists for that decision and the consume only happens on submit.
+ */
+export type AuthTokenInspection =
+  | Readonly<{ kind: "redeemable" }>
+  | Readonly<{ kind: "invalid" }>
+  | Readonly<{ kind: "expired" }>
+  | Readonly<{ kind: "already-used" }>;
+
 export interface AuthTokenRepository {
   /**
    * Issues a fresh token of `type`, invalidating any outstanding token of the
@@ -127,6 +142,16 @@ export interface AuthTokenRepository {
     /** Caller-supplied clock; never taken from a request. */
     now: Date;
   }): Promise<IssuedAuthToken>;
+
+  /**
+   * Reports whether a token could still be redeemed, without consuming it.
+   * Used by landing pages that must render before the visitor commits.
+   */
+  inspect(input: {
+    token: string;
+    type: AuthTokenType;
+    now: Date;
+  }): Promise<AuthTokenInspection>;
 
   /** Consumes a token and marks the user's email verified, in one transaction. */
   redeemEmailVerification(input: {
@@ -222,6 +247,27 @@ export class PrismaAuthTokenRepository implements AuthTokenRepository {
     });
 
     return { token: issued.value, expiresAt };
+  }
+
+  public async inspect(input: {
+    token: string;
+    type: AuthTokenType;
+    now: Date;
+  }): Promise<AuthTokenInspection> {
+    if (!isWellFormedAuthToken(input.token)) return { kind: "invalid" };
+
+    const row = await this.client.authToken.findFirst({
+      where: { tokenHash: hashToken(input.token), type: input.type },
+      select: authTokenSelect,
+    });
+    if (row === null) return { kind: "invalid" };
+
+    // Reuses the same boundary logic the redemption path uses, so a token cannot
+    // read as redeemable here and then fail to redeem.
+    const state = classifyAuthToken(row, input.now);
+    if (state === "already-used") return { kind: "already-used" };
+    if (state === "expired") return { kind: "expired" };
+    return { kind: "redeemable" };
   }
 
   public async redeemEmailVerification(input: {

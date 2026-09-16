@@ -9,11 +9,18 @@ import {
   signInInputSchema,
   type AuthFormState,
 } from "./contract";
+import {
+  AuthRequiredError,
+  completePasswordReset,
+  requestEmailVerification,
+  requestPasswordReset,
+} from "@wedding/application";
 import { safeRedirectTarget } from "./redirect";
 import {
   authenticateAndCreateSession,
   registerAndProvisionAccount,
 } from "./server";
+import { getAuthEmailPorts } from "./container";
 import {
   stubRegister,
   stubRequestPasswordReset,
@@ -118,8 +125,19 @@ export async function registerAction(
     if (result === "unavailable") {
       return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
     }
-    // Duplicate and fresh addresses intentionally share this interstitial to
-    // preserve anti-enumeration behavior.
+    // The account exists now, so the verification email is issued from the real
+    // token repository rather than the fixture transport. A delivery failure must
+    // not change the response: duplicate and fresh addresses already share this
+    // interstitial, and an error here would also distinguish a known address.
+    try {
+      await requestEmailVerification(
+        parsed.data.email,
+        getAuthEmailPorts(),
+        new Date(),
+      );
+    } catch {
+      // Swallowed deliberately; the customer can request another link.
+    }
     return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
   }
 
@@ -141,7 +159,19 @@ export async function resendVerificationAction(
     return validationState({ email: EMAIL_FIELD_ERROR });
   }
   if (process.env.NODE_ENV === "production") {
-    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+    // Always reports the same acceptance, whether or not the address exists and
+    // whether or not delivery succeeded (R1/R3/R4).
+    try {
+      await requestEmailVerification(
+        parsed.data.email,
+        getAuthEmailPorts(),
+        new Date(),
+      );
+    } catch {
+      // Swallowed deliberately: surfacing a delivery failure here would reveal
+      // which addresses have a pending verification.
+    }
+    return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
   }
   await stubResendVerification(parsed.data);
   return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
@@ -158,7 +188,18 @@ export async function requestPasswordResetAction(
     return validationState({ email: EMAIL_FIELD_ERROR });
   }
   if (process.env.NODE_ENV === "production") {
-    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+    try {
+      await requestPasswordReset(
+        parsed.data.email,
+        getAuthEmailPorts(),
+        new Date(),
+      );
+    } catch {
+      // Swallowed for the same anti-enumeration reason as the resend above.
+    }
+    // Always identical success state (R3) — unknown and known emails are
+    // indistinguishable in UI, timing, and result.
+    return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
   }
   await stubRequestPasswordReset(parsed.data);
   // Always identical success state (R3) — unknown and known emails are
@@ -184,7 +225,31 @@ export async function resetPasswordAction(
   }
 
   if (process.env.NODE_ENV === "production") {
-    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+    try {
+      const outcome = await completePasswordReset(
+        { token: parsed.data.token, newPassword: parsed.data.password },
+        getAuthEmailPorts(),
+        new Date(),
+      );
+      if (outcome.kind === "reset") {
+        // No auto-login (R6): success lands on a panel that hands off to /masuk.
+        return { status: "done", fieldErrors: {} };
+      }
+      if (outcome.kind === "expired-token") {
+        return { status: "error", fieldErrors: {}, code: "TOKEN_EXPIRED" };
+      }
+      if (outcome.kind === "weak-password") {
+        return validationState({ password: PASSWORD_POLICY_ERROR });
+      }
+      return { status: "error", fieldErrors: {}, code: "TOKEN_INVALID" };
+    } catch (error) {
+      // The token was consumed for an account that no longer exists. Reporting a
+      // generic unusable link avoids confirming which it was.
+      if (error instanceof AuthRequiredError) {
+        return { status: "error", fieldErrors: {}, code: "TOKEN_INVALID" };
+      }
+      return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+    }
   }
   const result = await stubResetPassword(parsed.data);
   if (result.ok) {

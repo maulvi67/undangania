@@ -27,6 +27,10 @@ import {
 } from "../../lib/editor/stale-merge";
 import { reduceAutosaveState } from "../../lib/editor/autosave-state";
 import { saveEditor } from "../../lib/editor/stub-transport";
+import {
+  publishInvitationAction,
+  type PublishOutcome,
+} from "../../lib/editor/publish-action";
 import { EditorHeader } from "./editor-header";
 import { SectionNavigation } from "./section-navigation";
 import { EditorForm, type EditorPatch } from "./editor-form";
@@ -98,6 +102,10 @@ function EditorShell({
   const [recoveryDraft, setRecoveryDraft] = useState<StoredEditorDraft | null>(
     null,
   );
+  const [publishing, setPublishing] = useState(false);
+  const [publishOutcome, setPublishOutcome] = useState<PublishOutcome | null>(
+    null,
+  );
   const [conflict, setConflict] = useState<{
     local: EditorDocument;
     server: EditorDocument;
@@ -107,6 +115,7 @@ function EditorShell({
   const documentRef = useRef(document);
   const baseDocumentRef = useRef(baseDocument);
   const savingRef = useRef(false);
+  const publishingRef = useRef(false);
 
   useEffect(() => {
     documentRef.current = document;
@@ -332,6 +341,32 @@ function EditorShell({
     setSaveState("saved");
   }, [conflict]);
 
+  /**
+   * Publishes the stored draft.
+   *
+   * The version sent is the one this editor last saw from the server, not the
+   * possibly-newer local document: publication must be refused if someone else
+   * has saved since, which is exactly what the server's version guard compares.
+   */
+  const publish = useCallback(async () => {
+    if (publishingRef.current) return;
+    publishingRef.current = true;
+    setPublishing(true);
+    try {
+      setPublishOutcome(
+        await publishInvitationAction({
+          baseVersion: baseDocumentRef.current.version,
+          templateId: result.template.id,
+        }),
+      );
+    } catch {
+      setPublishOutcome({ kind: "unavailable" });
+    } finally {
+      publishingRef.current = false;
+      setPublishing(false);
+    }
+  }, [result.template.id]);
+
   const model = toInvitationViewModel(document.content);
   const readiness = publicationReadiness(
     document.content,
@@ -409,6 +444,9 @@ function EditorShell({
           <PublicationReadiness
             readiness={readiness}
             onSelect={setActiveSection}
+            onPublish={() => void publish()}
+            pending={publishing}
+            outcome={publishOutcome}
           />
           <div className="ed-mobile-section-picker">
             <label htmlFor="ed-mobile-section">Bagian yang sedang diedit</label>

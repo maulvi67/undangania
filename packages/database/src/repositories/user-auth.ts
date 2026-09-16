@@ -15,12 +15,20 @@ const tenantIdSelect = {
   id: true,
 } as const satisfies Prisma.TenantSelect;
 
+const weddingIdSelect = {
+  id: true,
+} as const satisfies Prisma.WeddingSelect;
+
 type UserAuthRow = Prisma.UserGetPayload<{
   select: typeof userAuthSelect;
 }>;
 
 type TenantIdRow = Prisma.TenantGetPayload<{
   select: typeof tenantIdSelect;
+}>;
+
+type WeddingIdRow = Prisma.WeddingGetPayload<{
+  select: typeof weddingIdSelect;
 }>;
 
 type UserAuthUserDelegate = {
@@ -51,10 +59,18 @@ type UserAuthMembershipDelegate = {
   }): Promise<{ id: string }>;
 };
 
+type UserAuthWeddingDelegate = {
+  create(args: {
+    data: Prisma.WeddingUncheckedCreateInput;
+    select: typeof weddingIdSelect;
+  }): Promise<WeddingIdRow>;
+};
+
 type UserAuthTransactionClient = Readonly<{
   user: UserAuthUserDelegate;
   tenant: UserAuthTenantDelegate;
   tenantMembership: UserAuthMembershipDelegate;
+  wedding: UserAuthWeddingDelegate;
 }>;
 
 type UserAuthRepositoryClient = UserAuthTransactionClient &
@@ -80,10 +96,25 @@ export type RegisterUserInput = Readonly<{
   tenantName: string;
 }>;
 
+/**
+ * A newly provisioned account always owns exactly one workspace: a tenant, the
+ * owner membership, and the wedding workspace every later step attaches to.
+ * Without the wedding row there is nothing for onboarding, the invitation, or an
+ * order to reference, so it is created here rather than lazily by the first
+ * caller that needs it.
+ */
 export type RegisteredUserAuth = Readonly<{
   user: UserAuthRecord;
   tenantId: string;
+  weddingId: string;
 }>;
+
+/**
+ * Display name for a workspace created before the couple has named anything.
+ * Onboarding replaces it with real names; until then it must read as a truthful
+ * placeholder rather than invented couple data.
+ */
+export const DEFAULT_WEDDING_DISPLAY_NAME = "Pernikahan kami";
 
 export class UserAuthRegistrationError extends Error {
   public constructor() {
@@ -216,10 +247,19 @@ export class PrismaUserAuthRepository implements UserAuthRepository {
             status: "ACTIVE",
           },
         });
+        const wedding = await transactionClient.wedding.create({
+          data: {
+            tenantId: tenant.id,
+            displayName: DEFAULT_WEDDING_DISPLAY_NAME,
+            status: "DRAFT",
+          },
+          select: weddingIdSelect,
+        });
 
         return {
           user: toUserAuthRecord(user),
           tenantId: tenant.id,
+          weddingId: wedding.id,
         };
       });
     } catch (error) {

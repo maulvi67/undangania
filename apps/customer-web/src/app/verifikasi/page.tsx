@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AuthShell } from "../../components/auth/auth-shell";
 import { ResendEmailForm } from "../../components/auth/resend-email-form";
 import { TokenStatePanel } from "../../components/auth/token-state-panel";
-import { checkVerificationToken } from "../../lib/auth/token-check";
+import { consumeVerificationToken } from "../../lib/auth/token-check";
 import "../auth.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -37,14 +37,9 @@ export default async function VerifikasiPage({
 }: VerifikasiPageProps) {
   const params = await searchParams;
   const rawToken = Array.isArray(params.token) ? params.token[0] : params.token;
-  // Deterministic token fixtures are development-only. Production requires the
-  // real token repository/provider before it may assert verification success.
-  const check =
-    process.env.NODE_ENV === "production"
-      ? undefined
-      : rawToken
-        ? await checkVerificationToken(rawToken)
-        : undefined;
+  // Clicking the link is the act of verifying, so the token is consumed here and
+  // the panel below only claims success once the address is actually verified.
+  const check = rawToken ? await consumeVerificationToken(rawToken) : undefined;
 
   return (
     <AuthShell>

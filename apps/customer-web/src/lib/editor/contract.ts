@@ -237,6 +237,22 @@ export const editorSaveCommandSchema = z.object({
 
 export type EditorSaveCommand = z.infer<typeof editorSaveCommandSchema>;
 
+/**
+ * A publish request.
+ *
+ * It carries no snapshot: the server renders the published model from the stored
+ * draft, so a caller cannot publish content that was never saved. `baseVersion`
+ * is the version the author was looking at, which is what the optimistic guard
+ * compares against.
+ */
+export const editorPublishCommandSchema = z.object({
+  command: z.literal("PUBLISH"),
+  templateId: z.string().min(1).max(100),
+  baseVersion: z.number().int().nonnegative(),
+});
+
+export type EditorPublishCommand = z.infer<typeof editorPublishCommandSchema>;
+
 const publicationIssueSchema = z.object({
   code: z.enum([
     "COUPLE_REQUIRED",

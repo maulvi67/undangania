@@ -12,6 +12,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@wedding/application": "*",
+    "@wedding/notifications": "*",
     "@wedding/ui": "*",
     "@wedding/database": "*",
     "@wedding/template-engine": "*",

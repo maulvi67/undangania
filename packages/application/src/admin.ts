@@ -52,6 +52,27 @@ export type AdminRow = Readonly<{
   updatedAt: string;
 }>;
 
+/**
+ * An audit entry.
+ *
+ * Deliberately not an {@link AdminRow}: an audit record has no reference, owner,
+ * age, or severity — those are operational-queue concepts. Modelling it as one
+ * would force every reader to invent values for columns the record does not have,
+ * which is exactly the kind of fabrication an audit trail must never contain.
+ */
+export type AdminAuditRow = Readonly<{
+  id: string;
+  timestamp: string;
+  actor: string;
+  role: string;
+  action: string;
+  target: string;
+  reason: string;
+  result: string;
+  correlationId: string;
+  masked: boolean;
+}>;
+
 /** Port: sections that are always bound to a single tenant. */
 export interface AdminTenantScopedPort {
   loadPayments(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
@@ -69,7 +90,7 @@ export interface AdminTenantScopedPort {
 export interface AdminPlatformPort {
   loadFailedJobs(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
   loadTemplates(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
-  loadAudit(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
+  loadAudit(scope: AdminQueryScope): Promise<readonly AdminAuditRow[]>;
 }
 
 export type AdminPorts = Readonly<{
@@ -113,11 +134,33 @@ export type LoadAdminSectionInput = Readonly<{
   now: Date;
 }>;
 
+export type AdminSectionRows = Readonly<{
+  rows: readonly AdminRow[];
+  audit: readonly AdminAuditRow[];
+}>;
+
+/**
+ * Loads one section.
+ *
+ * Overloaded on the section so the audit section returns audit rows and every
+ * other section returns operational rows. A single array type would force one of
+ * the two callers to cast, and the columns genuinely differ.
+ */
+export function loadAdminSection(
+  context: TenantContext | null | undefined,
+  input: LoadAdminSectionInput & Readonly<{ section: "audit" }>,
+  ports: AdminPorts,
+): Promise<readonly AdminAuditRow[]>;
+export function loadAdminSection(
+  context: TenantContext | null | undefined,
+  input: LoadAdminSectionInput,
+  ports: AdminPorts,
+): Promise<readonly AdminRow[]>;
 export async function loadAdminSection(
   context: TenantContext | null | undefined,
   input: LoadAdminSectionInput,
   ports: AdminPorts,
-): Promise<readonly AdminRow[]> {
+): Promise<readonly AdminRow[] | readonly AdminAuditRow[]> {
   const tenant = requireTenantContext(context);
   assertAnyRole(tenant, ADMIN_ROLES);
 

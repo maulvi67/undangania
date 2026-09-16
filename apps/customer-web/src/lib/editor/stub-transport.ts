@@ -282,13 +282,22 @@ export async function saveEditor(command: {
   baseVersion: number;
 }): Promise<EditorActionResult> {
   if (typeof window !== "undefined") {
+    // The fixture selector is a development affordance only: it is sent as a
+    // header so the simulated states stay reachable in dev, and is omitted in
+    // production where the server governs the result.
+    const devFixture =
+      process.env.NODE_ENV !== "production" && command.fixture !== "normal";
     const response = await fetch("/api/editor", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-editor-fixture": command.fixture,
+        ...(devFixture ? { "x-editor-fixture": command.fixture } : {}),
       },
-      body: JSON.stringify(command),
+      body: JSON.stringify({
+        fixture: command.fixture,
+        document: command.document,
+        baseVersion: command.baseVersion,
+      }),
     });
     const payload: unknown = await response.json().catch(() => null);
     const parsed = editorActionResultSchema.safeParse(payload);

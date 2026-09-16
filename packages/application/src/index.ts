@@ -109,6 +109,7 @@ export {
   isPlatformSection,
   loadAdminSection,
   PLATFORM_SECTIONS,
+  type AdminAuditRow,
   type AdminPlatformPort,
   type AdminPorts,
   type AdminQueryScope,

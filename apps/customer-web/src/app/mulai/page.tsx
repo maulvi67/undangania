@@ -4,6 +4,7 @@ import { AuthShell } from "../../components/auth/auth-shell";
 import { OnboardingFlow } from "../../components/onboarding/onboarding-flow";
 import { getActiveTemplates } from "../../components/templates/template-data";
 import { getAuthenticatedRequest } from "../../lib/auth/server";
+import { resolveSessionWorkspaceOrNull } from "../../lib/workspace/session-workspace";
 import "../onboarding.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -32,34 +33,39 @@ interface MulaiPageProps {
 }
 
 export default async function MulaiPage({ searchParams }: MulaiPageProps) {
-  if (process.env.NODE_ENV === "production") {
-    const authenticated = await getAuthenticatedRequest();
-    return authenticated === null ? (
+  const params = await searchParams;
+  const rawTemplate = Array.isArray(params.template)
+    ? params.template[0]
+    : params.template;
+  // Validated server-side against the active collection — any other value is
+  // silently ignored and passed through to /editor on completion.
+  const templateId =
+    rawTemplate !== undefined &&
+    getActiveTemplates().some((template) => template.id === rawTemplate)
+      ? rawTemplate
+      : "";
+
+  const workspace = await resolveSessionWorkspaceOrNull();
+
+  if (workspace === null) {
+    const request = await getAuthenticatedRequest();
+    return (
       <AuthShell>
         <StatePanel
-          title="Masuk untuk mulai"
-          description="Masuk ke akun Wedding System untuk menyiapkan workspace undangan Anda."
+          title={
+            request === null ? "Masuk untuk mulai" : "Workspace belum tersedia"
+          }
+          description={
+            request === null
+              ? "Masuk ke akun Wedding System untuk menyiapkan workspace undangan Anda."
+              : "Data pernikahan untuk akun ini belum dapat dibuka. Coba muat ulang sebentar lagi."
+          }
           action={
             <a
               className="ui-button ui-button--primary ui-button--lg"
-              href="/masuk?next=%2Fmulai"
+              href={request === null ? "/masuk?next=%2Fmulai" : "/dashboard"}
             >
-              Masuk
-            </a>
-          }
-        />
-      </AuthShell>
-    ) : (
-      <AuthShell>
-        <StatePanel
-          title="Persiapan workspace belum tersedia"
-          description="Layanan onboarding belum dapat menyimpan data dari lingkungan produksi."
-          action={
-            <a
-              className="ui-button ui-button--secondary ui-button--lg"
-              href="/dashboard"
-            >
-              Kembali ke dasbor
+              {request === null ? "Masuk" : "Kembali ke dasbor"}
             </a>
           }
         />
@@ -67,18 +73,8 @@ export default async function MulaiPage({ searchParams }: MulaiPageProps) {
     );
   }
 
-  const params = await searchParams;
-  const rawTemplate = Array.isArray(params.template)
-    ? params.template[0]
-    : params.template;
-  // Validasi sisi server terhadap koleksi aktif — nilai lain diabaikan diam-diam
-  // (rencana §2); diteruskan ke /editor saat selesai.
-  const templateId =
-    rawTemplate !== undefined &&
-    getActiveTemplates().some((template) => template.id === rawTemplate)
-      ? rawTemplate
-      : "";
-
+  // The wizard persists to the session's own wedding; the template choice only
+  // rides along to the editor once the data is saved.
   return (
     <AuthShell>
       <OnboardingFlow templateId={templateId} />

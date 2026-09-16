@@ -18,6 +18,8 @@ const authRow = {
 
 const tenant = { id: "tenant-1" };
 
+const wedding = { id: "wedding-1" };
+
 describe("PrismaUserAuthRepository", () => {
   it("finds by normalized email and returns only the safe auth record", async () => {
     const findUnique = vi.fn().mockResolvedValue(authRow);
@@ -25,6 +27,7 @@ describe("PrismaUserAuthRepository", () => {
       user: { findUnique, create: vi.fn(), updateMany: vi.fn() },
       tenant: { create: vi.fn() },
       tenantMembership: { create: vi.fn() },
+      wedding: { create: vi.fn() },
       $transaction: vi.fn(),
     });
 
@@ -50,6 +53,7 @@ describe("PrismaUserAuthRepository", () => {
       user: { findUnique, create: vi.fn(), updateMany: vi.fn() },
       tenant: { create: vi.fn() },
       tenantMembership: { create: vi.fn() },
+      wedding: { create: vi.fn() },
       $transaction: vi.fn(),
     });
 
@@ -60,13 +64,14 @@ describe("PrismaUserAuthRepository", () => {
     });
   });
 
-  it("provisions user, tenant, and owner membership in one transaction", async () => {
+  it("provisions user, tenant, owner membership, and wedding in one transaction", async () => {
     const userCreate = vi.fn().mockResolvedValue({
       ...authRow,
       email: "rani@example.com",
     });
     const tenantCreate = vi.fn().mockResolvedValue(tenant);
     const membershipCreate = vi.fn().mockResolvedValue({ id: "membership-1" });
+    const weddingCreate = vi.fn().mockResolvedValue(wedding);
     type UserAuthClient = NonNullable<
       ConstructorParameters<typeof PrismaUserAuthRepository>[0]
     >;
@@ -85,12 +90,14 @@ describe("PrismaUserAuthRepository", () => {
         },
         tenant: { create: tenantCreate },
         tenantMembership: { create: membershipCreate },
+        wedding: { create: weddingCreate },
       });
     };
     const repository = new PrismaUserAuthRepository({
       user: { findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
       tenant: { create: vi.fn() },
       tenantMembership: { create: vi.fn() },
+      wedding: { create: vi.fn() },
       $transaction: transactionImplementation,
     });
 
@@ -107,6 +114,7 @@ describe("PrismaUserAuthRepository", () => {
         email: "rani@example.com",
       },
       tenantId: "tenant-1",
+      weddingId: "wedding-1",
     });
     expect(transactionCalls).toBe(1);
     expect(userCreate).toHaveBeenCalledWith({
@@ -137,6 +145,19 @@ describe("PrismaUserAuthRepository", () => {
         status: "ACTIVE",
       },
     });
+    expect(weddingCreate).toHaveBeenCalledWith({
+      data: {
+        tenantId: "tenant-1",
+        displayName: "Pernikahan kami",
+        status: "DRAFT",
+      },
+      select: expect.anything(),
+    });
+    // The wedding must be created after the tenant it references, or the
+    // transaction has no ordering guarantee in a batched client.
+    expect(tenantCreate.mock.invocationCallOrder[0]).toBeLessThan(
+      weddingCreate.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   it("maps duplicate registration to a generic error", async () => {
@@ -149,6 +170,7 @@ describe("PrismaUserAuthRepository", () => {
       user: { findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
       tenant: { create: vi.fn() },
       tenantMembership: { create: vi.fn() },
+      wedding: { create: vi.fn() },
       $transaction: transaction,
     });
 
@@ -176,6 +198,7 @@ describe("PrismaUserAuthRepository", () => {
       user: { findUnique: vi.fn(), create: vi.fn(), updateMany },
       tenant: { create: vi.fn() },
       tenantMembership: { create: vi.fn() },
+      wedding: { create: vi.fn() },
       $transaction: vi.fn(),
     });
     const verifiedAt = new Date("2026-09-14T00:00:00.000Z");

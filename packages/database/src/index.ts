@@ -6,6 +6,7 @@ export {
   verifyPassword,
 } from "./password";
 export {
+  DEFAULT_WEDDING_DISPLAY_NAME,
   PrismaUserAuthRepository,
   UserAuthInputError,
   UserAuthRegistrationError,
@@ -82,6 +83,7 @@ export {
 } from "./repositories/checkout";
 export {
   adaptEditorClient,
+  isJsonValue,
   isPublishableStatus,
   nextPublicationVersion,
   PrismaEditorRepository,
@@ -170,6 +172,7 @@ export {
   retryStateFor,
   severityForPayment,
   shippingStatusFor,
+  type AdminAuditRowDto,
   type AdminFailedJobRowDto,
   type AdminLifecycleExceptionRowDto,
   type AdminLifecycleRowDto,
@@ -183,6 +186,35 @@ export {
   type AdminSupportRowDto,
   type AdminTemplateStatusRowDto,
 } from "./repositories/admin-operations";
+export {
+  adaptWeddingWorkspaceClient,
+  PrismaWeddingWorkspaceRepository,
+  type InvitationRef,
+  type WeddingWorkspaceRepository,
+  type WorkspaceRef,
+} from "./repositories/wedding-workspace";
+export {
+  adaptInvitationProvisioningClient,
+  buildInvitationSlug,
+  PrismaInvitationProvisioningRepository,
+  type InvitationProvisionResult,
+  type InvitationProvisioningRepository,
+  type ProvisionedInvitation,
+} from "./repositories/invitation-provisioning";
+export {
+  adaptTemplateCatalogueClient,
+  PrismaTemplateCatalogueRepository,
+  TemplateCatalogueInputError,
+  type TemplateCatalogueEntry,
+  type TemplateCatalogueRepository,
+} from "./repositories/template-catalogue";
+export {
+  adaptPublicationReaderClient,
+  isPublicSlug,
+  PrismaPublicationReaderRepository,
+  type PublicPublication,
+  type PublicationReaderRepository,
+} from "./repositories/publication-reader";
 export {
   buildTotpUri,
   decodeBase32,

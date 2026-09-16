@@ -222,6 +222,47 @@ export type EditorPublishInput = Readonly<{
   baseVersion: number;
 }>;
 
+/**
+ * A value that survives a JSON column round trip.
+ *
+ * The editor's own contracts type draft bodies as `unknown`, which is correct:
+ * what a draft contains is not storage's business. But a JSON column can only
+ * hold JSON, so the boundary has to be able to say whether a body qualifies. A
+ * structural check is used rather than an assertion because a body carrying a
+ * function, a `Date`, or a cycle would otherwise fail deep inside Prisma as an
+ * opaque error instead of a validation failure the caller can report.
+ *
+ * Note that `undefined` is not JSON: an object property holding it is dropped by
+ * `JSON.stringify`, so a body which round-trips to something different from what
+ * was written is rejected here rather than silently altered.
+ */
+export function isJsonValue(value: unknown): value is Prisma.InputJsonValue {
+  return isJson(value, new Set());
+}
+
+function isJson(value: unknown, seen: Set<object>): boolean {
+  if (value === null) return true;
+  if (typeof value === "string" || typeof value === "boolean") return true;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value !== "object") return false;
+
+  // A cycle cannot be serialized; a shared but acyclic reference can, so the
+  // tracking set is unwound on the way back out.
+  if (seen.has(value)) return false;
+  seen.add(value);
+  try {
+    if (value instanceof Date) return false;
+    if (Array.isArray(value)) {
+      return value.every((entry) => entry !== undefined && isJson(entry, seen));
+    }
+    return Object.values(value).every(
+      (entry) => entry !== undefined && isJson(entry, seen),
+    );
+  } finally {
+    seen.delete(value);
+  }
+}
+
 export interface EditorRepository {
   load(scope: EditorScope): Promise<EditorLoadDto | null>;
   save(scope: EditorScope, input: EditorSaveInput): Promise<EditorSaveResult>;

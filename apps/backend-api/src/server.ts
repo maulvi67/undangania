@@ -26,6 +26,7 @@ import {
   processQrisNotification,
   QrisProcessingError,
   QrisNotificationValidationError,
+  resolveMidtransServerKey,
   type QrisNotificationTransactionPort,
 } from "@wedding/payments";
 import { z } from "zod";
@@ -528,8 +529,8 @@ async function handleQrisWebhook(
     request,
     options.maxWebhookBodyBytes ?? MAX_WEBHOOK_BODY_BYTES,
   );
-  const serverKey = process.env.MIDTRANS_SERVER_KEY;
-  if (serverKey === undefined || serverKey.trim().length === 0) {
+  const serverKey = resolveMidtransServerKey(process.env);
+  if (serverKey === null) {
     throw new HttpError(
       503,
       "PROVIDER_UNAVAILABLE",
