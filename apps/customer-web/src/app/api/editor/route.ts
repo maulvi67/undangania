@@ -86,7 +86,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return json({ kind: "invalid" }, 400);
+    return json({ kind: "invalid", issues: [] }, 400);
   }
 
   // Publishing and saving share the endpoint because they are the same document

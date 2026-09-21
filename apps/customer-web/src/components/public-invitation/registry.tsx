@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   TemplateRegistry,
   invitationViewModelSchema,
+  type InvitationMedia,
   type InvitationViewModel,
 } from "@wedding/template-engine";
 import { seruniRenderer } from "./seruni-template";
@@ -14,6 +15,7 @@ export type PublicationSnapshotInput = Readonly<{
   templateVersion: string;
   contractVersion: number;
   model: unknown;
+  media?: readonly InvitationMedia[];
 }>;
 
 export function renderPublicationSnapshot(
@@ -27,7 +29,10 @@ export function renderPublicationSnapshot(
   }
   return registry
     .get(snapshot.templateId, snapshot.templateVersion)
-    .render(model);
+    .render(
+      model,
+      snapshot.media === undefined ? {} : { media: snapshot.media },
+    );
 }
 
 export function getRegisteredTemplateIds(): readonly string[] {

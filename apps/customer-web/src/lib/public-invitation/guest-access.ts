@@ -1,6 +1,7 @@
 import {
   PrismaGuestAccessRepository,
   type GuestAccessDto,
+  type GuestAccessRepository,
 } from "@wedding/database";
 import type { RsvpAnswer, RsvpResponse } from "../rsvp/contract";
 import type {
@@ -12,9 +13,10 @@ import type {
 /**
  * Resolves the private guest context for a personalized link.
  *
- * The search parameter is the only thing that identifies the guest, and it is
- * treated as a bearer credential: a token that does not resolve produces the same
- * `invalid-token` state as a revoked one, so a guessed value learns nothing.
+ * The search parameter carries the bearer credential, while the invitation slug
+ * binds that credential to the current public resource. A token that does not
+ * resolve within that slug produces the same `invalid-token` state as a revoked
+ * one, so a guessed or cross-invitation value learns nothing.
  *
  * Everything the guest sees is derived from the household the token belongs to.
  * `tenantId` and the raw token are deliberately not carried into the returned
@@ -111,6 +113,12 @@ const INACTIVE_STATE_BY_HOUSEHOLD_STATUS: Record<string, GuestAccessState> = {
   DELETED: "invalid-token",
 };
 
+const INACTIVE_STATE_BY_INVITATION_STATUS: Record<string, GuestAccessState> = {
+  PAUSED: "paused",
+  EXPIRED: "expired",
+  ARCHIVED: "expired",
+};
+
 /**
  * Turns a resolved household into the context the client renders.
  *
@@ -119,7 +127,11 @@ const INACTIVE_STATE_BY_HOUSEHOLD_STATUS: Record<string, GuestAccessState> = {
  * being sent looking for a new one that does not exist.
  */
 export function toGuestContext(access: GuestAccessDto): GuestContext {
-  const status = INACTIVE_STATE_BY_HOUSEHOLD_STATUS[access.status];
+  const status =
+    INACTIVE_STATE_BY_HOUSEHOLD_STATUS[access.status] ??
+    (access.invitationStatus === null
+      ? undefined
+      : INACTIVE_STATE_BY_INVITATION_STATUS[access.invitationStatus]);
   if (status !== undefined) {
     return {
       state: status,
@@ -189,13 +201,15 @@ export type GuestContextResolution =
  */
 export async function resolveGuestContext(
   token: string | undefined,
+  invitationSlug: string,
+  repository?: GuestAccessRepository,
 ): Promise<GuestContextResolution> {
   if (token === undefined || token.trim() === "") return { kind: "invalid" };
 
   try {
-    const access = await new PrismaGuestAccessRepository().resolveByToken(
-      token,
-    );
+    const access = await (
+      repository ?? new PrismaGuestAccessRepository()
+    ).resolveByToken(token, invitationSlug);
     if (access === null) return { kind: "invalid" };
     return { kind: "ok", context: toGuestContext(access) };
   } catch {

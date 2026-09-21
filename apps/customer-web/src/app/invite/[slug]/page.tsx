@@ -24,9 +24,9 @@ import {
 } from "../../../lib/public-invitation/guest-context-fixtures";
 import type { GuestContext } from "../../../lib/public-invitation/guest-context";
 import { renderPublicationSnapshot } from "../../../components/public-invitation/registry";
+import { ApprovedGuestbook } from "../../../components/public-invitation/approved-guestbook";
 import { GuestInvitationExperience } from "../../../components/public-invitation/guest-invitation-experience";
-import type { GuestbookSimulation } from "../../../lib/guestbook/stub-transport";
-import type { RsvpSimulation } from "../../../lib/rsvp/stub-transport";
+import { loadApprovedGuestbook } from "../../../lib/guestbook/public-read";
 import "../../golden-invitation.css";
 
 interface PublicInvitationPageProps {
@@ -39,6 +39,9 @@ interface PublicInvitationPageProps {
  * request's slug and on whether a publication is currently active, so they are
  * rendered on demand.
  */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export function generateStaticParams() {
   if (process.env.NODE_ENV === "production") return [];
   return getPublicInvitationSlugs().map((slug) => ({ slug }));
@@ -52,10 +55,6 @@ export function generateStaticParams() {
  * production content can never be replaced from the query string.
  */
 async function snapshotFor(slug: string, fixture: PublicInvitationFixture) {
-  if (fixtureAllowed(fixture) && fixture !== "normal") {
-    return getPublicInvitationSnapshot(slug, fixture) ?? null;
-  }
-
   const resolved = await resolvePublicInvitation({ slug });
   if (resolved.kind === "published") return resolved;
 
@@ -71,6 +70,14 @@ export async function generateMetadata({
   const { slug } = await params;
   const snapshot = await snapshotFor(slug, "normal");
   if (!snapshot) return { title: "Undangan tidak tersedia — Wedding System" };
+  if ("kind" in snapshot && snapshot.kind !== "published") {
+    return {
+      title:
+        snapshot.kind === "paused"
+          ? "Undangan sedang dijeda — Wedding System"
+          : "Undangan sudah berakhir — Wedding System",
+    };
+  }
 
   const parsed = invitationViewModelSchema.safeParse(snapshot.model);
   if (!parsed.success) {
@@ -117,19 +124,15 @@ async function guestExperienceFor(input: {
 }): Promise<
   | Readonly<{
       context: GuestContext;
-      rsvpSimulation: RsvpSimulation | null;
-      guestbookSimulation: GuestbookSimulation | null;
       token: string | undefined;
     }>
   | undefined
 > {
   if (input.token !== undefined) {
-    const resolved = await resolveGuestContext(input.token);
+    const resolved = await resolveGuestContext(input.token, input.slug);
     if (resolved.kind === "ok") {
       return {
         context: resolved.context,
-        rsvpSimulation: null,
-        guestbookSimulation: null,
         token: input.token,
       };
     }
@@ -138,8 +141,6 @@ async function guestExperienceFor(input: {
         resolved.kind === "invalid"
           ? invalidGuestContext()
           : unavailableGuestContext(),
-      rsvpSimulation: null,
-      guestbookSimulation: null,
       token: undefined,
     };
   }
@@ -156,8 +157,6 @@ async function guestExperienceFor(input: {
     );
     return {
       context: fixture.context,
-      rsvpSimulation: fixture.rsvpSimulation,
-      guestbookSimulation: fixture.guestbookSimulation,
       token: undefined,
     };
   }
@@ -176,6 +175,38 @@ export default async function PublicInvitationPage({
   const snapshot = await snapshotFor(slug, fixture);
   if (!snapshot) notFound();
 
+  if ("kind" in snapshot && snapshot.kind !== "published") {
+    const paused = snapshot.kind === "paused";
+    return (
+      <div className="gld-page">
+        <header className="gld-header">
+          <Link
+            className="gld-header__brand"
+            href="/"
+            aria-label="Wedding System"
+          >
+            Wedding System
+          </Link>
+          <span className="gld-header__note">Undangan digital</span>
+        </header>
+        <main className="gld-availability" id="undangan">
+          <p className="gld-kicker">Status undangan</p>
+          <h1>
+            {paused ? "Undangan sedang dijeda" : "Undangan sudah berakhir"}
+          </h1>
+          <p>
+            {paused
+              ? "Undangan ini sedang tidak tersedia untuk tamu. Silakan coba lagi nanti."
+              : "Masa aktif undangan ini telah selesai sehingga halaman dan konfirmasi tamu tidak dapat digunakan."}
+          </p>
+          <Link className="gld-button" href="/">
+            Kembali ke Wedding System
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
   const model = invitationViewModelSchema.parse(snapshot.model);
   const guest = await guestExperienceFor({
     slug,
@@ -188,7 +219,14 @@ export default async function PublicInvitationPage({
     templateVersion: snapshot.templateVersion,
     contractVersion: snapshot.contractVersion,
     model,
+    ...("media" in snapshot && snapshot.media !== undefined
+      ? { media: snapshot.media }
+      : {}),
   });
+  const approvedGuestbook = await loadApprovedGuestbook(
+    slug,
+    first(query.guestbookCursor),
+  );
 
   return (
     <div className="gld-page">
@@ -207,9 +245,13 @@ export default async function PublicInvitationPage({
       </header>
       <main id="undangan" tabIndex={-1}>
         {invitation}
+        {approvedGuestbook.kind === "ok" ? (
+          <ApprovedGuestbook page={approvedGuestbook.page} slug={slug} />
+        ) : null}
         {guest ? (
           <GuestInvitationExperience
             coupleNames={model.couple.displayNames}
+            invitationSlug={slug}
             context={guest.context}
             {...(guest.token === undefined ? {} : { guestToken: guest.token })}
           />

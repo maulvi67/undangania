@@ -86,6 +86,7 @@ New workspace, draft, ready, published, paused, expiring, expired, payment pendi
 ## 13. Test plan and evidence
 
 - Run `npm run typecheck`, `npm test`, and `npm run build`.
+- Guest access regression evidence: `@wedding/database` covers the token-hash plus invitation-slug predicate, malformed slug rejection, and no raw-token query material; `@wedding/customer-web` covers matching-slug resolution, cross-invitation rejection, and server-action slug forwarding.
 - Run `npm run test:e2e`, `npm run test:a11y`, and `npm run test:responsive` for user-facing changes.
 - Use Next.js DevTools to inspect route, build, hydration, runtime, and log errors.
 - Attach Playwright screenshots for required viewports and all exceptional states.
@@ -121,7 +122,7 @@ Define state-to-primary-action mapping before code. Use ui-ux-brief, impact-anal
 - [ ] Typecheck, unit tests, build, and relevant Playwright suites pass.
 - [ ] Accessibility, responsive, and performance checklists completed.
 - [ ] Console and network errors reviewed.
-- [ ] Security/privacy and tenant boundaries verified.
+- [x] Security/privacy and tenant boundaries verified for dashboard and public guest flows; personalized tokens are bound to the current invitation slug.
 - [ ] Screenshots, measurements, and test evidence stored in handoff.
-- [ ] Documentation and task status updated.
+- [x] Documentation and task status updated for the guest token invitation-slug binding.
 - [ ] Reviewer decision is APPROVE or approved CONDITIONAL APPROVAL.

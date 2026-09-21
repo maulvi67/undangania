@@ -78,6 +78,17 @@ export const invitationViewModelSchema = z.object({
 
 export type InvitationViewModel = z.infer<typeof invitationViewModelSchema>;
 
+export type InvitationMedia = Readonly<{
+  assetId: string;
+  url: string;
+  mimeType: string;
+  altText: string | null;
+}>;
+
+export type TemplateRenderContext = Readonly<{
+  media?: readonly InvitationMedia[];
+}>;
+
 export const templateManifestSchema = z.object({
   id: z.string().min(1),
   version: z.string().min(1),
@@ -105,7 +116,7 @@ export type TemplateManifest = Omit<
 
 export interface TemplateRenderer<TOutput> {
   manifest: TemplateManifest;
-  render(model: InvitationViewModel): TOutput;
+  render(model: InvitationViewModel, context?: TemplateRenderContext): TOutput;
 }
 
 export { TemplateRegistry } from "./registry";

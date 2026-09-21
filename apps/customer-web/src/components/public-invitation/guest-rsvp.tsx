@@ -133,7 +133,7 @@ export function GuestRsvp({ context, transport }: GuestRsvpProps) {
     const nextKey =
       idempotencyKey ||
       globalThis.crypto?.randomUUID?.() ||
-      `fixture-${Date.now()}`;
+      `guest-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setIdempotencyKey(nextKey);
     setStatus("submitting");
     setFormError(undefined);

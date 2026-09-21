@@ -1,6 +1,52 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+/**
+ * The landing reveals sections on scroll, and the FAQ answer animates open. Both
+ * effects begin *after* this helper is called — the reveal is triggered by an
+ * `IntersectionObserver` callback, which can fire once a click has already
+ * scrolled the section into view. axe measures the *effective* colour of a
+ * partially transparent element, so sampling mid-flight reports a contrast
+ * failure that no settled reader ever sees.
+ *
+ * So this waits in two steps: every section inside the viewport must have been
+ * revealed, then the finite animations must drain. The ambient layers — the
+ * marquee, the floating card, the drifting bokeh — loop forever, so their
+ * `finished` promise never settles; only finite animations are awaited.
+ */
+async function settleAnimations(page: import("@playwright/test").Page) {
+  await page.waitForFunction(
+    () => {
+      const sections = document.querySelectorAll(
+        '.lnd-section[data-reveal="pending"], .lnd-final[data-reveal="pending"]',
+      );
+      for (const element of sections) {
+        const rect = element.getBoundingClientRect();
+        // A section still waiting to be revealed while it is on screen means
+        // the observer has not run yet.
+        if (rect.top < window.innerHeight && rect.bottom > 0) return false;
+      }
+      return true;
+    },
+    undefined,
+    { timeout: 15_000 },
+  );
+
+  await page.waitForFunction(
+    () =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations !== Infinity,
+        )
+        .every((animation) =>
+          ["finished", "idle"].includes(animation.playState),
+        ),
+    undefined,
+    { timeout: 15_000 },
+  );
+}
+
 test.describe("landing page", () => {
   test("exposes value proposition and primary CTA above the fold", async ({
     page,
@@ -71,9 +117,16 @@ test.describe("landing page", () => {
       if (message.type() === "error") consoleErrors.push(message.text());
     });
     page.on("requestfailed", (request) => {
-      failedRequests.push(
-        `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
-      );
+      const failure = request.failure()?.errorText ?? "";
+      // Next.js prefetches links on hover and in the viewport, and the browser
+      // cancels any prefetch still in flight when the page navigates away or the
+      // test closes its context. An aborted `_rsc` prefetch is a normal
+      // cancellation, not a broken resource, so only genuine transport and
+      // server failures count here.
+      const isAbortedPrefetch =
+        failure === "net::ERR_ABORTED" && request.url().includes("_rsc=");
+      if (isAbortedPrefetch) return;
+      failedRequests.push(`${request.method()} ${request.url()} ${failure}`);
     });
     page.on("response", (response) => {
       if (response.status() >= 400)
@@ -91,6 +144,7 @@ test.describe("landing page accessibility", () => {
     page,
   }) => {
     await page.goto("/");
+    await settleAnimations(page);
     const result = await new AxeBuilder({ page }).analyze();
     expect(
       result.violations.filter((v) =>
@@ -103,7 +157,10 @@ test.describe("landing page accessibility", () => {
     page,
   }) => {
     await page.goto("/");
+    await settleAnimations(page);
     await page.locator("details").first().locator("summary").click();
+    // The answer fades in over 340ms; audit it once it has arrived.
+    await settleAnimations(page);
     const result = await new AxeBuilder({ page }).analyze();
     expect(
       result.violations.filter((v) =>

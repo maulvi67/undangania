@@ -1,4 +1,8 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import {
+  Prisma,
+  type InvitationStatus,
+  type PrismaClient,
+} from "@prisma/client";
 import { prisma } from "../client";
 
 /**
@@ -12,9 +16,10 @@ import { prisma } from "../client";
  *      publication, so the editor demotes the previous one before promoting a new
  *      one; reading the active flag is what makes a draft unreachable from the
  *      public address.
- *   2. Only the snapshot is returned — never the draft, the tenant, or the
- *      invitation id. A published snapshot is already public content; everything
- *      else about the row is internal, so it is not selected in the first place.
+ *   2. The repository's internal DTO carries only the tenant and wedding scope
+ *      needed for render-time media authorization plus the immutable snapshot
+ *      fields. The customer page receives the snapshot and safe resolved media,
+ *      never the draft, object keys, or storage credentials.
  *
  * A slug that does not exist, or that belongs to an invitation with no active
  * publication, is reported identically as `null` so the page cannot be used to
@@ -22,10 +27,12 @@ import { prisma } from "../client";
  */
 
 const publicPublicationSelect = {
+  tenantId: true,
   snapshot: true,
   templateId: true,
   templateVersion: true,
   contractVersion: true,
+  invitation: { select: { weddingId: true, status: true } },
 } as const satisfies Prisma.InvitationPublicationSelect;
 
 type PublicPublicationRow = Prisma.InvitationPublicationGetPayload<{
@@ -59,9 +66,12 @@ export function adaptPublicationReaderClient(
 
 export type PublicPublication = Readonly<{
   slug: string;
+  tenantId: string;
+  weddingId: string;
   templateId: string;
   templateVersion: string;
   contractVersion: number;
+  invitationStatus: InvitationStatus;
   snapshot: unknown;
 }>;
 
@@ -106,9 +116,12 @@ export class PrismaPublicationReaderRepository implements PublicationReaderRepos
 
     return {
       slug,
+      tenantId: row.tenantId,
+      weddingId: row.invitation.weddingId,
       templateId: row.templateId,
       templateVersion: row.templateVersion,
       contractVersion: row.contractVersion,
+      invitationStatus: row.invitation.status,
       snapshot: row.snapshot,
     };
   }

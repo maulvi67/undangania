@@ -123,6 +123,47 @@ describe("PrismaSubmissionRateLimiter", () => {
     });
   });
 
+  it("excludes the current RSVP idempotency record for safe retries", async () => {
+    const c = client();
+    await new PrismaSubmissionRateLimiter(c).checkRsvp(
+      "hh-1",
+      NOW,
+      undefined,
+      "key-1",
+    );
+
+    expect(c.outboxEvent.findMany).toHaveBeenCalledWith({
+      where: {
+        aggregateType: "GuestHousehold",
+        aggregateId: "hh-1",
+        eventType: "RsvpSubmitted",
+        id: { not: "key-1" },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+      take: RSVP_RATE_LIMIT.limit,
+    });
+  });
+
+  it("excludes the current guestbook idempotency record for safe retries", async () => {
+    const c = client();
+    await new PrismaSubmissionRateLimiter(c).checkGuestbook(
+      "hh-1",
+      NOW,
+      undefined,
+      "key-1",
+    );
+
+    expect(c.guestbookMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          householdId: "hh-1",
+          id: { not: expect.any(String) },
+        },
+      }),
+    );
+  });
+
   it("counts the household's guestbook messages, pending or not", async () => {
     const c = client({
       guestbookMessage: {

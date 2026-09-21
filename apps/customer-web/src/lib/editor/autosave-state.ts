@@ -51,7 +51,9 @@ export function reduceAutosaveState(
     case "UPLOAD_REJECTED":
       return "upload-rejected";
     case "RETRY":
-      return state === "saved" ? "dirty" : state;
+      return ["save-failed", "offline", "provider-unavailable"].includes(state)
+        ? "dirty"
+        : state;
   }
 }
 

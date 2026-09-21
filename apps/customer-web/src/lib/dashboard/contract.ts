@@ -59,6 +59,7 @@ export type WorkspaceSummary = {
 
 export type InvitationSummary = {
   status: InvitationLifecycle;
+  slug: string;
   templateName: string | null;
   contentComplete: boolean;
   publishedAt: string | null;
@@ -124,6 +125,7 @@ export const dashboardAggregateSchema = z.object({
   invitation: sectionSchema(
     z.object({
       status: invitationLifecycleSchema,
+      slug: z.string().min(1),
       templateName: z.string().nullable(),
       contentComplete: z.boolean(),
       publishedAt: z.string().datetime().nullable(),

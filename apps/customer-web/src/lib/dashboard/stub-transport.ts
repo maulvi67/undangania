@@ -44,6 +44,7 @@ function baseAggregate(
       status: "ok",
       data: {
         status: "DRAFT",
+        slug: "contoh-undangan",
         templateName: "Seruni",
         contentComplete: false,
         publishedAt: null,
@@ -78,6 +79,7 @@ function publishedAggregate(
       status: "ok",
       data: {
         status,
+        slug: "contoh-undangan",
         templateName: "Seruni",
         contentComplete: true,
         publishedAt: DEMO_PUBLISHED_AT,
@@ -113,6 +115,7 @@ function fixtureAggregate(fixture: DashboardFixture): DashboardAggregate {
           status: "ok",
           data: {
             status: "DRAFT",
+            slug: "contoh-undangan",
             templateName: null,
             contentComplete: false,
             publishedAt: null,
@@ -129,6 +132,7 @@ function fixtureAggregate(fixture: DashboardFixture): DashboardAggregate {
           status: "ok",
           data: {
             status: "READY",
+            slug: "contoh-undangan",
             templateName: "Seruni",
             contentComplete: true,
             publishedAt: null,
@@ -151,6 +155,7 @@ function fixtureAggregate(fixture: DashboardFixture): DashboardAggregate {
           status: "ok",
           data: {
             status: "READY",
+            slug: "contoh-undangan",
             templateName: "Seruni",
             contentComplete: true,
             publishedAt: null,

@@ -25,11 +25,10 @@ export type GuestEvent = Readonly<{
 }>;
 
 /**
- * Private guest context for the fixture transport.
+ * Private guest context for the server-authorized guest experience.
  *
  * This deliberately contains no raw token, token hash, tenant identifier,
- * contact data, or information belonging to another household. The production
- * transport must preserve this boundary when it replaces the fixture.
+ * contact data, or information belonging to another household.
  */
 export type GuestContext = Readonly<{
   state: GuestAccessState;

@@ -189,11 +189,7 @@ export function getGuestManagementData(
       title: "Ada duplikat potensial",
       body: "2 baris mungkin cocok dengan rumah tangga yang sudah ada. Tidak ada data yang digabung otomatis.",
     },
-    "export-processing": {
-      tone: "info",
-      title: "Ekspor sedang disiapkan",
-      body: "File akan tersedia setelah data selesai disiapkan.",
-    },
+
   };
 
   const fixtureHouseholds =

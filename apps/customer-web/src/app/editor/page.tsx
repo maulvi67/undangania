@@ -59,7 +59,14 @@ export default async function EditorPage({ searchParams }: EditorPageProps) {
   const section = parseSection(params.section);
   const fixture = parseEditorFixture(params.fixture);
 
-  if (process.env.NODE_ENV !== "production" && params.fixture !== undefined) {
+  const authenticated = await getAuthenticatedRequest();
+  if (
+    authenticated === null &&
+    process.env.NODE_ENV !== "production" &&
+    params.fixture !== undefined
+  ) {
+    // Fixtures remain available without a session for development and QA. Once a
+    // real session exists, the server-authorized invitation always wins.
     const result = await loadEditorFixture(
       fixture,
       getEditorInvitationId(params.invitation),
@@ -74,7 +81,6 @@ export default async function EditorPage({ searchParams }: EditorPageProps) {
     );
   }
 
-  const authenticated = await getAuthenticatedRequest();
   if (authenticated === null) {
     return (
       <EditorRouteView

@@ -1,4 +1,9 @@
-import { Prisma, type PrismaClient, type RsvpResponse } from "@prisma/client";
+import {
+  Prisma,
+  type InvitationStatus,
+  type PrismaClient,
+  type RsvpResponse,
+} from "@prisma/client";
 import { prisma } from "../client";
 
 /**
@@ -59,6 +64,9 @@ export type RsvpSubmitResult =
   | Readonly<{ kind: "replayed"; answers: readonly RsvpSubmittedAnswer[] }>
   | Readonly<{ kind: "stale"; eventId: string }>
   | Readonly<{ kind: "invalid"; reason: RsvpValidationFailure }>
+  | Readonly<{ kind: "idempotency-conflict" }>
+  | Readonly<{ kind: "paused" }>
+  | Readonly<{ kind: "expired" }>
   | Readonly<{ kind: "not-found" }>;
 
 export type RsvpHouseholdDto = Readonly<{
@@ -67,6 +75,7 @@ export type RsvpHouseholdDto = Readonly<{
   weddingId: string;
   maximumPax: number;
   status: string;
+  invitationStatus: InvitationStatus | null;
 }>;
 
 const householdSelect = {
@@ -75,6 +84,20 @@ const householdSelect = {
   weddingId: true,
   maximumPax: true,
   status: true,
+  wedding: {
+    select: {
+      invitation: {
+        select: {
+          status: true,
+          publications: {
+            where: { active: true },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  },
 } as const satisfies Prisma.GuestHouseholdSelect;
 
 type HouseholdRow = Prisma.GuestHouseholdGetPayload<{
@@ -136,8 +159,10 @@ export type RsvpSubmissionClient = Readonly<{
   outboxEvent: {
     findUnique(args: {
       where: { id: string };
-      select: { id: true };
-    }): Promise<{ id: string } | null>;
+      select: { id: true; aggregateId: true; payload: true };
+    }): Promise<
+      { id: string; aggregateId: string; payload: Prisma.JsonValue } | null
+    >;
     create(args: { data: Prisma.OutboxEventUncheckedCreateInput }): Promise<{
       id: string;
     }>;
@@ -301,9 +326,15 @@ export async function applyRsvpSubmission(
   // makes the retry idempotent from the guest's point of view.
   const replay = await client.outboxEvent.findUnique({
     where: { id: input.idempotencyKey },
-    select: { id: true },
+    select: { id: true, aggregateId: true, payload: true },
   });
   if (replay !== null) {
+    if (replay.aggregateId !== household.id) {
+      return { kind: "idempotency-conflict" };
+    }
+    if (!rsvpPayloadMatches(replay.payload, input.updates, household.maximumPax)) {
+      return { kind: "idempotency-conflict" };
+    }
     const stored = await client.rsvp.findMany({
       where: {
         householdId: household.id,
@@ -313,6 +344,12 @@ export async function applyRsvpSubmission(
     });
     return { kind: "replayed", answers: stored.map(toAnswer) };
   }
+
+  const lifecycle = invitationLifecycleFailure(
+    household.wedding.invitation?.status ?? null,
+    household.wedding.invitation?.publications.length ?? 0,
+  );
+  if (lifecycle !== null) return { kind: lifecycle };
 
   const events = await client.weddingEvent.findMany({
     where: { tenantId: household.tenantId, weddingId: household.weddingId },
@@ -433,10 +470,11 @@ export async function applyRsvpSubmission(
         householdId: household.id,
         weddingId: household.weddingId,
         occurredAt: now.toISOString(),
-        answers: answers.map((answer) => ({
-          eventId: answer.eventId,
-          response: answer.response,
-          pax: answer.pax,
+        answers: validation.normalized.map((update) => ({
+          eventId: update.eventId,
+          response: update.response,
+          pax: update.pax,
+          expectedVersion: update.expectedVersion,
         })),
       },
       payloadVersion: 1,
@@ -461,6 +499,86 @@ export async function applyRsvpSubmission(
   });
 
   return { kind: "success", answers };
+}
+
+function invitationLifecycleFailure(
+  status: InvitationStatus | null,
+  activePublicationCount: number,
+): "paused" | "expired" | null {
+  if (status === "EXPIRED" || status === "ARCHIVED") return "expired";
+  if (status !== "PUBLISHED" || activePublicationCount === 0) return "paused";
+  return null;
+}
+
+function rsvpPayloadMatches(
+  payload: Prisma.JsonValue,
+  updates: RsvpSubmitInput["updates"],
+  maximumPax: number,
+): boolean {
+  if (!isJsonRecord(payload) || !Array.isArray(payload.answers)) return false;
+  const stored = payload.answers.flatMap((answer) => {
+    if (!isJsonRecord(answer)) return [];
+    const eventId = answer.eventId;
+    const response = answer.response;
+    const pax = answer.pax;
+    const expectedVersion = answer.expectedVersion;
+    if (
+      typeof eventId !== "string" ||
+      !isRsvpResponse(response) ||
+      typeof pax !== "number" ||
+      !Number.isInteger(pax) ||
+      (expectedVersion !== null &&
+        (typeof expectedVersion !== "number" ||
+          !Number.isInteger(expectedVersion) ||
+          expectedVersion < 0))
+    ) {
+      return [];
+    }
+    return [{ eventId, response, pax, expectedVersion }];
+  });
+  if (stored.length !== payload.answers.length) return false;
+
+  const incoming = updates.map((update) => ({
+    eventId: update.eventId,
+    response: update.response,
+    pax: normalizePax(update.response, update.pax, maximumPax),
+    expectedVersion: update.expectedVersion,
+  }));
+  if (incoming.some((update) => update.pax === null)) return false;
+
+  const sort = (left: { eventId: string }, right: { eventId: string }) =>
+    left.eventId.localeCompare(right.eventId);
+  const normalizedStored = [...stored].sort(sort);
+  const normalizedIncoming = [...incoming]
+    .filter(
+      (update): update is {
+        eventId: string;
+        response: RsvpResponse;
+        pax: number;
+        expectedVersion: number | null;
+      } => update.pax !== null,
+    )
+    .sort(sort);
+  return normalizedStored.length === normalizedIncoming.length &&
+    normalizedStored.every(
+      (answer, index) =>
+        answer.eventId === normalizedIncoming[index]?.eventId &&
+        answer.response === normalizedIncoming[index]?.response &&
+        answer.pax === normalizedIncoming[index]?.pax &&
+        answer.expectedVersion === normalizedIncoming[index]?.expectedVersion,
+    );
+}
+
+function isJsonRecord(
+  value: Prisma.JsonValue | undefined,
+): value is Prisma.JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isRsvpResponse(
+  value: Prisma.JsonValue | undefined,
+): value is RsvpResponse {
+  return value === "ATTENDING" || value === "DECLINED" || value === "TENTATIVE";
 }
 
 export interface RsvpSubmissionTransactionPort {

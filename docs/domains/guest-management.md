@@ -34,7 +34,10 @@ GuestImported, GuestTokenRotated.
 wedding, RSVP.
 
 ## Security considerations
-encrypted contacts, export audit.
+encrypted contacts, export audit. A personalized guest token is resolved only
+when its invitation slug matches the public invitation being rendered; the slug
+is part of the repository predicate rather than a client-only check. The raw
+token is hashed before lookup and is never exposed in the guest context.
 
 ## Owning module
 `guest` owns the invariant and write model. Other modules integrate through application ports or versioned events.

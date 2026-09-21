@@ -19,6 +19,7 @@ import { generateOpaqueToken } from "../tokens";
  * Contact values are stored encrypted with a separate hash column. Nothing here
  * decrypts them: the roster only needs to say whether a value is on file, so it
  * reads the hash columns as a presence flag and never selects the ciphertext.
+ * Export follows the same rule and contains roster names and event labels only.
  */
 
 const householdSelect = {
@@ -130,12 +131,17 @@ type GuestRosterClient = Readonly<{
       where: Prisma.GuestWhereInput;
     }): Promise<{ count: number }>;
   };
+  auditEvent: {
+    create(args: {
+      data: Prisma.AuditEventUncheckedCreateInput;
+    }): Promise<{ id: string }>;
+  };
 }>;
 
 export function adaptGuestRosterClient(
   client: Pick<
     PrismaClient,
-    "wedding" | "weddingEvent" | "guestHousehold" | "guest"
+    "wedding" | "weddingEvent" | "guestHousehold" | "guest" | "auditEvent"
   >,
 ): GuestRosterClient {
   return {
@@ -155,6 +161,9 @@ export function adaptGuestRosterClient(
     guest: {
       createMany: (args) => client.guest.createMany(args),
       deleteMany: (args) => client.guest.deleteMany(args),
+    },
+    auditEvent: {
+      create: (args) => client.auditEvent.create(args),
     },
   };
 }
@@ -233,6 +242,30 @@ export type RosterUpdateInput = Readonly<{
   members?: readonly RosterMemberInput[];
 }>;
 
+export type RosterExportRowDto = Readonly<{
+  householdName: string;
+  guestName: string;
+  category: string;
+  maximumPax: number;
+  eventNames: readonly string[];
+  linkStatus: RosterLinkStatus;
+}>;
+
+export type RosterExportOptions = Readonly<{
+  /** Undefined exports the complete roster; an array exports only these IDs. */
+  householdIds?: readonly string[];
+  /** The authenticated user that requested the export. */
+  actorId: string;
+  /** Generated on the server and retained in the audit event. */
+  correlationId: string;
+}>;
+
+export type RosterExportResult = Readonly<{
+  rows: readonly RosterExportRowDto[];
+  householdCount: number;
+  guestCount: number;
+}>;
+
 export type RosterImportRow = Readonly<{
   householdName: string;
   memberNames: readonly string[];
@@ -289,6 +322,11 @@ export interface GuestRosterRepository {
     householdId: string,
     status: RosterLinkStatus,
   ): Promise<boolean>;
+  /** Reads an authorized roster and records the successful export. */
+  exportRoster(
+    scope: RosterScope,
+    options: RosterExportOptions,
+  ): Promise<RosterExportResult | null>;
 }
 
 /**
@@ -614,5 +652,92 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
       data: { status },
     });
     return result.count === 1;
+  }
+
+  public async exportRoster(
+    scope: RosterScope,
+    options: RosterExportOptions,
+  ): Promise<RosterExportResult | null> {
+    // Prove the wedding is still owned by the session scope before recording an
+    // audit event. A stale or forged scope must not produce an apparently valid
+    // empty export.
+    const wedding = await this.client.wedding.findFirst({
+      where: { id: scope.weddingId, tenantId: scope.tenantId },
+      select: weddingSelect,
+    });
+    if (wedding === null) return null;
+
+    const [events, rows] = await Promise.all([
+      this.client.weddingEvent.findMany({
+        where: {
+          tenantId: scope.tenantId,
+          weddingId: scope.weddingId,
+          wedding: { tenantId: scope.tenantId },
+        },
+        orderBy: [{ displayOrder: "asc" }, { id: "asc" }],
+        select: eventSelect,
+      }),
+      this.client.guestHousehold.findMany({
+        where: {
+          ...householdScope(scope),
+          ...(options.householdIds === undefined
+            ? {}
+            : { id: { in: [...options.householdIds] } }),
+        },
+        orderBy: [{ displayName: "asc" }, { id: "asc" }],
+        select: householdSelect,
+      }),
+    ]);
+
+    if (
+      options.householdIds !== undefined &&
+      rows.length !== options.householdIds.length
+    ) {
+      // Do not turn a partly out-of-scope selection into a successful export. The
+      // caller receives the same not-found result as any stale household id.
+      return null;
+    }
+
+    const eventNames = events.map((event) => event.title);
+    const exportRows = rows.flatMap((row) => {
+      // A malformed legacy household should still be visible in the export rather
+      // than disappearing silently. The blank guest name is non-sensitive and makes
+      // the missing member data explicit to the authorized operator.
+      const members =
+        row.guests.length === 0
+          ? [{ displayName: "", category: "" }]
+          : row.guests;
+      return members.map((member) => ({
+        householdName: row.displayName,
+        guestName: member.displayName,
+        category: member.category,
+        maximumPax: row.maximumPax,
+        eventNames,
+        linkStatus: toLinkStatus(row.status),
+      }));
+    });
+
+    await this.client.auditEvent.create({
+      data: {
+        tenantId: scope.tenantId,
+        userId: options.actorId,
+        actorType: "USER",
+        action: "GUEST_ROSTER_EXPORTED",
+        targetType: "GuestRoster",
+        targetId: scope.weddingId,
+        metadata: {
+          householdCount: rows.length,
+          guestCount: exportRows.length,
+          selectedOnly: options.householdIds !== undefined,
+        },
+        correlationId: options.correlationId,
+      },
+    });
+
+    return {
+      rows: exportRows,
+      householdCount: rows.length,
+      guestCount: exportRows.length,
+    };
   }
 }

@@ -1,5 +1,6 @@
 import * as React from "react";
 import type {
+  InvitationMedia,
   InvitationSectionType,
   InvitationViewModel,
   TemplateManifest,
@@ -254,7 +255,13 @@ function StorySection({ model }: { model: InvitationViewModel }) {
   );
 }
 
-function GallerySection({ model }: { model: InvitationViewModel }) {
+function GallerySection({
+  model,
+  media,
+}: {
+  model: InvitationViewModel;
+  media: readonly InvitationMedia[];
+}) {
   const section = sectionOf(model, "gallery");
   if (!section?.visible) return null;
   const assetIds = section.payload.assetIds ?? [];
@@ -267,15 +274,45 @@ function GallerySection({ model }: { model: InvitationViewModel }) {
         className="gld-gallery"
         aria-label={`Galeri foto ${model.couple.displayNames}`}
       >
-        {assetIds.map((assetId, index) => (
-          <li key={assetId}>
-            <span
-              className={`gld-gallery__tile gld-gallery__tile--${(index % 6) + 1}`}
-              aria-label={`Foto ${index + 1}`}
-              role="img"
-            />
-          </li>
-        ))}
+        {assetIds.map((assetId, index) => {
+          const resolved = media.find((item) => item.assetId === assetId);
+          return (
+            <li key={assetId}>
+              {resolved ? (
+                <>
+                  <img
+                    className={`gld-gallery__tile gld-gallery__tile--${(index % 6) + 1}`}
+                    src={resolved.url}
+                    alt={resolved.altText ?? `Foto ${index + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(event) => {
+                      if (event.currentTarget.dataset.failed === "true") return;
+                      event.currentTarget.dataset.failed = "true";
+                      event.currentTarget.setAttribute("aria-hidden", "true");
+                      event.currentTarget.style.display = "none";
+                      event.currentTarget.nextElementSibling?.removeAttribute(
+                        "hidden",
+                      );
+                    }}
+                  />
+                  <span
+                    className={`gld-gallery__tile gld-gallery__tile--${(index % 6) + 1}`}
+                    aria-label={`Foto ${index + 1} belum tersedia`}
+                    role="img"
+                    hidden
+                  />
+                </>
+              ) : (
+                <span
+                  className={`gld-gallery__tile gld-gallery__tile--${(index % 6) + 1}`}
+                  aria-label={`Foto ${index + 1} belum tersedia`}
+                  role="img"
+                />
+              )}
+            </li>
+          );
+        })}
       </ol>
       <p className="gld-muted">
         Foto-foto pilihan kami akan mengisi ruang ini.
@@ -439,7 +476,12 @@ function ClosingSection({ model }: { model: InvitationViewModel }) {
 
 function OptionalMusicSection({ model }: { model: InvitationViewModel }) {
   const section = sectionOf(model, "music");
-  if (!section?.visible) return null;
+  if (
+    !section?.visible ||
+    section.payload.visible !== true ||
+    section.payload.enabled !== true
+  )
+    return null;
   const url = safeExternalHref(textValue(section.payload.url));
   return (
     <section className="gld-section" aria-labelledby="gld-music-title">
@@ -457,7 +499,13 @@ function OptionalMusicSection({ model }: { model: InvitationViewModel }) {
   );
 }
 
-function Opening({ model }: { model: InvitationViewModel }) {
+function Opening({
+  model,
+  media,
+}: {
+  model: InvitationViewModel;
+  media: readonly InvitationMedia[];
+}) {
   const firstEvent = model.events[0];
   const hero = sectionOf(model, "hero");
   return (
@@ -499,7 +547,7 @@ function Opening({ model }: { model: InvitationViewModel }) {
           <CoupleSection model={model} />
           <EventsSection model={model} />
           <StorySection model={model} />
-          <GallerySection model={model} />
+          <GallerySection model={model} media={media} />
           <OptionalMusicSection model={model} />
           <GiftSection model={model} />
           <FaqSection model={model} />
@@ -512,7 +560,13 @@ function Opening({ model }: { model: InvitationViewModel }) {
   );
 }
 
-export function SeruniInvitation({ model }: { model: InvitationViewModel }) {
+export function SeruniInvitation({
+  model,
+  media = [],
+}: {
+  model: InvitationViewModel;
+  media?: readonly InvitationMedia[];
+}) {
   return (
     <article
       className="gld-invitation"
@@ -521,12 +575,17 @@ export function SeruniInvitation({ model }: { model: InvitationViewModel }) {
       <h1 className="ui-visually-hidden">
         Undangan pernikahan {model.couple.displayNames}
       </h1>
-      <Opening model={model} />
+      <Opening model={model} media={media} />
     </article>
   );
 }
 
 export const seruniRenderer: TemplateRenderer<ReactNode> = {
   manifest: SERUNI_MANIFEST,
-  render: (model) => <SeruniInvitation model={model} />,
+  render: (model, context) =>
+    context?.media === undefined ? (
+      <SeruniInvitation model={model} />
+    ) : (
+      <SeruniInvitation model={model} media={context.media} />
+    ),
 };

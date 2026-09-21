@@ -37,10 +37,12 @@ describe("isPublicSlug", () => {
 describe("PrismaPublicationReaderRepository", () => {
   it("reads only the active publication and returns the snapshot fields", async () => {
     const findFirst = vi.fn().mockResolvedValue({
+      tenantId: "tenant-1",
       snapshot: { schemaVersion: 1 },
       templateId: "seruni-klasik",
       templateVersion: "1",
       contractVersion: 1,
+      invitation: { weddingId: "wedding-1", status: "PUBLISHED" },
     });
     const repository = new PrismaPublicationReaderRepository(client(findFirst));
 
@@ -48,21 +50,29 @@ describe("PrismaPublicationReaderRepository", () => {
       repository.findActiveBySlug("rani-bima-1a2b3c4d"),
     ).resolves.toEqual({
       slug: "rani-bima-1a2b3c4d",
+      tenantId: "tenant-1",
+      weddingId: "wedding-1",
       templateId: "seruni-klasik",
       templateVersion: "1",
       contractVersion: 1,
+      invitationStatus: "PUBLISHED",
       snapshot: { schemaVersion: 1 },
     });
 
-    // `active: true` is what makes a draft unreachable from the public address,
-    // and the select must not reach for tenant or invitation internals.
+    // `active: true` is what makes a draft unreachable from the public address;
+    // tenant/wedding scope is internal-only data used for media authorization.
     expect(findFirst).toHaveBeenCalledWith({
-      where: { active: true, invitation: { slug: "rani-bima-1a2b3c4d" } },
+      where: {
+        active: true,
+        invitation: { slug: "rani-bima-1a2b3c4d" },
+      },
       select: {
+        tenantId: true,
         snapshot: true,
         templateId: true,
         templateVersion: true,
         contractVersion: true,
+        invitation: { select: { weddingId: true, status: true } },
       },
     });
   });

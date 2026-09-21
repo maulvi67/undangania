@@ -10,6 +10,17 @@ describe("editor autosave state", () => {
     );
   });
 
+  it("retries every transient save failure", () => {
+    expect(reduceAutosaveState("save-failed", { type: "RETRY" })).toBe("dirty");
+    expect(reduceAutosaveState("offline", { type: "RETRY" })).toBe("dirty");
+    expect(reduceAutosaveState("provider-unavailable", { type: "RETRY" })).toBe(
+      "dirty",
+    );
+    expect(reduceAutosaveState("stale-version", { type: "RETRY" })).toBe(
+      "stale-version",
+    );
+  });
+
   it("keeps failures explicit", () => {
     expect(reduceAutosaveState("saving", { type: "SAVE_FAILED" })).toBe(
       "save-failed",

@@ -10,6 +10,100 @@ paths:
   /public/rsvp: { post: { summary: Submit RSVP with opaque token, responses: { '200': { description: Accepted }, '423': { description: Locked } } } }
   /printing-orders: { post: { summary: Create printing order, responses: { '201': { description: Created } } } }
   /notifications: { post: { summary: Enqueue approved notification, responses: { '202': { description: Queued } } } }
+  /v1/analytics/events: { post: { summary: Ingest one privacy-safe analytics event, description: Requires an authenticated ws_session and active membership in tenantId. The body is schema-versioned, consent-gated, strict, and limited to the event/property allowlist; tenant and actor identity are derived from the session and hashed before persistence. The idempotencyKey is deterministic per tenant and retries are safe., parameters: [{ name: tenantId, in: query, required: true, schema: { type: string } }], requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AnalyticsEvent' } } } }, responses: { '200': { description: Idempotent replay }, '202': { description: Event accepted }, '400': { description: Invalid, unallowlisted, or prohibited analytics input }, '401': { description: Authentication required }, '404': { description: Tenant membership not found }, '409': { description: Idempotency key conflict }, '413': { description: Request body too large }, '429': { description: Analytics ingestion rate limit exceeded; response includes Retry-After }, '503': { description: Analytics repository, hash configuration, or distributed rate limiter unavailable } } } }
+  /v1/analytics/report: { get: { summary: Read tenant-scoped aggregate analytics, description: Returns only counts by allowlisted event name. The authenticated membership, strict UTC range, 31-day maximum window, and 10000-event report bound are enforced server-side., parameters: [{ name: tenantId, in: query, required: true, schema: { type: string } }, { name: from, in: query, required: true, schema: { type: string, format: date-time } }, { name: to, in: query, required: true, schema: { type: string, format: date-time } }], responses: { '200': { description: Aggregate report without event payloads }, '400': { description: Invalid range or input }, '401': { description: Authentication required }, '404': { description: Tenant membership not found }, '422': { description: Report exceeds the bounded event limit }, '429': { description: Analytics report rate limit exceeded; response includes Retry-After }, '503': { description: Analytics repository, hash configuration, or distributed rate limiter unavailable } } } }
   /v1/guest-households: { get: { summary: List tenant-scoped guest households, parameters: [{ name: weddingId, in: query, required: true, schema: { type: string } }], responses: { '200': { description: Safe household DTOs }, '401': { description: Authentication required }, '404': { description: Wedding not available to the authenticated tenant }, '503': { description: Repository unavailable } } } }
   /v1/guest-households/{householdId}: { get: { summary: Get one tenant-scoped guest household, parameters: [{ name: householdId, in: path, required: true, schema: { type: string } }, { name: weddingId, in: query, required: true, schema: { type: string } }], responses: { '200': { description: Safe household DTO }, '401': { description: Authentication required }, '404': { description: Household not found in the authenticated tenant }, '503': { description: Repository unavailable } } } }
   /v1/webhooks/midtrans-qris: { post: { summary: Verify and process a Midtrans QRIS notification, description: The raw request body is signature-verified before tenant-scoped payment/order/entitlement/outbox updates. Browser redirects and URL parameters are not payment truth., responses: { '200': { description: Acknowledged after atomic processing }, '400': { description: Invalid payload }, '401': { description: Invalid provider signature }, '422': { description: Payment/order mismatch }, '503': { description: Repository or provider configuration unavailable } } } }
+  /v1/media/upload: { post: { summary: Create a tenant-scoped signed R2 upload, description: Validated metadata creates a PENDING_UPLOAD asset and returns a short-lived browser PUT URL. Tenant, wedding, object key, and provider credentials are never client-authoritative., responses: { '200': { description: Signed upload URL and asset id }, '400': { description: Invalid media metadata }, '401': { description: Authentication required }, '403': { description: Workspace access denied }, '503': { description: Storage provider unavailable } } } }
+  /v1/media/{assetId}/complete: { post: { summary: Verify an uploaded R2 object, description: The server reads object metadata before transitioning the scoped asset to UPLOADED. A worker must complete signature, dimension, malware, and derivative checks before the scoped asset can become READY. Mismatches are rejected., responses: { '200': { description: Verified media state }, '400': { description: Object metadata mismatch }, '401': { description: Authentication required }, '404': { description: Asset not found in the authenticated workspace }, '503': { description: Storage provider unavailable } } } }
+  /v1/media/{assetId}: { delete: { summary: Remove a private media asset, description: Soft-deletes the tenant-scoped row and idempotently removes the private R2 object., responses: { '200': { description: Removed }, '401': { description: Authentication required }, '404': { description: Asset not found in the authenticated workspace }, '503': { description: Storage provider unavailable } } } }
+components:
+  schemas:
+    AnalyticsEvent:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [schemaVersion, consent, idempotencyKey, name, properties]
+          properties:
+            schemaVersion: { const: 1 }
+            consent: { const: true }
+            idempotencyKey: { type: string, pattern: '^[A-Za-z0-9._~-]{16,128}$' }
+            name: { const: invitation_viewed }
+            properties:
+              type: object
+              additionalProperties: false
+              required: [source, device]
+              properties:
+                source: { type: string, enum: [direct, shared, search, unknown] }
+                device: { type: string, enum: [mobile, tablet, desktop, unknown] }
+        - type: object
+          additionalProperties: false
+          required: [schemaVersion, consent, idempotencyKey, name, properties]
+          properties:
+            schemaVersion: { const: 1 }
+            consent: { const: true }
+            idempotencyKey: { type: string, pattern: '^[A-Za-z0-9._~-]{16,128}$' }
+            name: { const: invitation_published }
+            properties:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { const: PUBLISHED }
+        - type: object
+          additionalProperties: false
+          required: [schemaVersion, consent, idempotencyKey, name, properties]
+          properties:
+            schemaVersion: { const: 1 }
+            consent: { const: true }
+            idempotencyKey: { type: string, pattern: '^[A-Za-z0-9._~-]{16,128}$' }
+            name: { const: rsvp_submitted }
+            properties:
+              type: object
+              additionalProperties: false
+              required: [response]
+              properties:
+                response: { type: string, enum: [ATTENDING, DECLINED, TENTATIVE] }
+        - type: object
+          additionalProperties: false
+          required: [schemaVersion, consent, idempotencyKey, name, properties]
+          properties:
+            schemaVersion: { const: 1 }
+            consent: { const: true }
+            idempotencyKey: { type: string, pattern: '^[A-Za-z0-9._~-]{16,128}$' }
+            name: { const: guestbook_submitted }
+            properties:
+              type: object
+              additionalProperties: false
+              required: [moderationStatus]
+              properties:
+                moderationStatus: { const: PENDING }
+        - type: object
+          additionalProperties: false
+          required: [schemaVersion, consent, idempotencyKey, name, properties]
+          properties:
+            schemaVersion: { const: 1 }
+            consent: { const: true }
+            idempotencyKey: { type: string, pattern: '^[A-Za-z0-9._~-]{16,128}$' }
+            name: { const: checkout_started }
+            properties:
+              type: object
+              additionalProperties: false
+              required: [currency]
+              properties:
+                currency: { const: IDR }
+        - type: object
+          additionalProperties: false
+          required: [schemaVersion, consent, idempotencyKey, name, properties]
+          properties:
+            schemaVersion: { const: 1 }
+            consent: { const: true }
+            idempotencyKey: { type: string, pattern: '^[A-Za-z0-9._~-]{16,128}$' }
+            name: { const: checkout_completed }
+            properties:
+              type: object
+              additionalProperties: false
+              required: [currency]
+              properties:
+                currency: { const: IDR }

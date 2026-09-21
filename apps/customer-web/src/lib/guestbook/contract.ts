@@ -17,13 +17,19 @@ export type GuestbookSubmissionSuccess = Readonly<{
 }>;
 
 export type GuestbookSubmissionErrorCode =
-  "SUBMISSION_FAILED" | "REJECTED" | "RATE_LIMITED";
+  | "SUBMISSION_FAILED"
+  | "REJECTED"
+  | "RATE_LIMITED"
+  | "IDEMPOTENCY_CONFLICT"
+  | "PAUSED"
+  | "EXPIRED";
 
 export type GuestbookSubmissionError = Readonly<{
   kind: "error";
   code: GuestbookSubmissionErrorCode;
   message: string;
   preserveInput: true;
+  retryAfterSeconds?: number;
 }>;
 
 export type GuestbookSubmissionResult =

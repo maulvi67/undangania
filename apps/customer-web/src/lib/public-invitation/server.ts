@@ -1,8 +1,14 @@
 import {
+  PrismaMediaAssetRepository,
   PrismaPublicationReaderRepository,
+  type MediaAssetRepository,
   type PublicPublication,
 } from "@wedding/database";
-import { invitationViewModelSchema } from "@wedding/template-engine";
+import { createStoragePortFromEnv, type StoragePort } from "@wedding/storage";
+import {
+  invitationViewModelSchema,
+  type InvitationViewModel,
+} from "@wedding/template-engine";
 import {
   isPublicInvitationFixture,
   type PublicInvitationFixture,
@@ -27,6 +33,13 @@ import {
  * fixture content from the query string.
  */
 
+export type ResolvedPublicMedia = Readonly<{
+  assetId: string;
+  url: string;
+  mimeType: string;
+  altText: string | null;
+}>;
+
 export type PublicInvitationPage =
   | Readonly<{
       kind: "published";
@@ -35,7 +48,10 @@ export type PublicInvitationPage =
       templateVersion: string;
       contractVersion: number;
       model: unknown;
+      media: readonly ResolvedPublicMedia[];
     }>
+  | Readonly<{ kind: "paused" }>
+  | Readonly<{ kind: "expired" }>
   | Readonly<{ kind: "missing" }>;
 
 export async function resolvePublicInvitation(input: {
@@ -45,8 +61,18 @@ export async function resolvePublicInvitation(input: {
 }): Promise<PublicInvitationPage> {
   const publication = await findActivePublication(input.slug);
   if (publication !== null) {
+    if (publication.invitationStatus === "PAUSED") return { kind: "paused" };
+    if (
+      publication.invitationStatus === "EXPIRED" ||
+      publication.invitationStatus === "ARCHIVED"
+    ) {
+      return { kind: "expired" };
+    }
+
     const parsed = invitationViewModelSchema.safeParse(publication.snapshot);
     if (!parsed.success) return { kind: "missing" };
+
+    const media = await resolvePublishedMedia(publication, parsed.data);
 
     return {
       kind: "published",
@@ -55,10 +81,82 @@ export async function resolvePublicInvitation(input: {
       templateVersion: publication.templateVersion,
       contractVersion: publication.contractVersion,
       model: parsed.data,
+      media,
     };
   }
 
   return { kind: "missing" };
+}
+
+export type PublicMediaPorts = Readonly<{
+  media: Pick<MediaAssetRepository, "findReadyByIds">;
+  storage: Pick<StoragePort, "createReadUrl">;
+}>;
+
+export async function resolvePublicMedia(
+  publication: PublicPublication,
+  model: InvitationViewModel,
+  ports: PublicMediaPorts,
+): Promise<readonly ResolvedPublicMedia[]> {
+  const ids = model.sections.flatMap(
+    (section) => section.payload.assetIds ?? [],
+  );
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return [];
+
+  try {
+    const readyAssets = await ports.media.findReadyByIds(
+      { tenantId: publication.tenantId, weddingId: publication.weddingId },
+      uniqueIds,
+    );
+    const altTextByAssetId = new Map<string, string | null>();
+    for (const section of model.sections) {
+      const sectionAltTexts = section.payload.assetAltTexts;
+      if (typeof sectionAltTexts !== "object" || sectionAltTexts === null) {
+        continue;
+      }
+      for (const [assetId, value] of Object.entries(sectionAltTexts)) {
+        if (typeof value === "string" || value === null) {
+          altTextByAssetId.set(assetId, value);
+        }
+      }
+    }
+
+    const readyById = new Map(readyAssets.map((asset) => [asset.id, asset]));
+    const resolved: ResolvedPublicMedia[] = [];
+    for (const assetId of uniqueIds) {
+      const asset = readyById.get(assetId);
+      if (asset === undefined) continue;
+      try {
+        const url = await ports.storage.createReadUrl(asset.objectKey, 5 * 60);
+        resolved.push({
+          assetId: asset.id,
+          url,
+          mimeType: asset.mimeType,
+          altText: altTextByAssetId.has(asset.id)
+            ? (altTextByAssetId.get(asset.id) ?? null)
+            : asset.altText,
+        });
+      } catch {
+        // One unavailable object must not break the entire public invitation.
+      }
+    }
+    return resolved;
+  } catch {
+    return [];
+  }
+}
+
+async function resolvePublishedMedia(
+  publication: PublicPublication,
+  model: InvitationViewModel,
+): Promise<readonly ResolvedPublicMedia[]> {
+  const storage = createStoragePortFromEnv(process.env);
+  if (storage === null) return [];
+  return resolvePublicMedia(publication, model, {
+    media: new PrismaMediaAssetRepository(),
+    storage,
+  });
 }
 
 async function findActivePublication(

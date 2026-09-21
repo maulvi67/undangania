@@ -59,8 +59,7 @@ export function nextMediaState(
     return "UPLOADED";
   if (event === "scan" && state === "UPLOADED") return "SCANNING";
   if (event === "process" && state === "SCANNING") return "PROCESSING";
-  if (event === "ready" && (state === "PROCESSING" || state === "UPLOADED"))
-    return "READY";
+  if (event === "ready" && state === "PROCESSING") return "READY";
   if (
     event === "reject" &&
     ["UPLOADED", "SCANNING", "PROCESSING"].includes(state)

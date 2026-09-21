@@ -562,6 +562,40 @@ summary:focus-visible {
   font-size: clamp(1.4rem, 5vw, 2rem);
 }
 
+.gld-availability {
+  display: grid;
+  width: min(100% - 2rem, 40rem);
+  min-height: 32rem;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  margin: var(--space-8) auto;
+  padding: var(--space-12) var(--space-6);
+  color: #26352f;
+  text-align: center;
+  background: #fbf8f1;
+  border: 1px solid #bfae91;
+  box-shadow: 0 18px 45px rgba(38, 53, 47, 0.12);
+}
+
+.gld-availability h1 {
+  max-width: 28rem;
+  margin: 0;
+  color: #26352f;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-weight: 400;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.gld-availability p:not(.gld-kicker) {
+  max-width: 32rem;
+  margin: 0;
+  color: #53645a;
+  line-height: 1.7;
+}
+
 .gld-page__footer {
   max-width: 48rem;
   margin: 0 auto;

@@ -34,7 +34,10 @@ RsvpSubmitted, RsvpChanged.
 guest, event, notification.
 
 ## Security considerations
-rate limit, idempotency, no cross-household data.
+rate limit, idempotency, no cross-household data. Public RSVP writes resolve the
+bearer token together with the current invitation slug, so a token copied from a
+different invitation cannot address this wedding's household. The household,
+tenant, and event scope are still derived server-side.
 
 ## Owning module
 `rsvp` owns the invariant and write model. Other modules integrate through application ports or versioned events.

@@ -176,6 +176,7 @@ export const editorContentSchema = z.object({
     url: z.string().max(2000),
     visible: z.boolean(),
   }),
+  galleryAssetIds: z.array(z.string().min(1).max(200)).max(100).default([]),
   gifts: z.array(editorGiftItemSchema).max(20),
   faqs: z.array(editorFaqItemSchema).max(30),
   sections: z.array(editorSectionConfigSchema).min(1).max(30),
@@ -230,7 +231,7 @@ export type EditorTemplate = Omit<
 };
 
 export const editorSaveCommandSchema = z.object({
-  fixture: z.enum(EDITOR_FIXTURES),
+  fixture: z.enum(EDITOR_FIXTURES).optional(),
   document: editorDocumentSchema,
   baseVersion: z.number().int().nonnegative(),
 });
@@ -264,6 +265,7 @@ const publicationIssueSchema = z.object({
     "SLUG_INVALID",
     "SECTION_REQUIRED",
     "MEDIA_NOT_READY",
+    "MUSIC_URL_INVALID",
   ]),
   section: z.enum(EDITOR_SECTION_IDS),
   field: z.string().optional(),
@@ -310,7 +312,8 @@ export type PublicationIssue = {
     | "MAP_INVALID"
     | "SLUG_INVALID"
     | "SECTION_REQUIRED"
-    | "MEDIA_NOT_READY";
+    | "MEDIA_NOT_READY"
+    | "MUSIC_URL_INVALID";
   section: EditorSectionId;
   field?: string | undefined;
   message: string;
@@ -386,6 +389,23 @@ function previewText(value: string, maxLength: number): string {
   return value.slice(0, maxLength);
 }
 
+function orderedReadyImageIds(content: EditorContent): string[] {
+  const readyImages = content.media.filter(
+    (asset) => asset.state === "READY" && asset.mediaType === "IMAGE",
+  );
+  const readyById = new Map(readyImages.map((asset) => [asset.id, asset]));
+  const ordered = content.galleryAssetIds.filter((id) => readyById.has(id));
+  const included = new Set(ordered);
+  return [
+    ...ordered,
+    ...readyImages.map((asset) => asset.id).filter((id) => !included.has(id)),
+  ];
+}
+
+export function galleryImageIds(content: EditorContent): readonly string[] {
+  return orderedReadyImageIds(content);
+}
+
 function sectionPayload(
   content: EditorContent,
   type: RenderedSectionType,
@@ -396,16 +416,21 @@ function sectionPayload(
   if (type === "story")
     return { title: content.story.title, body: content.story.body };
   if (type === "music")
-    return { url: content.music.url, enabled: content.music.enabled };
+    return {
+      url: content.music.url,
+      enabled: content.music.enabled,
+      visible: content.music.visible,
+    };
   if (type === "gift") return { items: content.gifts };
   if (type === "faq") return { items: content.faqs };
   if (type === "gallery" || type === "cover") {
+    const assetIds = orderedReadyImageIds(content);
+    const assetsById = new Map(content.media.map((asset) => [asset.id, asset]));
     return {
-      assetIds: content.media
-        .filter(
-          (asset) => asset.state === "READY" && asset.mediaType === "IMAGE",
-        )
-        .map((asset) => asset.id),
+      assetIds,
+      assetAltTexts: Object.fromEntries(
+        assetIds.map((id) => [id, assetsById.get(id)?.altText ?? null]),
+      ),
     };
   }
   return {};
@@ -508,6 +533,20 @@ export function publicationReadiness(
     });
   }
 
+  const musicUrl = content.music.url.trim();
+  if (
+    content.music.enabled &&
+    content.music.visible &&
+    (musicUrl === "" || !isValidMapUrl(musicUrl))
+  ) {
+    issues.push({
+      code: "MUSIC_URL_INVALID",
+      section: "music",
+      field: "url",
+      message: "Tautan musik harus berupa alamat web HTTP atau HTTPS.",
+    });
+  }
+
   for (const event of content.events) {
     if (!event.title.trim() || !validLocalDateTime(event.startsAt)) {
       issues.push({
@@ -568,7 +607,10 @@ export function publicationReadiness(
   }
 
   const visibleMedia = content.media.filter(
-    (asset) => asset.state === "REJECTED" && asset.mediaType === "IMAGE",
+    (asset) =>
+      asset.mediaType === "IMAGE" &&
+      asset.state !== "READY" &&
+      asset.state !== "DELETED",
   );
   if (
     visibleMedia.length > 0 &&
@@ -577,7 +619,8 @@ export function publicationReadiness(
     issues.push({
       code: "MEDIA_NOT_READY",
       section: "gallery",
-      message: "Selesaikan atau hapus media yang ditolak sebelum publikasi.",
+      message:
+        "Selesaikan unggahan media atau hapus media yang belum siap sebelum publikasi.",
     });
   }
 

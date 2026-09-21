@@ -2,6 +2,7 @@ import type { AdminDashboard } from "../../lib/admin/contract";
 import { formatAdminTimestamp } from "../../lib/admin/formatters";
 import { MaskedValue } from "./masked-value";
 import { OperationsTable } from "./operations-table";
+import { AdminMutationAction } from "./admin-mutation-action";
 import { SectionState } from "./section-state";
 
 export function AuditAccess({ section }: { section: AdminDashboard["audit"] }) {
@@ -72,9 +73,12 @@ export function AuditAccess({ section }: { section: AdminDashboard["audit"] }) {
               label: "Akses",
               render: (row) => (
                 <div className="admin-cell-action">
-                  <span className="admin-disabled-action">
-                    Reveal / export · perlu permission + reason
-                  </span>
+                  <AdminMutationAction
+                    action="export_audit"
+                    targetId="audit"
+                    label="Export masked"
+                    exportResult
+                  />
                   <span className="ui-visually-hidden">
                     {" "}
                     untuk audit {row.id}

@@ -45,6 +45,10 @@ function client(overrides: Record<string, unknown> = {}) {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       ...((overrides.guest as object) ?? {}),
     },
+    auditEvent: {
+      create: vi.fn().mockResolvedValue({ id: "audit-1" }),
+      ...((overrides.auditEvent as object) ?? {}),
+    },
   };
 }
 
@@ -407,5 +411,97 @@ describe("PrismaGuestRosterRepository.setLinkStatus", () => {
     await expect(
       repository.setLinkStatus(SCOPE, "hh-missing", "DISABLED"),
     ).resolves.toBe(false);
+  });
+});
+
+describe("PrismaGuestRosterRepository.exportRoster", () => {
+  it("exports only scoped households and records non-PII audit metadata", async () => {
+    const c = client({
+      weddingEvent: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: "e-1", title: "Akad Nikah" }]),
+      },
+      guestHousehold: {
+        findMany: vi.fn().mockResolvedValue([householdRow()]),
+      },
+    });
+
+    const result = await new PrismaGuestRosterRepository(c).exportRoster(
+      SCOPE,
+      {
+        householdIds: ["hh-1"],
+        actorId: "user-1",
+        correlationId: "corr-1",
+      },
+    );
+
+    expect(result).toEqual({
+      rows: [
+        {
+          householdName: "Keluarga Rahman",
+          guestName: "Ahmad Rahman",
+          category: "ADULT",
+          maximumPax: 4,
+          eventNames: ["Akad Nikah"],
+          linkStatus: "ACTIVE",
+        },
+        {
+          householdName: "Keluarga Rahman",
+          guestName: "Siti Rahman",
+          category: "ADULT",
+          maximumPax: 4,
+          eventNames: ["Akad Nikah"],
+          linkStatus: "ACTIVE",
+        },
+      ],
+      householdCount: 1,
+      guestCount: 2,
+    });
+
+    expect(c.guestHousehold.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["hh-1"] },
+        tenantId: "t-1",
+        weddingId: "w-1",
+        wedding: { tenantId: "t-1" },
+      },
+      orderBy: [{ displayName: "asc" }, { id: "asc" }],
+      select: expect.anything(),
+    });
+    expect(c.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: "t-1",
+        userId: "user-1",
+        actorType: "USER",
+        action: "GUEST_ROSTER_EXPORTED",
+        targetType: "GuestRoster",
+        targetId: "w-1",
+        metadata: { householdCount: 1, guestCount: 2, selectedOnly: true },
+        correlationId: "corr-1",
+      },
+    });
+    expect(JSON.stringify(c.auditEvent.create.mock.calls)).not.toContain(
+      "Ahmad Rahman",
+    );
+  });
+
+  it("fails closed when a selected household is outside the tenant wedding", async () => {
+    const auditCreate = vi.fn().mockResolvedValue({ id: "audit-1" });
+    const c = client({
+      guestHousehold: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      auditEvent: { create: auditCreate },
+    });
+
+    await expect(
+      new PrismaGuestRosterRepository(c).exportRoster(SCOPE, {
+        householdIds: ["hh-other"],
+        actorId: "user-1",
+        correlationId: "corr-2",
+      }),
+    ).resolves.toBe(null);
+    expect(auditCreate).not.toHaveBeenCalled();
   });
 });

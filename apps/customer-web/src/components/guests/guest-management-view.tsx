@@ -134,7 +134,11 @@ export function GuestManagementView({
                   ? "Ekspor tersedia"
                   : "Ekspor tidak tersedia"}
               </Badge>
-              <GuestBulkActions selectedCount={selectedCount} />
+              <GuestBulkActions
+                selectedCount={selectedCount}
+                selectedIds={[...selectedIds]}
+                canExport={data.capabilities.canExport}
+              />
             </div>
           </div>
 
@@ -211,10 +215,7 @@ export function GuestManagementView({
         </section>
       )}
 
-      <GuestExportAction
-        canExport={data.capabilities.canExport}
-        initialProcessing={query.fixture === "export-processing"}
-      />
+      <GuestExportAction canExport={data.capabilities.canExport} />
     </div>
   );
 }

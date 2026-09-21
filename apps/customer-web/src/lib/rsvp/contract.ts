@@ -37,7 +37,9 @@ export type RsvpSubmissionErrorCode =
   | "SUBMISSION_FAILED"
   | "STALE_VERSION"
   | "RATE_LIMITED"
-  | "IDEMPOTENCY_CONFLICT";
+  | "IDEMPOTENCY_CONFLICT"
+  | "PAUSED"
+  | "EXPIRED";
 
 export type RsvpSubmissionError = Readonly<{
   kind: "error";
@@ -45,6 +47,7 @@ export type RsvpSubmissionError = Readonly<{
   message: string;
   eventId?: string;
   preserveInput: true;
+  retryAfterSeconds?: number;
 }>;
 
 export type RsvpSubmissionResult = RsvpSubmissionSuccess | RsvpSubmissionError;

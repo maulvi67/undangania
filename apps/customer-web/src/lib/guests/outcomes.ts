@@ -52,6 +52,20 @@ export type GuestImportOutcome =
   | Readonly<{ kind: "forbidden" }>
   | Readonly<{ kind: "unavailable" }>;
 
+export type GuestExportOutcome =
+  | Readonly<{
+      kind: "ok";
+      filename: string;
+      contentType: "text/csv;charset=utf-8";
+      csv: string;
+      householdCount: number;
+      guestCount: number;
+    }>
+  | Readonly<{ kind: "invalid"; errors: readonly string[] }>
+  | Readonly<{ kind: "forbidden" }>
+  | Readonly<{ kind: "not-found" }>
+  | Readonly<{ kind: "unavailable" }>;
+
 export type GuestFormOptionsOutcome =
   | Readonly<{ kind: "ok"; events: readonly GuestEvent[] }>
   | Readonly<{ kind: "forbidden" }>

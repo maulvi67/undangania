@@ -6,6 +6,7 @@ import {
 } from "./guest-access";
 
 const VALID_TOKEN = "a".repeat(43);
+const INVITATION_SLUG = "rani-bima-1a2b3c4d";
 
 function client(findFirst: ReturnType<typeof vi.fn>) {
   return { guestHousehold: { findFirst } };
@@ -22,7 +23,11 @@ function row(overrides: Record<string, unknown> = {}) {
     wedding: {
       timezone: "Asia/Jakarta",
       events: [],
-      invitation: { slug: "rani-bima-1a2b3c4d", publications: [] },
+      invitation: {
+        slug: "rani-bima-1a2b3c4d",
+        status: "PUBLISHED",
+        publications: [],
+      },
     },
     rsvps: [],
     ...overrides,
@@ -73,6 +78,7 @@ describe("PrismaGuestAccessRepository", () => {
           ],
           invitation: {
             slug: "rani-bima-1a2b3c4d",
+            status: "PUBLISHED",
             publications: [{ id: "p1" }],
           },
         },
@@ -88,7 +94,9 @@ describe("PrismaGuestAccessRepository", () => {
     );
     const repository = new PrismaGuestAccessRepository(client(findFirst));
 
-    await expect(repository.resolveByToken(VALID_TOKEN)).resolves.toEqual({
+    await expect(
+      repository.resolveByToken(VALID_TOKEN, INVITATION_SLUG),
+    ).resolves.toEqual({
       householdId: "household-1",
       tenantId: "tenant-1",
       weddingId: "wedding-1",
@@ -97,6 +105,7 @@ describe("PrismaGuestAccessRepository", () => {
       status: "ACTIVE",
       timezone: "Asia/Jakarta",
       slug: "rani-bima-1a2b3c4d",
+      invitationStatus: "PUBLISHED",
       published: true,
       events: [
         {
@@ -122,7 +131,10 @@ describe("PrismaGuestAccessRepository", () => {
     // The raw token must never reach the query; only its hash does. Anything
     // else would leave a usable credential in a query log.
     const args = findFirst.mock.calls[0]?.[0] as { where: unknown };
-    expect(args.where).toEqual({ tokenHash: hashToken(VALID_TOKEN) });
+    expect(args.where).toEqual({
+      tokenHash: hashToken(VALID_TOKEN),
+      wedding: { invitation: { slug: INVITATION_SLUG } },
+    });
     expect(JSON.stringify(args.where)).not.toContain(VALID_TOKEN);
   });
 
@@ -136,7 +148,9 @@ describe("PrismaGuestAccessRepository", () => {
       "../../etc/passwd",
       "a".repeat(600),
     ]) {
-      await expect(repository.resolveByToken(token)).resolves.toBe(null);
+      await expect(
+        repository.resolveByToken(token, INVITATION_SLUG),
+      ).resolves.toBe(null);
     }
     expect(findFirst).not.toHaveBeenCalled();
   });
@@ -146,7 +160,37 @@ describe("PrismaGuestAccessRepository", () => {
       client(vi.fn().mockResolvedValue(null)),
     );
 
-    await expect(repository.resolveByToken(VALID_TOKEN)).resolves.toBe(null);
+    await expect(
+      repository.resolveByToken(VALID_TOKEN, INVITATION_SLUG),
+    ).resolves.toBe(null);
+  });
+
+  it("binds a token lookup to the current invitation slug", async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const repository = new PrismaGuestAccessRepository(client(findFirst));
+
+    await expect(
+      repository.resolveByToken(VALID_TOKEN, "other-invitation"),
+    ).resolves.toBe(null);
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          tokenHash: hashToken(VALID_TOKEN),
+          wedding: { invitation: { slug: "other-invitation" } },
+        },
+      }),
+    );
+  });
+
+  it("rejects an invalid invitation slug without querying", async () => {
+    const findFirst = vi.fn();
+    const repository = new PrismaGuestAccessRepository(client(findFirst));
+
+    await expect(
+      repository.resolveByToken(VALID_TOKEN, "../other-invitation"),
+    ).resolves.toBe(null);
+    expect(findFirst).not.toHaveBeenCalled();
   });
 
   it("reports an unpublished invitation without failing the lookup", async () => {
@@ -157,14 +201,21 @@ describe("PrismaGuestAccessRepository", () => {
             wedding: {
               timezone: "Asia/Makassar",
               events: [],
-              invitation: { slug: "rani-bima-1a2b3c4d", publications: [] },
+              invitation: {
+                slug: "rani-bima-1a2b3c4d",
+                status: "DRAFT",
+                publications: [],
+              },
             },
           }),
         ),
       ),
     );
 
-    const resolved = await repository.resolveByToken(VALID_TOKEN);
+    const resolved = await repository.resolveByToken(
+      VALID_TOKEN,
+      INVITATION_SLUG,
+    );
     expect(resolved?.published).toBe(false);
     expect(resolved?.timezone).toBe("Asia/Makassar");
   });
@@ -184,7 +235,10 @@ describe("PrismaGuestAccessRepository", () => {
       ),
     );
 
-    const resolved = await repository.resolveByToken(VALID_TOKEN);
+    const resolved = await repository.resolveByToken(
+      VALID_TOKEN,
+      INVITATION_SLUG,
+    );
     expect(resolved?.slug).toBe(null);
     expect(resolved?.published).toBe(false);
   });
@@ -194,7 +248,10 @@ describe("PrismaGuestAccessRepository", () => {
       client(vi.fn().mockResolvedValue(row())),
     );
 
-    const resolved = await repository.resolveByToken(VALID_TOKEN);
+    const resolved = await repository.resolveByToken(
+      VALID_TOKEN,
+      INVITATION_SLUG,
+    );
     const serialized = JSON.stringify(resolved);
     for (const forbidden of [
       "tokenHash",

@@ -21,6 +21,7 @@ const CONTENT_KEYS: ReadonlyArray<{ key: EditorContentKey; label: string }> = [
   { key: "faqs", label: "FAQ" },
   { key: "sections", label: "Tampilan dan urutan bagian" },
   { key: "media", label: "Media" },
+  { key: "galleryAssetIds", label: "Urutan galeri" },
   { key: "settings", label: "Pengaturan undangan" },
 ];
 

@@ -53,6 +53,7 @@ function errorCodeFor(
  */
 export async function submitRsvpAction(input: {
   token: string;
+  invitationSlug: string;
   idempotencyKey: string;
   updates: readonly {
     eventId: string;
@@ -116,7 +117,10 @@ export async function submitRsvpAction(input: {
   }
 
   try {
-    const household = await resolveHouseholdByToken(input.token);
+    const household = await resolveHouseholdByToken(
+      input.token,
+      input.invitationSlug,
+    );
     if (household === null) {
       return {
         kind: "error",
@@ -133,14 +137,19 @@ export async function submitRsvpAction(input: {
     const limit = await new PrismaSubmissionRateLimiter().checkRsvp(
       household.householdId,
       now,
+      undefined,
+      input.idempotencyKey,
     );
     if (!limit.allowed) {
       return {
         kind: "error",
         code: "RATE_LIMITED",
-        message:
+        message: rateLimitMessage(
           "Terlalu banyak percobaan. Silakan tunggu sebentar sebelum mencoba lagi.",
+          limit.retryAfterSeconds,
+        ),
         preserveInput: true,
+        retryAfterSeconds: limit.retryAfterSeconds,
       };
     }
 
@@ -176,6 +185,28 @@ export async function submitRsvpAction(input: {
         };
       case "invalid":
         return errorCodeFor(result);
+      case "idempotency-conflict":
+        return {
+          kind: "error",
+          code: "IDEMPOTENCY_CONFLICT",
+          message: "Permintaan berbeda menggunakan kunci pengiriman yang sama.",
+          preserveInput: true,
+        };
+      case "paused":
+        return {
+          kind: "error",
+          code: "PAUSED",
+          message: "Konfirmasi sedang dijeda. Coba lagi nanti.",
+          preserveInput: true,
+        };
+      case "expired":
+        return {
+          kind: "error",
+          code: "EXPIRED",
+          message:
+            "Undangan ini sudah berakhir sehingga jawaban tidak dapat diubah.",
+          preserveInput: true,
+        };
       case "not-found":
         return {
           kind: "error",
@@ -197,6 +228,7 @@ export async function submitRsvpAction(input: {
 
 export async function submitGuestbookAction(input: {
   token: string;
+  invitationSlug: string;
   message: string;
   idempotencyKey: string;
 }): Promise<GuestbookSubmissionResult> {
@@ -222,7 +254,10 @@ export async function submitGuestbookAction(input: {
   }
 
   try {
-    const household = await resolveHouseholdByToken(input.token);
+    const household = await resolveHouseholdByToken(
+      input.token,
+      input.invitationSlug,
+    );
     if (household === null) {
       return {
         kind: "error",
@@ -237,14 +272,19 @@ export async function submitGuestbookAction(input: {
     const limit = await new PrismaSubmissionRateLimiter().checkGuestbook(
       household.householdId,
       now,
+      undefined,
+      input.idempotencyKey,
     );
     if (!limit.allowed) {
       return {
         kind: "error",
         code: "RATE_LIMITED",
-        message:
+        message: rateLimitMessage(
           "Terlalu banyak percobaan. Silakan tunggu sebentar sebelum mengirim lagi.",
+          limit.retryAfterSeconds,
+        ),
         preserveInput: true,
+        retryAfterSeconds: limit.retryAfterSeconds,
       };
     }
 
@@ -276,6 +316,28 @@ export async function submitGuestbookAction(input: {
             "Ucapan belum dapat diterima. Silakan gunakan kata-kata yang lebih sederhana.",
           preserveInput: true,
         };
+      case "idempotency-conflict":
+        return {
+          kind: "error",
+          code: "IDEMPOTENCY_CONFLICT",
+          message: "Permintaan berbeda menggunakan kunci pengiriman yang sama.",
+          preserveInput: true,
+        };
+      case "paused":
+        return {
+          kind: "error",
+          code: "PAUSED",
+          message: "Buku tamu sedang dijeda. Coba lagi nanti.",
+          preserveInput: true,
+        };
+      case "expired":
+        return {
+          kind: "error",
+          code: "EXPIRED",
+          message:
+            "Undangan ini sudah berakhir sehingga ucapan tidak dapat dikirim.",
+          preserveInput: true,
+        };
       case "not-found":
         return {
           kind: "error",
@@ -295,6 +357,12 @@ export async function submitGuestbookAction(input: {
   }
 }
 
+function rateLimitMessage(prefix: string, retryAfterSeconds: number): string {
+  if (retryAfterSeconds <= 0) return prefix;
+  const minutes = Math.ceil(retryAfterSeconds / 60);
+  return `${prefix} Perkiraan waktu tunggu: ${minutes} menit.`;
+}
+
 /**
  * Resolves a personalized-link token to its household.
  *
@@ -304,10 +372,12 @@ export async function submitGuestbookAction(input: {
  */
 async function resolveHouseholdByToken(
   token: string,
+  invitationSlug: string,
 ): Promise<{ householdId: string } | null> {
   const { PrismaGuestAccessRepository } = await import("@wedding/database");
   const resolved = await new PrismaGuestAccessRepository().resolveByToken(
     token,
+    invitationSlug,
   );
   return resolved === null ? null : { householdId: resolved.householdId };
 }

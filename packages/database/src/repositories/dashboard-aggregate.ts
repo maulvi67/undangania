@@ -36,6 +36,7 @@ type WeddingRow = Prisma.WeddingGetPayload<{ select: typeof weddingSelect }>;
 
 const invitationSelect = {
   id: true,
+  slug: true,
   status: true,
   template: { select: { name: true } },
   publications: {
@@ -145,6 +146,7 @@ export type DashboardWorkspaceDto = Readonly<{
 
 export type DashboardInvitationDto = Readonly<{
   status: string;
+  slug: string;
   templateName: string | null;
   publishedAt: Date | null;
 }>;
@@ -333,6 +335,7 @@ export class PrismaDashboardRepository {
           ? null
           : {
               status: invitation.status,
+              slug: invitation.slug,
               templateName: invitation.template?.name ?? null,
               publishedAt: invitation.publications[0]?.publishedAt ?? null,
             },

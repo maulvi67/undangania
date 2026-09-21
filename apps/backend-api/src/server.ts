@@ -21,6 +21,17 @@ import type {
   TenantMembershipRepository,
 } from "@wedding/database";
 import {
+  ANALYTICS_HASH_SECRET_MIN_LENGTH,
+  AnalyticsReportLimitError,
+  ingestAnalyticsEvent,
+  parseAnalyticsReportRange,
+  reportAnalyticsEvents,
+  type AnalyticsEventRepository,
+  type AnalyticsRateLimitDecision,
+  type AnalyticsRateLimiter,
+  type AnalyticsRateLimitOperation,
+} from "@wedding/analytics";
+import {
   MidtransNotificationPayloadError,
   MidtransNotificationSignatureError,
   processQrisNotification,
@@ -33,10 +44,16 @@ import { z } from "zod";
 
 export const DEFAULT_PORT = 4000;
 export const MAX_WEBHOOK_BODY_BYTES = 64 * 1024;
+export const MAX_ANALYTICS_BODY_BYTES = 16 * 1024;
 
 const SESSION_COOKIE_NAME = "ws_session";
 const CORRELATION_HEADER = "x-correlation-id";
 const ALLOWED_GUEST_ROLES = [
+  "OWNER",
+  "EDITOR",
+  "VIEWER",
+] as const satisfies readonly MemberRole[];
+const ALLOWED_ANALYTICS_ROLES = [
   "OWNER",
   "EDITOR",
   "VIEWER",
@@ -49,10 +66,19 @@ type AuthRepositories = Readonly<{
   households: GuestHouseholdRepository;
 }>;
 
+type AnalyticsAuthRepositories = Readonly<{
+  sessions: SessionRepository;
+  memberships: TenantMembershipRepository;
+}>;
+
 export type BackendServerOptions = Readonly<{
   sessionRepository?: SessionRepository;
   membershipRepository?: TenantMembershipRepository;
   guestHouseholdRepository?: GuestHouseholdRepository;
+  analyticsRepository?: AnalyticsEventRepository;
+  analyticsHashSecret?: string;
+  analyticsRateLimiter?: AnalyticsRateLimiter;
+  maxAnalyticsBodyBytes?: number;
   qrisTransaction?: QrisNotificationTransactionPort;
   /** Alias kept for callers that name the port after the transaction adapter. */
   qrisTransactionAdapter?: QrisNotificationTransactionPort;
@@ -74,6 +100,7 @@ class HttpError extends Error {
     public readonly code: string,
     message: string,
     public readonly allow: string | undefined = undefined,
+    public readonly retryAfterSeconds: number | undefined = undefined,
   ) {
     super(message);
     this.name = "HttpError";
@@ -104,6 +131,9 @@ const DEFAULT_MESSAGES = {
   unavailable: "The service is temporarily unavailable.",
   internal: "The request could not be completed.",
   paymentVerification: "The payment notification could not be verified.",
+  analyticsUnavailable: "Analytics is temporarily unavailable.",
+  analyticsTooLarge: "The analytics report is too large for this range.",
+  rateLimited: "Too many requests. Please try again later.",
 } as const;
 
 let databaseModulePromise: Promise<typeof import("@wedding/database")> | null =
@@ -144,8 +174,117 @@ async function resolveAuthRepositories(
   };
 }
 
+async function resolveAnalyticsAuthRepositories(
+  options: BackendServerOptions,
+): Promise<AnalyticsAuthRepositories> {
+  if (
+    options.sessionRepository !== undefined &&
+    options.membershipRepository !== undefined
+  ) {
+    return {
+      sessions: options.sessionRepository,
+      memberships: options.membershipRepository,
+    };
+  }
+
+  const database = await databaseModule();
+  return {
+    sessions:
+      options.sessionRepository ?? new database.PrismaSessionRepository(),
+    memberships:
+      options.membershipRepository ??
+      new database.PrismaTenantMembershipRepository(),
+  };
+}
+
+async function resolveAnalyticsRepository(
+  options: BackendServerOptions,
+): Promise<AnalyticsEventRepository> {
+  if (options.analyticsRepository !== undefined) {
+    return options.analyticsRepository;
+  }
+  const database = await databaseModule();
+  return new database.PrismaAnalyticsRepository();
+}
+
+async function enforceAnalyticsRateLimit(
+  auth: Readonly<{ tenantId: string; actorId: string }>,
+  operation: AnalyticsRateLimitOperation,
+  options: BackendServerOptions,
+): Promise<AnalyticsRateLimitDecision> {
+  const limiter = options.analyticsRateLimiter;
+  if (limiter === undefined) {
+    throw new HttpError(
+      503,
+      "PROVIDER_UNAVAILABLE",
+      DEFAULT_MESSAGES.analyticsUnavailable,
+    );
+  }
+
+  try {
+    const decision = await limiter.consume({
+      scope: { tenantId: auth.tenantId, actorId: auth.actorId },
+      operation,
+      now: requestNow(options),
+    });
+    if (
+      !Number.isSafeInteger(decision.remaining) ||
+      decision.remaining < 0 ||
+      !Number.isSafeInteger(decision.retryAfterSeconds) ||
+      decision.retryAfterSeconds < 0
+    ) {
+      throw new Error("Invalid analytics rate-limit decision");
+    }
+    if (!decision.allowed) {
+      throw new HttpError(
+        429,
+        "RATE_LIMITED",
+        DEFAULT_MESSAGES.rateLimited,
+        undefined,
+        decision.retryAfterSeconds,
+      );
+    }
+    return decision;
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    throw new HttpError(
+      503,
+      "PROVIDER_UNAVAILABLE",
+      DEFAULT_MESSAGES.analyticsUnavailable,
+    );
+  }
+}
+
+function analyticsHashSecret(options: BackendServerOptions): string {
+  const secret =
+    options.analyticsHashSecret ?? process.env.ANALYTICS_HASH_SECRET;
+  if (
+    secret === undefined ||
+    secret.length < ANALYTICS_HASH_SECRET_MIN_LENGTH
+  ) {
+    throw new HttpError(
+      503,
+      "PROVIDER_UNAVAILABLE",
+      DEFAULT_MESSAGES.analyticsUnavailable,
+    );
+  }
+  return secret;
+}
+
 function requestNow(options: BackendServerOptions): Date {
   return options.now?.() ?? new Date();
+}
+
+function requiredSingleQueryParameter(url: URL, name: string): string {
+  const values = url.searchParams.getAll(name);
+  if (
+    values.length !== 1 ||
+    values[0] === undefined ||
+    values[0].length === 0
+  ) {
+    throw new HttpError(400, "INVALID_INPUT", DEFAULT_MESSAGES.badRequest);
+  }
+  return values[0];
 }
 
 function correlationIdFromRequest(request: IncomingMessage): string {
@@ -179,6 +318,9 @@ function sendError(
   error: HttpError,
   correlationId: string,
 ): void {
+  if (error.retryAfterSeconds !== undefined) {
+    response.setHeader("retry-after", String(error.retryAfterSeconds));
+  }
   sendJson(
     response,
     error.status,
@@ -308,6 +450,62 @@ export function readRawBody(
   });
 }
 
+async function authorizeAnalyticsRequest(
+  request: IncomingMessage,
+  url: URL,
+  options: BackendServerOptions,
+): Promise<{ actorId: string; sessionId: string; tenantId: string }> {
+  const token = sessionTokenFromRequest(request);
+  if (token === null) {
+    throw new HttpError(401, "AUTH_REQUIRED", DEFAULT_MESSAGES.unauthorized);
+  }
+
+  const tenantId = requiredSingleQueryParameter(url, "tenantId");
+  if (!RESOURCE_ID_SCHEMA.safeParse(tenantId).success) {
+    throw new HttpError(400, "INVALID_INPUT", DEFAULT_MESSAGES.badRequest);
+  }
+
+  const repositories = await resolveAnalyticsAuthRepositories(options);
+  const session = await databaseCall(() =>
+    repositories.sessions.findActiveByToken(token, requestNow(options)),
+  );
+  if (session === null) {
+    throw new HttpError(401, "AUTH_REQUIRED", DEFAULT_MESSAGES.unauthorized);
+  }
+
+  const memberships = await databaseCall(() =>
+    repositories.memberships.resolveForUser({
+      userId: session.userId,
+      tenantId,
+    }),
+  );
+  const membership = memberships.find(
+    (candidate) => candidate.status === "ACTIVE",
+  );
+  if (membership === undefined) {
+    throw new HttpError(404, "RESOURCE_NOT_FOUND", DEFAULT_MESSAGES.notFound);
+  }
+
+  const authContext = createRequestAuthContext({
+    actorId: session.userId,
+    sessionId: session.id,
+    tenantId: membership.tenantId,
+    roles: [membership.role],
+  });
+  try {
+    const authorized = requireAnyRole(authContext, ALLOWED_ANALYTICS_ROLES);
+    requireTenant(authorized, tenantId);
+  } catch {
+    throw new HttpError(403, "FORBIDDEN", DEFAULT_MESSAGES.forbidden);
+  }
+
+  return {
+    actorId: session.userId,
+    sessionId: session.id,
+    tenantId: membership.tenantId,
+  };
+}
+
 function sessionTokenFromRequest(request: IncomingMessage): string | null {
   const header = request.headers.cookie;
   if (header === undefined) return null;
@@ -335,6 +533,22 @@ async function databaseCall<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation();
   } catch {
+    throw new DatabaseUnavailableError();
+  }
+}
+
+async function analyticsDatabaseCall<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (
+      error instanceof HttpError ||
+      error instanceof AnalyticsReportLimitError
+    ) {
+      throw error;
+    }
     throw new DatabaseUnavailableError();
   }
 }
@@ -408,6 +622,86 @@ function safeGuestHouseholdDto(household: GuestHouseholdDto) {
     createdAt: household.createdAt.toISOString(),
     updatedAt: household.updatedAt.toISOString(),
   };
+}
+
+async function handleAnalytics(
+  request: IncomingMessage,
+  response: ServerResponse,
+  url: URL,
+  correlationId: string,
+  options: BackendServerOptions,
+): Promise<void> {
+  const auth = await authorizeAnalyticsRequest(request, url, options);
+
+  if (url.pathname === "/v1/analytics/events") {
+    if (request.method !== "POST") throw methodNotAllowed("POST");
+    await enforceAnalyticsRateLimit(auth, "ingest", options);
+    const repository = await resolveAnalyticsRepository(options);
+    const rawBody = await readRawBody(
+      request,
+      options.maxAnalyticsBodyBytes ?? MAX_ANALYTICS_BODY_BYTES,
+    );
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody) as unknown;
+    } catch {
+      throw new HttpError(400, "INVALID_INPUT", DEFAULT_MESSAGES.badRequest);
+    }
+
+    const result = await analyticsDatabaseCall(() =>
+      ingestAnalyticsEvent(
+        repository,
+        {
+          tenantId: auth.tenantId,
+          actorId: auth.actorId,
+          hashSecret: analyticsHashSecret(options),
+        },
+        body,
+        requestNow(options),
+      ),
+    );
+    if (result.kind === "invalid") {
+      throw new HttpError(400, "INVALID_INPUT", DEFAULT_MESSAGES.badRequest);
+    }
+    if (result.kind === "idempotency-conflict") {
+      throw new HttpError(
+        409,
+        "IDEMPOTENCY_CONFLICT",
+        DEFAULT_MESSAGES.badRequest,
+      );
+    }
+
+    sendJson(
+      response,
+      result.kind === "accepted" ? 202 : 200,
+      { data: { eventId: result.eventId, status: result.kind } },
+      correlationId,
+    );
+    return;
+  }
+
+  if (url.pathname === "/v1/analytics/report") {
+    if (request.method !== "GET") throw methodNotAllowed("GET");
+    await enforceAnalyticsRateLimit(auth, "report", options);
+    const repository = await resolveAnalyticsRepository(options);
+    const from = requiredSingleQueryParameter(url, "from");
+    const to = requiredSingleQueryParameter(url, "to");
+    const parsedRange = parseAnalyticsReportRange({ from, to });
+    if (!parsedRange.ok) {
+      throw new HttpError(400, "INVALID_INPUT", DEFAULT_MESSAGES.badRequest);
+    }
+    const report = await analyticsDatabaseCall(() =>
+      reportAnalyticsEvents(
+        repository,
+        { tenantId: auth.tenantId },
+        parsedRange.value,
+      ),
+    );
+    sendJson(response, 200, { data: report }, correlationId);
+    return;
+  }
+
+  throw new HttpError(404, "RESOURCE_NOT_FOUND", DEFAULT_MESSAGES.notFound);
 }
 
 async function handleGuestHouseholds(
@@ -589,6 +883,14 @@ async function handleRequest(
     }
 
     if (
+      url.pathname === "/v1/analytics/events" ||
+      url.pathname === "/v1/analytics/report"
+    ) {
+      await handleAnalytics(request, response, url, correlationId, options);
+      return;
+    }
+
+    if (
       url.pathname === "/v1/guest-households" ||
       url.pathname.startsWith("/v1/guest-households/")
     ) {
@@ -607,7 +909,13 @@ async function handleRequest(
     const httpError =
       url.pathname === "/v1/webhooks/midtrans-qris"
         ? webhookErrorToHttpError(error)
-        : toHttpError(error);
+        : error instanceof AnalyticsReportLimitError
+          ? new HttpError(
+              422,
+              "REPORT_TOO_LARGE",
+              DEFAULT_MESSAGES.analyticsTooLarge,
+            )
+          : toHttpError(error);
     sendError(response, httpError, correlationId);
   }
 }

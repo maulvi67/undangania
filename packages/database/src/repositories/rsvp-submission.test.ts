@@ -14,6 +14,12 @@ const HOUSEHOLD = {
   weddingId: "w-1",
   maximumPax: 4,
   status: "ACTIVE",
+  wedding: {
+    invitation: {
+      status: "PUBLISHED",
+      publications: [{ id: "p-1" }],
+    },
+  },
 };
 
 function rsvpRow(overrides: Record<string, unknown> = {}) {
@@ -240,7 +246,22 @@ describe("rsvp submission", () => {
 
   it("treats a replayed idempotency key as a no-op", async () => {
     const c = client({
-      outboxEvent: { findUnique: vi.fn().mockResolvedValue({ id: "key-1" }) },
+      outboxEvent: {
+              findUnique: vi.fn().mockResolvedValue({
+                id: "key-1",
+                aggregateId: "hh-1",
+                payload: {
+                  answers: [
+                    {
+                      eventId: "e-1",
+                      response: "ATTENDING",
+                      pax: 2,
+                      expectedVersion: null,
+                    },
+                  ],
+                },
+              }),
+            },
       rsvp: {
         findMany: vi
           .fn()
@@ -258,6 +279,90 @@ describe("rsvp submission", () => {
     expect(c.outboxEvent.create).not.toHaveBeenCalled();
     expect(c.rsvp.create).not.toHaveBeenCalled();
     expect(c.rsvpHistory.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a conflicting replay instead of returning unrelated answers", async () => {
+    const c = client({
+      outboxEvent: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "key-1",
+          aggregateId: "hh-1",
+          payload: {
+            answers: [
+              {
+                eventId: "e-1",
+                response: "DECLINED",
+                pax: 0,
+                expectedVersion: null,
+              },
+            ],
+          },
+        }),
+      },
+    });
+
+    await expect(repository.submit(c, SUBMIT)).resolves.toEqual({
+      kind: "idempotency-conflict",
+    });
+    expect(c.rsvp.findMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a replay key owned by another household", async () => {
+    const c = client({
+      outboxEvent: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "key-1",
+          aggregateId: "hh-other",
+          payload: {
+            answers: [
+              {
+                eventId: "e-1",
+                response: "ATTENDING",
+                pax: 2,
+                expectedVersion: null,
+              },
+            ],
+          },
+        }),
+      },
+    });
+
+    await expect(repository.submit(c, SUBMIT)).resolves.toEqual({
+      kind: "idempotency-conflict",
+    });
+    expect(c.rsvp.findMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses a paused invitation", async () => {
+    const c = client({
+      guestHousehold: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...HOUSEHOLD,
+          wedding: {
+            invitation: { status: "PAUSED", publications: [{ id: "p-1" }] },
+          },
+        }),
+      },
+    });
+
+    await expect(repository.submit(c, SUBMIT)).resolves.toEqual({ kind: "paused" });
+    expect(c.rsvp.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses an expired invitation", async () => {
+    const c = client({
+      guestHousehold: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...HOUSEHOLD,
+          wedding: {
+            invitation: { status: "EXPIRED", publications: [{ id: "p-1" }] },
+          },
+        }),
+      },
+    });
+
+    await expect(repository.submit(c, SUBMIT)).resolves.toEqual({ kind: "expired" });
+    expect(c.rsvp.create).not.toHaveBeenCalled();
   });
 
   it("reports a stale version when the client expects none but a row exists", async () => {
@@ -340,7 +445,10 @@ describe("rsvp submission", () => {
       guestHousehold: {
         findFirst: vi
           .fn()
-          .mockResolvedValue({ ...HOUSEHOLD, status: "DISABLED" }),
+          .mockResolvedValue({
+                      ...HOUSEHOLD,
+                      status: "DISABLED",
+                    }),
       },
     });
 
@@ -375,7 +483,10 @@ describe("rsvp submission", () => {
   it("re-reads the allowance instead of trusting the client", async () => {
     const c = client({
       guestHousehold: {
-        findFirst: vi.fn().mockResolvedValue({ ...HOUSEHOLD, maximumPax: 1 }),
+        findFirst: vi.fn().mockResolvedValue({
+                  ...HOUSEHOLD,
+                  maximumPax: 1,
+                }),
       },
     });
 

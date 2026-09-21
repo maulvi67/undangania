@@ -3,6 +3,7 @@ import {
   filterGuestHouseholds,
   guestListItemSchema,
   parseGuestCsv,
+  serializeGuestRosterCsv,
   parseGuestQuery,
   type GuestHouseholdListItem,
 } from "./contract";
@@ -18,6 +19,44 @@ const household: GuestHouseholdListItem = {
   linkStatus: "ACTIVE",
   updatedAt: "2026-09-11T08:00:00.000Z",
 };
+
+describe("guest export contract", () => {
+  it("serializes deterministic CSV and neutralizes spreadsheet formulas", () => {
+    const csv = serializeGuestRosterCsv([
+      {
+        householdName: 'Keluarga "A"',
+        guestName: "=2+2",
+        category: "ADULT",
+        maximumPax: 2,
+        eventNames: ["Akad, Nikah", "Resepsi"],
+        linkStatus: "ACTIVE",
+      },
+      {
+        householdName: "Normal",
+        guestName: "Budi\nSantoso",
+        category: "CHILD",
+        maximumPax: 4,
+        eventNames: ["Resepsi"],
+        linkStatus: "DISABLED",
+      },
+    ]);
+
+    expect(csv).toBe(
+      [
+        "nama_rumah_tangga,nama_tamu,kategori_tamu,maksimal_pax,akses_acara,status_tautan",
+        '"Keluarga ""A""","\'=2+2","ADULT","2","Akad, Nikah|Resepsi","ACTIVE"',
+        '"Normal","Budi\nSantoso","CHILD","4","Resepsi","DISABLED"',
+        "",
+      ].join("\r\n"),
+    );
+  });
+
+  it("returns a header-only CSV for an empty roster", () => {
+    expect(serializeGuestRosterCsv([])).toBe(
+      "nama_rumah_tangga,nama_tamu,kategori_tamu,maksimal_pax,akses_acara,status_tautan\r\n",
+    );
+  });
+});
 
 describe("guest list contract", () => {
   it("parses safe defaults and filters by tenant-owned list fields", () => {

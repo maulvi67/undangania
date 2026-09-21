@@ -1,11 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { PrismaGuestRosterRepository } from "@wedding/database";
 import { hasAnyRole } from "@wedding/application";
 import {
   GUEST_READ_ROLES,
   GUEST_IMPORT_MAX_ROWS,
   GUEST_WRITE_ROLES,
+  type GuestExportOutcome,
   type GuestFormOptionsOutcome,
   type GuestImportOutcome,
   type GuestLinkOutcome,
@@ -13,9 +15,11 @@ import {
 } from "./outcomes";
 import { guestRequestScope } from "./request";
 import {
+  guestExportInputSchema,
   guestHouseholdCreateSchema,
   guestHouseholdUpdateSchema,
   guestImportRowsSchema,
+  serializeGuestRosterCsv,
 } from "./contract";
 
 /**
@@ -36,7 +40,12 @@ import {
  */
 
 async function rosterScope(): Promise<
-  | Readonly<{ kind: "ok"; tenantId: string; weddingId: string }>
+  | Readonly<{
+      kind: "ok";
+      tenantId: string;
+      weddingId: string;
+      actorId: string;
+    }>
   | Readonly<{ kind: "forbidden" }>
 > {
   const { request } = await guestRequestScope();
@@ -54,6 +63,7 @@ async function rosterScope(): Promise<
     kind: "ok",
     tenantId: workspace.context.tenantId,
     weddingId: workspace.weddingId,
+    actorId: request.context.actorId,
   };
 }
 
@@ -180,6 +190,47 @@ export async function setGuestLinkStatusAction(
       status,
     );
     return updated ? { kind: "ok", householdId } : { kind: "not-found" };
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
+
+export async function exportGuestRosterAction(
+  input: unknown = {},
+): Promise<GuestExportOutcome> {
+  const parsed = guestExportInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      kind: "invalid",
+      errors: parsed.error.issues.map((issue) => issue.message),
+    };
+  }
+
+  const scope = await rosterScope();
+  if (scope.kind !== "ok") return { kind: "forbidden" };
+
+  try {
+    const result = await new PrismaGuestRosterRepository().exportRoster(
+      { tenantId: scope.tenantId, weddingId: scope.weddingId },
+      {
+        ...(parsed.data.householdIds === undefined
+          ? {}
+          : { householdIds: parsed.data.householdIds }),
+        actorId: scope.actorId,
+        correlationId: randomUUID(),
+      },
+    );
+    if (result === null) return { kind: "not-found" };
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+    return {
+      kind: "ok",
+      filename: `daftar-tamu-${timestamp}.csv`,
+      contentType: "text/csv;charset=utf-8",
+      csv: serializeGuestRosterCsv(result.rows),
+      householdCount: result.householdCount,
+      guestCount: result.guestCount,
+    };
   } catch {
     return { kind: "unavailable" };
   }

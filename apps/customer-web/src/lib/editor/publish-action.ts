@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { invitationViewModelSchema } from "@wedding/template-engine";
 import {
   publicationReadiness,
@@ -69,11 +70,13 @@ export async function publishInvitationAction(input: {
   });
 
   switch (result.kind) {
-    case "published":
+    case "published": {
+      if (result.slug !== "") revalidatePath(`/invite/${result.slug}`);
       return {
         kind: "published",
         publicUrl: result.slug === "" ? "" : `/invite/${result.slug}`,
       };
+    }
     case "invalid":
       // Readiness passed on the stored draft, so an invalid publish means the
       // stored row moved between the two reads.

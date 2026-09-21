@@ -3,6 +3,7 @@ import { formatAdminDate } from "../../lib/admin/formatters";
 import { OperationsTable } from "./operations-table";
 import { SectionState } from "./section-state";
 import { SeverityLabel } from "./attention-queue";
+import { AdminMutationAction } from "./admin-mutation-action";
 
 export function TemplateStatus({
   section,
@@ -86,9 +87,14 @@ export function TemplateStatus({
               label: "Tindakan",
               render: (row) => (
                 <div className="admin-cell-action">
-                  <span className="admin-disabled-action">
-                    Ubah ketersediaan · perlu reason + audit
-                  </span>
+                  <AdminMutationAction
+                    action="moderate_template"
+                    targetId={row.templateId}
+                    templateVersion={row.version}
+                    fromStatus={row.status}
+                    toStatus={row.status === "DRAFT" ? "REVIEW" : "ACTIVE"}
+                    label="Moderasi dengan audit"
+                  />
                   <span className="ui-visually-hidden"> untuk {row.name}</span>
                 </div>
               ),

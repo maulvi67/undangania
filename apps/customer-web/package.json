@@ -15,6 +15,7 @@
     "@wedding/application": "*",
     "@wedding/notifications": "*",
     "@wedding/ui": "*",
+    "@wedding/storage": "*",
     "@wedding/database": "*",
     "@wedding/template-engine": "*",
     "@wedding/template-editor": "*",

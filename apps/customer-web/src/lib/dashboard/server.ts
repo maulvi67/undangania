@@ -75,12 +75,19 @@ function toAggregate(
             status: "ok",
             data: {
               status: lifecycleFor(invitation.status),
+              slug: invitation.slug,
               templateName: invitation.templateName,
               contentComplete: invitation.publishedAt !== null,
               publishedAt: invitation.publishedAt?.toISOString() ?? null,
-              // The public address is the invitation's slug; the dashboard links to
-              // it rather than reconstructing a URL from configuration.
-              publicUrl: null,
+              // The public address comes from the tenant-scoped invitation row;
+              // only a published lifecycle may expose it as a customer action.
+              publicUrl:
+                invitation.publishedAt !== null &&
+                (invitation.status === "PUBLISHED" ||
+                  invitation.status === "PAUSED" ||
+                  invitation.status === "EXPIRED")
+                  ? `/invite/${invitation.slug}`
+                  : null,
               activeUntil: activeUntilDate(aggregate.workspace.weddingDate),
             },
           },

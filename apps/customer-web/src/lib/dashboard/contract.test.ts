@@ -36,6 +36,7 @@ function aggregate(
       status: "ok",
       data: {
         status: "DRAFT",
+        slug: "contoh-undangan",
         templateName: "Seruni",
         contentComplete: false,
         publishedAt: null,
@@ -68,6 +69,7 @@ function published(
       status: "ok",
       data: {
         status,
+        slug: "contoh-undangan",
         templateName: "Seruni",
         contentComplete: true,
         publishedAt: "2026-01-15T08:00:00.000Z",
@@ -153,6 +155,7 @@ describe("dashboard state and actions", () => {
         status: "ok",
         data: {
           status: "READY",
+          slug: "contoh-undangan",
           templateName: "Seruni",
           contentComplete: true,
           publishedAt: null,
@@ -189,6 +192,7 @@ describe("dashboard state and actions", () => {
         status: "ok",
         data: {
           status: "READY",
+          slug: "contoh-undangan",
           templateName: "Seruni",
           contentComplete: true,
           publishedAt: null,

@@ -3,6 +3,7 @@ import { MaskedValue } from "./masked-value";
 import { OperationsTable } from "./operations-table";
 import { SectionState } from "./section-state";
 import { SeverityLabel } from "./attention-queue";
+import { AdminMutationAction } from "./admin-mutation-action";
 
 export function SupportCases({
   section,
@@ -84,9 +85,11 @@ export function SupportCases({
               label: "Tindakan",
               render: (row) => (
                 <div className="admin-cell-action">
-                  <span className="admin-disabled-action">
-                    Assign / eskalasi · perlu akses support
-                  </span>
+                  <AdminMutationAction
+                    action="escalate_support"
+                    targetId={row.id}
+                    label="Eskalasi dengan audit"
+                  />
                   <span className="ui-visually-hidden">
                     {" "}
                     untuk {row.caseId}

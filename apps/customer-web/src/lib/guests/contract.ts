@@ -8,7 +8,6 @@ export const GUEST_FIXTURES = [
   "partial-import",
   "potential-duplicate",
   "token-disabled",
-  "export-processing",
   "permission-denied",
   "unavailable",
 ] as const;
@@ -42,6 +41,63 @@ export type GuestMember = Readonly<{
   displayName: string;
   category: GuestMemberCategory;
 }>;
+
+/**
+ * The privacy-safe row shape used to build a roster export. Encrypted contact
+ * values, token hashes, tenant identifiers, and audit metadata are intentionally
+ * outside this contract.
+ */
+export type GuestExportRow = Readonly<{
+  householdName: string;
+  guestName: string;
+  category: string;
+  maximumPax: number;
+  eventNames: readonly string[];
+  linkStatus: GuestLinkStatus;
+}>;
+
+export const GUEST_EXPORT_HEADERS = [
+  "nama_rumah_tangga",
+  "nama_tamu",
+  "kategori_tamu",
+  "maksimal_pax",
+  "akses_acara",
+  "status_tautan",
+] as const;
+
+/**
+ * Prefixes spreadsheet formula-like values before RFC 4180 quoting. Quoting
+ * protects the CSV structure, while the prefix prevents a spreadsheet from
+ * evaluating a guest name or household name as a formula after opening it.
+ */
+function safeCsvCell(value: string): string {
+  const normalized = value.replace(/\r\n?/g, "\n");
+  const protectedValue = /^\s*[=+\-@]/u.test(normalized)
+    ? `'${normalized}`
+    : normalized;
+  return `"${protectedValue.replaceAll('"', '""')}"`;
+}
+
+export function serializeGuestRosterCsv(
+  rows: readonly GuestExportRow[],
+): string {
+  const lines = [GUEST_EXPORT_HEADERS.join(",")];
+  for (const row of rows) {
+    lines.push(
+      [
+        row.householdName,
+        row.guestName,
+        row.category,
+        String(row.maximumPax),
+        row.eventNames.join("|"),
+        row.linkStatus,
+      ]
+        .map(safeCsvCell)
+        .join(","),
+    );
+  }
+  return `${lines.join("\r\n")}\r\n`;
+}
 
 /**
  * List-safe household data. This type intentionally has no tenant ID, token,
@@ -461,6 +517,24 @@ export type GuestHouseholdCreateInput = z.infer<
  * whole household; a partial patch would let a stale client silently revert a
  * field it never rendered.
  */
+export const GUEST_EXPORT_MAX_HOUSEHOLDS = 5_000;
+
+export const guestExportInputSchema = z
+  .object({
+    /** Undefined means the complete tenant-scoped roster; an array is exact. */
+    householdIds: z
+      .array(z.string().trim().min(1).max(100))
+      .max(GUEST_EXPORT_MAX_HOUSEHOLDS)
+      .optional(),
+  })
+  .strict()
+  .refine(
+    (input) =>
+      input.householdIds === undefined ||
+      new Set(input.householdIds).size === input.householdIds.length,
+    { message: "Daftar rumah tangga untuk ekspor tidak boleh duplikat." },
+  );
+
 export const guestHouseholdUpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(GUEST_HOUSEHOLD_NAME_MAX),
   maximumPax: z.number().int().min(1).max(GUEST_MAXIMUM_PAX_CEILING),

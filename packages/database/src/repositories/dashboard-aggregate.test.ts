@@ -127,6 +127,7 @@ describe("PrismaDashboardRepository.load", () => {
       invitation: {
         findFirst: vi.fn().mockResolvedValue({
           id: "inv-1",
+          slug: "rani-bima-1a2b3c4d",
           status: "PUBLISHED",
           template: { name: "Seruni" },
           publications: [{ publishedAt: new Date("2026-01-15T08:00:00.000Z") }],
@@ -156,6 +157,7 @@ describe("PrismaDashboardRepository.load", () => {
         },
         invitation: {
           status: "PUBLISHED",
+          slug: "rani-bima-1a2b3c4d",
           templateName: "Seruni",
           publishedAt: new Date("2026-01-15T08:00:00.000Z"),
         },

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { prisma } from "../client";
 
@@ -482,33 +483,478 @@ export type AdminOperationsClient = AdminPaymentClient &
   AdminAuditClient &
   AdminLifecycleClient;
 
-export function adaptAdminOperationsClient(
-  client: Pick<
-    PrismaClient,
-    | "payment"
-    | "notification"
-    | "outboxEvent"
-    | "invitationPublication"
-    | "printingOrder"
-    | "supportCase"
-    | "template"
-    | "auditEvent"
-    | "invitation"
-  >,
+export type AdminOperationsDatabaseClient = AdminOperationsClient &
+  Readonly<{
+    transaction<T>(
+      work: (client: AdminOperationsClient) => Promise<T>,
+    ): Promise<T>;
+  }>;
+
+export type AdminMutationAuditInput = Readonly<{
+  tenantId: string | null;
+  actorId: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  reason: string;
+  correlationId: string;
+  metadata: Readonly<Record<string, string | number | boolean>>;
+}>;
+
+export type AdminAuditExportRow = Readonly<{
+  id: string;
+  timestamp: string;
+  actor: string;
+  role: string;
+  action: string;
+  target: string;
+  reason: string;
+  result: string;
+  correlationId: string;
+  masked: true;
+}>;
+
+export type AdminMutationTargetType = "notification" | "outbox";
+
+export type AdminMutationWriteInput = Readonly<{
+  tenantId: string | null;
+  targetId: string;
+  now: Date;
+  audit: AdminMutationAuditInput;
+}>;
+
+export interface AdminMutationRepository {
+  retryFailedJob(
+    input: AdminMutationWriteInput & {
+      targetType: AdminMutationTargetType;
+    },
+  ): Promise<boolean>;
+  moderateTemplate(
+    input: AdminMutationWriteInput & {
+      version: string;
+      fromStatus: string;
+      toStatus: string;
+    },
+  ): Promise<boolean>;
+  escalateSupport(input: AdminMutationWriteInput): Promise<boolean>;
+  appendAudit(input: AdminMutationAuditInput): Promise<void>;
+  exportAudit(
+    input: Readonly<{
+      tenantId: string | null;
+      limit: number;
+      audit: AdminMutationAuditInput;
+    }>,
+  ): Promise<readonly AdminAuditExportRow[]>;
+}
+
+export type AdminMutationIdempotencyClaim = "claimed" | "replayed" | "conflict";
+
+export interface AdminMutationIdempotencyRepository {
+  claim(
+    input: Readonly<{
+      actorId: string;
+      idempotencyKey: string;
+      fingerprint: string;
+      at: Date;
+    }>,
+  ): Promise<AdminMutationIdempotencyClaim>;
+}
+
+type AdminOperationsDelegates = Pick<
+  PrismaClient,
+  | "payment"
+  | "notification"
+  | "outboxEvent"
+  | "invitationPublication"
+  | "printingOrder"
+  | "supportCase"
+  | "template"
+  | "auditEvent"
+  | "invitation"
+>;
+
+type AdminOperationsPrismaClient = AdminOperationsDelegates &
+  Pick<PrismaClient, "$transaction">;
+
+type AdminMutationClient = Readonly<{
+  notification: {
+    updateMany(args: {
+      where: Prisma.NotificationWhereInput;
+      data: Prisma.NotificationUpdateManyMutationInput;
+    }): Promise<{ count: number }>;
+  };
+  outboxEvent: {
+    updateMany(args: {
+      where: Prisma.OutboxEventWhereInput;
+      data: Prisma.OutboxEventUpdateManyMutationInput;
+    }): Promise<{ count: number }>;
+  };
+  supportCase: {
+    updateMany(args: {
+      where: Prisma.SupportCaseWhereInput;
+      data: Prisma.SupportCaseUpdateManyMutationInput;
+    }): Promise<{ count: number }>;
+  };
+  template: {
+    updateMany(args: {
+      where: Prisma.TemplateWhereInput;
+      data: Prisma.TemplateUpdateManyMutationInput;
+    }): Promise<{ count: number }>;
+  };
+  auditEvent: {
+    findUnique(args: {
+      where: { id: string };
+      select: { id: true; metadata: true };
+    }): Promise<{ id: string; metadata: Prisma.JsonValue } | null>;
+    findMany(args: {
+      where: Prisma.AuditEventWhereInput;
+      orderBy: Prisma.AuditEventOrderByWithRelationInput;
+      take: number;
+      select: typeof auditRowSelect;
+    }): Promise<AuditEventRow[]>;
+    create(args: {
+      data: Prisma.AuditEventUncheckedCreateInput;
+    }): Promise<{ id: string }>;
+  };
+}>;
+
+type AdminMutationDelegates = Pick<
+  PrismaClient,
+  "notification" | "outboxEvent" | "supportCase" | "template" | "auditEvent"
+>;
+
+type AdminMutationPrismaClient = AdminMutationDelegates &
+  Pick<PrismaClient, "$transaction">;
+
+function adaptAdminMutationClient(
+  client: AdminMutationDelegates,
+): AdminMutationClient {
+  return {
+    notification: {
+      updateMany: (args) => client.notification.updateMany(args),
+    },
+    outboxEvent: {
+      updateMany: (args) => client.outboxEvent.updateMany(args),
+    },
+    supportCase: {
+      updateMany: (args) => client.supportCase.updateMany(args),
+    },
+    template: {
+      updateMany: (args) => client.template.updateMany(args),
+    },
+    auditEvent: {
+      findUnique: (args) => client.auditEvent.findUnique(args),
+      findMany: (args) => client.auditEvent.findMany(args),
+      create: (args) => client.auditEvent.create(args),
+    },
+  };
+}
+
+function adminMutationEventId(
+  actorId: string,
+  idempotencyKey: string,
+  purpose = "claim",
+): string {
+  const digest = createHash("sha256")
+    .update(`${purpose}:${actorId}:${idempotencyKey}`, "utf8")
+    .digest("hex")
+    .slice(0, 32);
+  return [
+    digest.slice(0, 8),
+    digest.slice(8, 12),
+    `4${digest.slice(13, 16)}`,
+    `8${digest.slice(17, 20)}`,
+    digest.slice(20, 32),
+  ].join("-");
+}
+
+function auditCreateData(
+  audit: AdminMutationAuditInput,
+): Prisma.AuditEventUncheckedCreateInput {
+  const idempotencyKey = audit.metadata.idempotencyKey;
+  return {
+    ...(typeof idempotencyKey === "string"
+      ? { id: adminMutationEventId(audit.actorId, idempotencyKey, "result") }
+      : {}),
+    tenantId: audit.tenantId,
+    userId: audit.actorId,
+    actorType: "ADMIN",
+    action: audit.action,
+    targetType: audit.targetType,
+    targetId: audit.targetId,
+    reason: audit.reason,
+    metadata: { ...audit.metadata },
+    correlationId: audit.correlationId,
+  };
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
+
+function adaptAdminOperationsDelegates(
+  client: AdminOperationsDelegates,
 ): AdminOperationsClient {
   return {
     payment: { findMany: (args) => client.payment.findMany(args) },
-    notification: { findMany: (args) => client.notification.findMany(args) },
-    outboxEvent: { findMany: (args) => client.outboxEvent.findMany(args) },
+    notification: {
+      findMany: (args) => client.notification.findMany(args),
+    },
+    outboxEvent: {
+      findMany: (args) => client.outboxEvent.findMany(args),
+    },
     invitationPublication: {
       findMany: (args) => client.invitationPublication.findMany(args),
     },
     printingOrder: { findMany: (args) => client.printingOrder.findMany(args) },
-    supportCase: { findMany: (args) => client.supportCase.findMany(args) },
-    template: { findMany: (args) => client.template.findMany(args) },
-    auditEvent: { findMany: (args) => client.auditEvent.findMany(args) },
+    supportCase: {
+      findMany: (args) => client.supportCase.findMany(args),
+    },
+    template: {
+      findMany: (args) => client.template.findMany(args),
+    },
+    auditEvent: {
+      findMany: (args) => client.auditEvent.findMany(args),
+    },
     invitation: { findMany: (args) => client.invitation.findMany(args) },
   };
+}
+
+export function adaptAdminOperationsClient(
+  client: AdminOperationsPrismaClient,
+): AdminOperationsDatabaseClient {
+  return {
+    ...adaptAdminOperationsDelegates(client),
+    transaction: <T>(
+      work: (transactionClient: AdminOperationsClient) => Promise<T>,
+    ) =>
+      client.$transaction(async (transactionClient) =>
+        work(adaptAdminOperationsDelegates(transactionClient)),
+      ),
+  };
+}
+
+export class PrismaAdminMutationRepository implements AdminMutationRepository {
+  public constructor(
+    private readonly client: AdminMutationPrismaClient = prisma,
+  ) {}
+
+  private async transaction(
+    work: (client: AdminMutationClient) => Promise<boolean>,
+  ): Promise<boolean> {
+    try {
+      return await this.client.$transaction((transactionClient) =>
+        work(adaptAdminMutationClient(transactionClient)),
+      );
+    } catch (error) {
+      if (isUniqueConstraintError(error)) return false;
+      throw error;
+    }
+  }
+
+  private async appendAuditInTransaction(
+    client: AdminMutationClient,
+    audit: AdminMutationAuditInput,
+    now?: Date,
+  ): Promise<boolean> {
+    try {
+      await client.auditEvent.create({
+        data: {
+          ...auditCreateData(audit),
+          ...(now === undefined ? {} : { createdAt: now }),
+        },
+      });
+      return true;
+    } catch (error) {
+      if (isUniqueConstraintError(error)) return false;
+      throw error;
+    }
+  }
+
+  public retryFailedJob(
+    input: AdminMutationWriteInput & {
+      targetType: AdminMutationTargetType;
+    },
+  ): Promise<boolean> {
+    return this.transaction(async (client) => {
+      const audit = input.audit;
+      const changed =
+        input.targetType === "notification"
+          ? await client.notification.updateMany({
+              where: {
+                id: input.targetId,
+                status: "FAILED",
+                ...(input.tenantId === null
+                  ? {}
+                  : { tenantId: input.tenantId }),
+              },
+              data: {
+                status: "QUEUED",
+                scheduledAt: input.now,
+                lastError: null,
+              },
+            })
+          : await client.outboxEvent.updateMany({
+              where: {
+                id: input.targetId,
+                status: "FAILED",
+                ...(input.tenantId === null
+                  ? {}
+                  : { tenantId: input.tenantId }),
+              },
+              data: {
+                status: "PENDING",
+                availableAt: input.now,
+                lastError: null,
+                processedAt: null,
+              },
+            });
+      if (changed.count !== 1) return false;
+      return this.appendAuditInTransaction(client, audit, input.now);
+    });
+  }
+
+  public moderateTemplate(
+    input: AdminMutationWriteInput & {
+      version: string;
+      fromStatus: string;
+      toStatus: string;
+    },
+  ): Promise<boolean> {
+    return this.transaction(async (client) => {
+      const changed = await client.template.updateMany({
+        where: {
+          id: input.targetId,
+          version: input.version,
+          status: input.fromStatus,
+        },
+        data: { status: input.toStatus },
+      });
+      if (changed.count !== 1) return false;
+      return this.appendAuditInTransaction(client, input.audit, input.now);
+    });
+  }
+
+  public escalateSupport(input: AdminMutationWriteInput): Promise<boolean> {
+    return this.transaction(async (client) => {
+      const changed = await client.supportCase.updateMany({
+        where: {
+          id: input.targetId,
+          status: { not: "CLOSED" },
+          ...(input.tenantId === null ? {} : { tenantId: input.tenantId }),
+        },
+        data: { escalationState: "ESCALATED" },
+      });
+      if (changed.count !== 1) return false;
+      return this.appendAuditInTransaction(client, input.audit, input.now);
+    });
+  }
+
+  public async appendAudit(input: AdminMutationAuditInput): Promise<void> {
+    const created = await this.appendAuditInTransaction(
+      adaptAdminMutationClient(this.client),
+      input,
+    );
+    if (!created) return;
+  }
+
+  public async exportAudit(input: {
+    tenantId: string | null;
+    limit: number;
+    audit: AdminMutationAuditInput;
+  }): Promise<readonly AdminAuditExportRow[]> {
+    return this.client.$transaction(async (transactionClient) => {
+      const client = adaptAdminMutationClient(transactionClient);
+      await client.auditEvent.create({ data: auditCreateData(input.audit) });
+      const rows = await client.auditEvent.findMany({
+        where: {
+          ...(input.tenantId === null ? {} : { tenantId: input.tenantId }),
+        },
+        orderBy: { createdAt: "desc" },
+        take: Math.min(Math.max(Math.trunc(input.limit), 1), 200),
+        select: auditRowSelect,
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        timestamp: isoString(row.createdAt),
+        actor: maskIdentifier(row.userId ?? row.actorType),
+        role: row.actorType,
+        action: row.action,
+        target: `${row.targetType}:${maskIdentifier(row.targetId)}`,
+        reason: row.reason ?? "tidak dicatat",
+        result: "tercatat",
+        correlationId: row.correlationId,
+        masked: true,
+      }));
+    });
+  }
+}
+
+export class PrismaAdminMutationIdempotencyRepository implements AdminMutationIdempotencyRepository {
+  public constructor(
+    private readonly client: Pick<PrismaClient, "auditEvent"> = prisma,
+  ) {}
+
+  public async claim(input: {
+    actorId: string;
+    idempotencyKey: string;
+    fingerprint: string;
+    at: Date;
+  }): Promise<AdminMutationIdempotencyClaim> {
+    void input.at;
+    const id = adminMutationEventId(input.actorId, input.idempotencyKey);
+    const existing = await this.client.auditEvent.findUnique({
+      where: { id },
+      select: { id: true, metadata: true },
+    });
+    if (existing !== null) {
+      if (
+        typeof existing.metadata === "object" &&
+        existing.metadata !== null &&
+        !Array.isArray(existing.metadata) &&
+        existing.metadata.fingerprint === input.fingerprint
+      ) {
+        return "replayed";
+      }
+      return "conflict";
+    }
+
+    try {
+      await this.client.auditEvent.create({
+        data: {
+          id,
+          userId: input.actorId,
+          actorType: "ADMIN",
+          action: "ADMIN_MUTATION_CLAIMED",
+          targetType: "IdempotencyKey",
+          targetId: input.idempotencyKey,
+          reason: "Privileged operation claim",
+          metadata: { fingerprint: input.fingerprint, status: "CLAIMED" },
+          correlationId: id,
+        },
+      });
+      return "claimed";
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+      const raced = await this.client.auditEvent.findUnique({
+        where: { id },
+        select: { id: true, metadata: true },
+      });
+      if (
+        raced !== null &&
+        typeof raced.metadata === "object" &&
+        raced.metadata !== null &&
+        !Array.isArray(raced.metadata) &&
+        raced.metadata.fingerprint === input.fingerprint
+      ) {
+        return "replayed";
+      }
+      return "conflict";
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

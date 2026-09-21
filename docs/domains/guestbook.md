@@ -34,7 +34,9 @@ GuestbookSubmitted, MessageModerated.
 guest, moderation.
 
 ## Security considerations
-XSS prevention and abuse throttling.
+XSS prevention and abuse throttling. Public submissions bind the personalized
+token to the invitation slug before resolving the household; a token from another
+invitation is treated as unusable. Messages remain pending until moderation.
 
 ## Owning module
 `guestbook` owns the invariant and write model. Other modules integrate through application ports or versioned events.

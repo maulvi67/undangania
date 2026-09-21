@@ -3,6 +3,7 @@ import type { GuestAccessDto } from "@wedding/database";
 import {
   invalidGuestContext,
   rateLimitedGuestContext,
+  resolveGuestContext,
   toGuestContext,
   unavailableGuestContext,
 } from "./guest-access";
@@ -15,6 +16,7 @@ function access(overrides: Partial<GuestAccessDto> = {}): GuestAccessDto {
     displayName: "Keluarga Rahman",
     maximumPax: 4,
     status: "ACTIVE",
+    invitationStatus: "PUBLISHED",
     timezone: "Asia/Jakarta",
     slug: "rani-bima-1a2b3c4d",
     published: true,
@@ -33,6 +35,71 @@ function access(overrides: Partial<GuestAccessDto> = {}): GuestAccessDto {
     ...overrides,
   };
 }
+
+describe("resolveGuestContext", () => {
+  const access = {
+    householdId: "hh-1",
+    tenantId: "t-1",
+    weddingId: "w-1",
+    displayName: "Keluarga Rahman",
+    maximumPax: 4,
+    status: "ACTIVE",
+    invitationStatus: "PUBLISHED" as const,
+    timezone: "Asia/Jakarta",
+    slug: "rani-bima-1a2b3c4d",
+    published: true,
+    events: [
+      {
+        id: "e-1",
+        title: "Akad Nikah",
+        startsAt: new Date("2026-11-01T01:00:00.000Z"),
+        timezone: "Asia/Jakarta",
+        venueName: "Masjid Al-Azhar",
+        address: "Jl. Sisingamangaraja",
+        mapUrl: "https://maps.example.com/akad",
+      },
+    ],
+    rsvps: [],
+  };
+
+  it("resolves a token within its invitation slug", async () => {
+    const repository = {
+      resolveByToken: async (token: string, slug: string) =>
+        token === "valid-token" && slug === "rani-bima-1a2b3c4d"
+          ? access
+          : null,
+    };
+
+    await expect(
+      resolveGuestContext("valid-token", "rani-bima-1a2b3c4d", repository),
+    ).resolves.toMatchObject({ kind: "ok", context: { state: "ready" } });
+  });
+
+  it("reports a valid token on another invitation as invalid", async () => {
+    const resolveByToken = async (token: string, slug: string) =>
+      token === "valid-token" && slug === "rani-bima-1a2b3c4d" ? access : null;
+    const repository = { resolveByToken };
+
+    await expect(
+      resolveGuestContext("valid-token", "other-invitation", repository),
+    ).resolves.toEqual({ kind: "invalid" });
+  });
+
+  it("does not resolve an absent token", async () => {
+    let calls = 0;
+    const repository = {
+      resolveByToken: async () => {
+        calls += 1;
+        return null;
+      },
+    };
+
+    await expect(
+      resolveGuestContext(undefined, "rani-bima-1a2b3c4d", repository),
+    ).resolves.toEqual({ kind: "invalid" });
+    expect(calls).toBe(0);
+  });
+});
 
 describe("toGuestContext", () => {
   it("maps a live household into an interactive context", () => {
@@ -86,6 +153,18 @@ describe("toGuestContext", () => {
   it("reports a deleted household as an unusable link", () => {
     expect(toGuestContext(access({ status: "DELETED" })).state).toBe(
       "invalid-token",
+    );
+  });
+
+  it("reports a paused invitation as paused", () => {
+    expect(toGuestContext(access({ invitationStatus: "PAUSED" })).state).toBe(
+      "paused",
+    );
+    expect(toGuestContext(access({ invitationStatus: "EXPIRED" })).state).toBe(
+      "expired",
+    );
+    expect(toGuestContext(access({ invitationStatus: "ARCHIVED" })).state).toBe(
+      "expired",
     );
   });
 

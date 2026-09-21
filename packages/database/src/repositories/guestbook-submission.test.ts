@@ -15,6 +15,12 @@ const HOUSEHOLD = {
   weddingId: "w-1",
   displayName: "Keluarga Rahman",
   status: "ACTIVE",
+  wedding: {
+    invitation: {
+      status: "PUBLISHED",
+      publications: [{ id: "p-1" }],
+    },
+  },
 };
 
 function client(
@@ -29,6 +35,7 @@ function client(
       findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({
         id: "m-1",
+        message: "Selamat menempuh hidup baru.",
         submittedAt: NOW,
       }),
       ...((overrides.guestbookMessage as object) ?? {}),
@@ -167,7 +174,11 @@ describe("guestbook submission", () => {
       guestbookMessage: {
         findUnique: vi
           .fn()
-          .mockResolvedValue({ id: "m-existing", submittedAt: NOW }),
+          .mockResolvedValue({
+            id: "m-existing",
+            message: SUBMIT.message,
+            submittedAt: NOW,
+          }),
       },
     });
 
@@ -180,6 +191,25 @@ describe("guestbook submission", () => {
     expect(c.auditEvent.create).not.toHaveBeenCalled();
   });
 
+  it("rejects a conflicting replay instead of duplicating a message", async () => {
+    const c = client({
+      guestbookMessage: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "m-existing",
+          message: "Ucapan lain.",
+          submittedAt: NOW,
+        }),
+      },
+    });
+
+    await expect(submit(c, SUBMIT)).resolves.toEqual({
+      kind: "idempotency-conflict",
+    });
+    expect(c.guestbookMessage.create).not.toHaveBeenCalled();
+
+    // Invalid input is still rejected before any household lookup.
+  });
+
   it("rejects an invalid message before reading the household", async () => {
     const c = client();
     await expect(submit(c, { ...SUBMIT, message: "  " })).resolves.toEqual({
@@ -189,12 +219,47 @@ describe("guestbook submission", () => {
     expect(c.guestHousehold.findFirst).not.toHaveBeenCalled();
   });
 
+  it("refuses a paused invitation", async () => {
+    const c = client({
+      guestHousehold: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...HOUSEHOLD,
+          wedding: {
+            invitation: { status: "PAUSED", publications: [{ id: "p-1" }] },
+          },
+        }),
+      },
+    });
+
+    await expect(submit(c, SUBMIT)).resolves.toEqual({ kind: "paused" });
+    expect(c.guestbookMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses an expired invitation", async () => {
+    const c = client({
+      guestHousehold: {
+        findFirst: vi.fn().mockResolvedValue({
+          ...HOUSEHOLD,
+          wedding: {
+            invitation: { status: "EXPIRED", publications: [{ id: "p-1" }] },
+          },
+        }),
+      },
+    });
+
+    await expect(submit(c, SUBMIT)).resolves.toEqual({ kind: "expired" });
+    expect(c.guestbookMessage.create).not.toHaveBeenCalled();
+  });
+
   it("refuses a household whose link is no longer active", async () => {
     const c = client({
       guestHousehold: {
         findFirst: vi
           .fn()
-          .mockResolvedValue({ ...HOUSEHOLD, status: "DISABLED" }),
+          .mockResolvedValue({
+            ...HOUSEHOLD,
+            status: "DISABLED",
+          }),
       },
     });
 
@@ -215,7 +280,10 @@ describe("guestbook submission", () => {
       guestHousehold: {
         findFirst: vi
           .fn()
-          .mockResolvedValue({ ...HOUSEHOLD, displayName: "  " }),
+          .mockResolvedValue({
+                      ...HOUSEHOLD,
+                      displayName: "  ",
+                    }),
       },
     });
 

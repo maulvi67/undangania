@@ -10,6 +10,12 @@ import type {
   TenantMembershipRepository,
 } from "@wedding/database";
 import {
+  ANALYTICS_REPORT_MAX_EVENTS,
+  hashTenantId,
+  type AnalyticsEventRecord,
+  type AnalyticsEventRepository,
+} from "@wedding/analytics";
+import {
   createMidtransSignature,
   processQrisNotification,
   type QrisNotificationRepositories,
@@ -17,6 +23,14 @@ import {
 } from "@wedding/payments";
 
 const SESSION_TOKEN = "session-token";
+const ANALYTICS_SECRET = "a".repeat(32);
+const ANALYTICS_EVENT = {
+  schemaVersion: 1,
+  consent: true,
+  idempotencyKey: "analytics-key-000001",
+  name: "invitation_viewed",
+  properties: { source: "direct", device: "desktop" },
+} as const;
 const BASE_NOTIFICATION = {
   order_id: "WS-20260911-001",
   status_code: "200",
@@ -96,6 +110,52 @@ function repositories(
   };
 }
 
+function analyticsRecord(
+  overrides: Partial<AnalyticsEventRecord> = {},
+): AnalyticsEventRecord {
+  return {
+    id: "event-1",
+    name: "invitation_viewed",
+    schemaVersion: 1,
+    tenantIdHash: "a".repeat(64),
+    actorHash: null,
+    properties: { source: "direct", device: "desktop" },
+    occurredAt: new Date("2026-09-14T00:00:00.000Z"),
+    acceptedAt: new Date("2026-09-14T00:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function analyticsRepository(
+  input: {
+    append?: AnalyticsEventRepository["append"];
+    listAccepted?: AnalyticsEventRepository["listAccepted"];
+  } = {},
+): {
+  repository: AnalyticsEventRepository;
+  append: AnalyticsEventRepository["append"];
+  listAccepted: AnalyticsEventRepository["listAccepted"];
+} {
+  const append =
+    input.append === undefined
+      ? vi
+          .fn<AnalyticsEventRepository["append"]>()
+          .mockImplementation(async (_scope, event) => ({
+            kind: "created",
+            event,
+          }))
+      : input.append;
+  const listAccepted =
+    input.listAccepted === undefined
+      ? vi.fn<AnalyticsEventRepository["listAccepted"]>().mockResolvedValue([])
+      : input.listAccepted;
+  return {
+    repository: { append, listAccepted },
+    append,
+    listAccepted,
+  };
+}
+
 function unavailableTransaction(): QrisNotificationTransactionPort {
   return {
     transaction: async <T>(
@@ -121,8 +181,22 @@ function webhookBody(serverKey = "sandbox-secret"): string {
 
 async function withServer(
   handlerOptions: Parameters<typeof createServer>[0] = {},
+  includeDefaultAnalyticsLimiter = true,
 ): Promise<{ baseUrl: string; close: () => Promise<void> }> {
-  const server = createServer(handlerOptions);
+  const server = createServer({
+    ...(includeDefaultAnalyticsLimiter
+      ? {
+          analyticsRateLimiter: {
+            consume: async () => ({
+              allowed: true,
+              remaining: 59,
+              retryAfterSeconds: 0,
+            }),
+          },
+        }
+      : {}),
+    ...handlerOptions,
+  });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();
@@ -148,6 +222,380 @@ describe("backend HTTP boundary", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("x-correlation-id")).toBe("test-correlation");
       await expect(response.json()).resolves.toEqual({ status: "ok" });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("fails closed when analytics rate limiting is not configured", async () => {
+    const analytics = analyticsRepository();
+    const server = await withServer(
+      {
+        ...repositories(),
+        analyticsRepository: analytics.repository,
+        analyticsHashSecret: ANALYTICS_SECRET,
+      },
+      false,
+    );
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`,
+        {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: JSON.stringify(ANALYTICS_EVENT),
+        },
+      );
+      expect(response.status).toBe(503);
+      expect(analytics.append).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("maps an analytics rate-limit refusal to 429 with Retry-After", async () => {
+    const analytics = analyticsRepository();
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+      analyticsRateLimiter: {
+        consume: async ({ operation }) => ({
+          allowed: operation !== "ingest",
+          remaining: 0,
+          retryAfterSeconds: 17,
+        }),
+      },
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`,
+        {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: JSON.stringify(ANALYTICS_EVENT),
+        },
+      );
+      expect(response.status).toBe(429);
+      expect(response.headers.get("retry-after")).toBe("17");
+      expect(await response.json()).toEqual({
+        error: {
+          code: "RATE_LIMITED",
+          message: "Too many requests. Please try again later.",
+        },
+      });
+      expect(analytics.append).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("requires authentication before analytics ingestion", async () => {
+    const analytics = analyticsRepository();
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const unauthenticated = await fetch(
+        `${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`,
+        {
+          method: "POST",
+          body: JSON.stringify(ANALYTICS_EVENT),
+        },
+      );
+      expect(unauthenticated.status).toBe(401);
+      expect(analytics.append).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("derives analytics tenant and actor hashes from the authenticated session", async () => {
+    const analytics = analyticsRepository();
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`,
+        {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: JSON.stringify(ANALYTICS_EVENT),
+        },
+      );
+      expect(response.status).toBe(202);
+      const append = analytics.append as unknown as ReturnType<typeof vi.fn>;
+      const event = append.mock.calls[0]?.[1];
+      expect(event?.tenantIdHash).toBe(
+        hashTenantId("tenant-1", ANALYTICS_SECRET),
+      );
+      expect(event?.actorHash).not.toBe("user-1");
+      expect(event?.properties).toEqual(ANALYTICS_EVENT.properties);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("rejects PII and unknown analytics properties before persistence", async () => {
+    const analytics = analyticsRepository();
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`,
+        {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: JSON.stringify({
+            ...ANALYTICS_EVENT,
+            properties: {
+              ...ANALYTICS_EVENT.properties,
+              email: "person@example.test",
+            },
+          }),
+        },
+      );
+      expect(response.status).toBe(400);
+      expect(analytics.append).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("accepts a first analytics event and replays the same idempotency key", async () => {
+    let saved: AnalyticsEventRecord | null = null;
+    const append = vi
+      .fn<AnalyticsEventRepository["append"]>()
+      .mockImplementation(async (_scope, event) => {
+        if (saved === null) {
+          saved = event;
+          return { kind: "created", event };
+        }
+        return { kind: "existing", event: saved };
+      });
+    const analytics = analyticsRepository({ append });
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const request = () =>
+        fetch(`${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`, {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: JSON.stringify(ANALYTICS_EVENT),
+        });
+      const first = await request();
+      const replay = await request();
+      expect(first.status).toBe(202);
+      expect(replay.status).toBe(200);
+      expect((await first.json()).data.status).toBe("accepted");
+      expect((await replay.json()).data.status).toBe("replayed");
+      expect(append).toHaveBeenCalledTimes(2);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("returns an idempotency conflict when a key is reused with changed content", async () => {
+    let saved: AnalyticsEventRecord | null = null;
+    const append = vi
+      .fn<AnalyticsEventRepository["append"]>()
+      .mockImplementation(async (_scope, event) => {
+        if (saved === null) {
+          saved = event;
+          return { kind: "created", event };
+        }
+        return { kind: "existing", event: saved };
+      });
+    const analytics = analyticsRepository({ append });
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const request = (body: unknown) =>
+        fetch(`${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`, {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: JSON.stringify(body),
+        });
+      expect((await request(ANALYTICS_EVENT)).status).toBe(202);
+      expect(
+        (
+          await request({
+            ...ANALYTICS_EVENT,
+            properties: { source: "shared", device: "desktop" },
+          })
+        ).status,
+      ).toBe(409);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("returns 503 when analytics hashing is not safely configured", async () => {
+    const originalSecret = process.env.ANALYTICS_HASH_SECRET;
+    delete process.env.ANALYTICS_HASH_SECRET;
+    const analytics = analyticsRepository();
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`,
+        {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: JSON.stringify(ANALYTICS_EVENT),
+        },
+      );
+      expect(response.status).toBe(503);
+      expect(analytics.append).not.toHaveBeenCalled();
+    } finally {
+      if (originalSecret === undefined)
+        delete process.env.ANALYTICS_HASH_SECRET;
+      else process.env.ANALYTICS_HASH_SECRET = originalSecret;
+      await server.close();
+    }
+  });
+
+  it("reports tenant-scoped aggregate counts without event payloads", async () => {
+    const listAccepted = vi
+      .fn<AnalyticsEventRepository["listAccepted"]>()
+      .mockResolvedValue([
+        analyticsRecord({ name: "invitation_viewed" }),
+        analyticsRecord({
+          id: "event-2",
+          name: "rsvp_submitted",
+          properties: { response: "ATTENDING" },
+        }),
+      ]);
+    const analytics = analyticsRepository({ listAccepted });
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/report?tenantId=tenant-1&from=2026-09-14T00:00:00.000Z&to=2026-09-15T00:00:00.000Z`,
+        { headers: { cookie: `ws_session=${SESSION_TOKEN}` } },
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        data: {
+          from: "2026-09-14T00:00:00.000Z",
+          to: "2026-09-15T00:00:00.000Z",
+          total: 2,
+          counts: {
+            invitation_viewed: 1,
+            invitation_published: 0,
+            rsvp_submitted: 1,
+            guestbook_submitted: 0,
+            checkout_started: 0,
+            checkout_completed: 0,
+          },
+        },
+      });
+      expect(listAccepted).toHaveBeenCalledWith(
+        { tenantId: "tenant-1" },
+        {
+          from: new Date("2026-09-14T00:00:00.000Z"),
+          to: new Date("2026-09-15T00:00:00.000Z"),
+        },
+      );
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("does not authorize analytics for a tenant without active membership", async () => {
+    const configured = repositories();
+    configured.membershipRepository = {
+      ...configured.membershipRepository,
+      resolveForUser: async ({ tenantId }) =>
+        tenantId === "tenant-1" ? [membership()] : [],
+    };
+    const analytics = analyticsRepository();
+    const server = await withServer({
+      ...configured,
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/report?tenantId=other-tenant&from=2026-09-14T00:00:00.000Z&to=2026-09-15T00:00:00.000Z`,
+        { headers: { cookie: `ws_session=${SESSION_TOKEN}` } },
+      );
+      expect(response.status).toBe(404);
+      expect(analytics.listAccepted).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("maps an oversized analytics report to a bounded 422 response", async () => {
+    const listAccepted = vi
+      .fn<AnalyticsEventRepository["listAccepted"]>()
+      .mockResolvedValue(
+        Array.from({ length: ANALYTICS_REPORT_MAX_EVENTS + 1 }, (_, index) =>
+          analyticsRecord({ id: `event-${index}` }),
+        ),
+      );
+    const analytics = analyticsRepository({ listAccepted });
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/report?tenantId=tenant-1&from=2026-09-14T00:00:00.000Z&to=2026-09-15T00:00:00.000Z`,
+        { headers: { cookie: `ws_session=${SESSION_TOKEN}` } },
+      );
+      expect(response.status).toBe(422);
+      expect(await response.json()).toEqual({
+        error: {
+          code: "REPORT_TOO_LARGE",
+          message: "The analytics report is too large for this range.",
+        },
+      });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("rejects an analytics body over the route byte limit", async () => {
+    const analytics = analyticsRepository();
+    const server = await withServer({
+      ...repositories(),
+      analyticsRepository: analytics.repository,
+      analyticsHashSecret: ANALYTICS_SECRET,
+      maxAnalyticsBodyBytes: 16,
+    });
+    try {
+      const response = await fetch(
+        `${server.baseUrl}/v1/analytics/events?tenantId=tenant-1`,
+        {
+          method: "POST",
+          headers: { cookie: `ws_session=${SESSION_TOKEN}` },
+          body: "x".repeat(17),
+        },
+      );
+      expect(response.status).toBe(413);
+      expect(analytics.append).not.toHaveBeenCalled();
     } finally {
       await server.close();
     }

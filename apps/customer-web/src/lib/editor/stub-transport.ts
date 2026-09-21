@@ -152,6 +152,7 @@ function defaultContent(): EditorContent {
     ],
     sections: DEFAULT_SECTION_CONFIG,
     media: [],
+    galleryAssetIds: [],
     settings: {
       invitationTitle: "Undangan Pernikahan Rani & Bima",
       slug: "rani-bima",
@@ -281,27 +282,18 @@ export async function saveEditor(command: {
   document: EditorDocument;
   baseVersion: number;
 }): Promise<EditorActionResult> {
-  if (typeof window !== "undefined") {
-    // The fixture selector is a development affordance only: it is sent as a
-    // header so the simulated states stay reachable in dev, and is omitted in
-    // production where the server governs the result.
-    const devFixture =
-      process.env.NODE_ENV !== "production" && command.fixture !== "normal";
+  if (typeof window !== "undefined" && command.fixture === "normal") {
     const response = await fetch("/api/editor", {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(devFixture ? { "x-editor-fixture": command.fixture } : {}),
-      },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        fixture: command.fixture,
         document: command.document,
         baseVersion: command.baseVersion,
       }),
     });
     const payload: unknown = await response.json().catch(() => null);
     const parsed = editorActionResultSchema.safeParse(payload);
-    if (!response.ok || !parsed.success) {
+    if (!parsed.success) {
       throw new Error("Editor transport returned an invalid response");
     }
     return parsed.data;

@@ -1,26 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, Button } from "@wedding/ui";
+import { exportGuestRosterAction } from "../../lib/guests/actions";
 
-type ExportStatus = "idle" | "processing" | "ready";
+type ExportStatus = "idle" | "processing" | "error";
+
+function downloadCsv(
+  filename: string,
+  csv: string,
+  contentType: string,
+): void {
+  const blob = new Blob(["\uFEFF", csv], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 
 export function GuestExportAction({
   canExport,
-  initialProcessing = false,
+  householdIds,
 }: {
   canExport: boolean;
-  initialProcessing?: boolean;
+  householdIds?: readonly string[];
 }) {
-  const [status, setStatus] = useState<ExportStatus>(
-    initialProcessing ? "processing" : "idle",
-  );
+  const [status, setStatus] = useState<ExportStatus>("idle");
+  const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!initialProcessing) return;
-    const timer = window.setTimeout(() => setStatus("ready"), 450);
-    return () => window.clearTimeout(timer);
-  }, [initialProcessing]);
+  const startExport = async () => {
+    setStatus("processing");
+    setMessage(null);
+    try {
+      const outcome = await exportGuestRosterAction({
+        ...(householdIds === undefined ? {} : { householdIds: [...householdIds] }),
+      });
+      if (outcome.kind !== "ok") {
+        setStatus("error");
+        setMessage(
+          outcome.kind === "forbidden"
+            ? "Anda tidak memiliki izin untuk mengekspor daftar tamu."
+            : outcome.kind === "not-found"
+              ? "Sebagian rumah tangga tidak ditemukan di workspace Anda."
+              : outcome.kind === "invalid"
+                ? (outcome.errors[0] ?? "Pilihan ekspor tidak valid.")
+                : "Ekspor belum dapat dibuat. Silakan coba lagi.",
+        );
+        return;
+      }
+      downloadCsv(outcome.filename, outcome.csv, outcome.contentType);
+      setStatus("idle");
+      setMessage(
+        `${outcome.householdCount} rumah tangga dan ${outcome.guestCount} tamu diekspor.`,
+      );
+    } catch {
+      setStatus("error");
+      setMessage("Ekspor belum dapat dibuat. Silakan coba lagi.");
+    }
+  };
 
   if (!canExport) {
     return (
@@ -35,11 +74,6 @@ export function GuestExportAction({
     );
   }
 
-  const startExport = () => {
-    setStatus("processing");
-    window.setTimeout(() => setStatus("ready"), 450);
-  };
-
   return (
     <div className="gst-export-action">
       {status === "processing" ? (
@@ -51,11 +85,13 @@ export function GuestExportAction({
           Menyiapkan ekspor…
         </p>
       ) : null}
-      {status === "ready" ? (
+      {message !== null ? (
         <div className="gst-export-action__ready">
-          <Alert variant="success" title="Ekspor siap diunduh">
-            Ini adalah simulasi UI. Pada versi produksi, file akan disediakan
-            melalui job tenant-scoped yang tercatat di audit.
+          <Alert
+            variant={status === "error" ? "warning" : "success"}
+            title={status === "error" ? "Ekspor gagal" : "Ekspor selesai"}
+          >
+            {message}
           </Alert>
         </div>
       ) : null}
@@ -63,9 +99,10 @@ export function GuestExportAction({
         type="button"
         variant="tertiary"
         loading={status === "processing"}
-        onClick={startExport}
+        disabled={status === "processing"}
+        onClick={() => void startExport()}
       >
-        {status === "ready" ? "Siapkan ekspor lagi" : "Ekspor daftar tamu"}
+        Ekspor daftar tamu
       </Button>
     </div>
   );

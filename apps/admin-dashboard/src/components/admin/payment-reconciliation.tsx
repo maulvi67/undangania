@@ -7,6 +7,7 @@ import { MaskedValue } from "./masked-value";
 import { OperationsTable } from "./operations-table";
 import { SectionState } from "./section-state";
 import { SeverityLabel } from "./attention-queue";
+import { AdminMutationAction } from "./admin-mutation-action";
 
 function paymentDetails(row: PaymentRow) {
   return (
@@ -123,9 +124,11 @@ export function PaymentReconciliation({
               render: (row) => (
                 <div className="admin-cell-action">
                   {paymentDetails(row)}
-                  <span className="admin-disabled-action">
-                    Periksa kembali · perlu backend terotorisasi
-                  </span>
+                  <AdminMutationAction
+                    action="reconcile_payment"
+                    targetId={row.id}
+                    label="Periksa status provider"
+                  />
                 </div>
               ),
             },

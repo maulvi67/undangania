@@ -100,7 +100,13 @@ describe("GuestLinkPanel disclosure", () => {
 
 describe("GuestBulkActions disclosure", () => {
   it("mengaitkan tombol tindakan dengan dialognya", () => {
-    render(<GuestBulkActions selectedCount={2} />);
+    render(
+      <GuestBulkActions
+        selectedCount={2}
+        selectedIds={["household-a", "household-b"]}
+        canExport
+      />,
+    );
     const trigger = screen.getByRole("button", { name: "Tindakan" });
     const dialog = expectDisclosureWiring(trigger);
 
@@ -108,13 +114,15 @@ describe("GuestBulkActions disclosure", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(dialog.open).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Ekspor pilihan" }));
-    expect(trigger.getAttribute("aria-expanded")).toBe("false");
-    expect(dialog.open).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "Ekspor daftar tamu" }),
+    ).toBeTruthy();
   });
 
   it("tidak merender apa pun saat tidak ada rumah tangga terpilih", () => {
-    const { container } = render(<GuestBulkActions selectedCount={0} />);
+    const { container } = render(
+      <GuestBulkActions selectedCount={0} selectedIds={[]} canExport />,
+    );
     expect(container.querySelector("dialog")).toBeNull();
     expect(screen.queryByRole("button", { name: "Tindakan" })).toBeNull();
   });

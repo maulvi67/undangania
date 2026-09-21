@@ -27,6 +27,7 @@ function aggregate(
       status: "ok",
       data: {
         status: "PUBLISHED",
+        slug: "rani-bima-1a2b3c4d",
         templateName: "Seruni",
         contentComplete: true,
         publishedAt: "2026-01-15T08:00:00.000Z",
@@ -87,6 +88,7 @@ describe("dashboard aggregate contract", () => {
               // `ARCHIVED` is a stored status the dashboard does not carry; the
               // loader maps it to EXPIRED before this point.
               status: "ARCHIVED" as never,
+              slug: "archived-invitation",
               templateName: null,
               contentComplete: false,
               publishedAt: null,
@@ -143,6 +145,7 @@ describe("deriveDashboardState", () => {
             status: "ok",
             data: {
               status: "PAUSED",
+              slug: "rani-bima-1a2b3c4d",
               templateName: "Seruni",
               contentComplete: true,
               publishedAt: "2026-01-15T08:00:00.000Z",

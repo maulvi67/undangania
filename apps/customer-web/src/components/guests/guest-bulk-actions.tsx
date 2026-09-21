@@ -1,8 +1,17 @@
 import { useId, useRef, useState } from "react";
 import { Alert, Button } from "@wedding/ui";
 import { GuestDialog } from "./guest-dialog";
+import { GuestExportAction } from "./guest-export-action";
 
-export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
+export function GuestBulkActions({
+  selectedCount,
+  selectedIds,
+  canExport,
+}: {
+  selectedCount: number;
+  selectedIds: readonly string[];
+  canExport: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState(false);
   const dialogId = useId();
@@ -26,9 +35,8 @@ export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
       </Button>
       {notice ? (
         <div className="gst-bulk__notice">
-          <Alert variant="success" title="Tindakan disimpan">
-            Pada versi produksi, tag dan ekspor akan diproses melalui layanan
-            tenant-scoped.
+          <Alert variant="warning" title="Tag belum tersedia">
+            Tag belum dapat disimpan karena workspace ini belum memiliki tabel tag.
           </Alert>
         </div>
       ) : null}
@@ -50,16 +58,12 @@ export function GuestBulkActions({ selectedCount }: { selectedCount: number }) {
           >
             Tambahkan tag
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setNotice(true);
-              setOpen(false);
-            }}
-          >
-            Ekspor pilihan
-          </Button>
+          {canExport ? (
+            <GuestExportAction
+              canExport
+              householdIds={selectedIds}
+            />
+          ) : null}
           <p className="gst-bulk__note">
             Ganti atau nonaktifkan tautan tetap dilakukan satu per satu untuk
             mencegah pencabutan akses yang tidak disengaja.

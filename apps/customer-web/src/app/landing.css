@@ -56,6 +56,21 @@
   /* Motion: one curve for entrances, one for ambient drift. */
   --lnd-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --lnd-ease-drift: cubic-bezier(0.37, 0, 0.63, 1);
+
+  /*
+   * These two declarations are load-bearing, not decoration.
+   *
+   * Redefining the custom properties above is not enough on its own, because
+   * `body` resolved `background: var(--color-bg)` and `color: var(--color-text)`
+   * against the BASE tokens at its own scope — and `body` is this element's
+   * ancestor, so it can never see the overrides declared here. The result was a
+   * split page: the hero and the closing section paint their own backgrounds and
+   * showed the soft blue, while every other section and the footer inherited the
+   * base warm cream `#fbf8f2` and the base green ink. Painting both properties
+   * here puts the whole page on the marketing palette.
+   */
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 @media (prefers-reduced-motion: no-preference) {

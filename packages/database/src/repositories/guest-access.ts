@@ -1,16 +1,22 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import {
+  Prisma,
+  type InvitationStatus,
+  type PrismaClient,
+} from "@prisma/client";
 import { prisma } from "../client";
 import { hashToken } from "../tokens";
+import { isPublicSlug } from "./publication-reader";
 
 /**
  * Personalized guest access resolution.
  *
- * A guest receives a link containing an opaque token. The token is the *only*
- * thing that scopes the request — there is no session — so the lookup is keyed
- * on its SHA-256 hash and nothing else. A token that does not resolve is
- * reported as `null`; the caller renders the same "link not recognized" state it
- * would for an expired one, so a guessed token cannot be distinguished from a
- * revoked one.
+ * A guest receives a link containing an opaque token and an invitation slug. The
+ * token is the bearer credential, while the slug binds that credential to the
+ * public invitation currently being rendered. There is no session, so both values
+ * are checked in the same database predicate. A token that does not resolve for
+ * that slug is reported as `null`; the caller renders the same "link not
+ * recognized" state it would for an expired one, so a guessed token cannot be
+ * distinguished from a revoked or cross-invitation one.
  *
  * The returned row is deliberately narrow. It carries no contact data, no token
  * hash, and no other household's rows, because the response is rendered into an
@@ -47,6 +53,7 @@ const guestAccessSelect = {
       invitation: {
         select: {
           slug: true,
+          status: true,
           publications: {
             where: { active: true },
             select: { id: true },
@@ -124,6 +131,8 @@ export type GuestAccessDto = Readonly<{
   timezone: string;
   /** The wedding's invitation slug, once one exists. */
   slug: string | null;
+  /** The authoritative invitation lifecycle, or null before provisioning. */
+  invitationStatus: InvitationStatus | null;
   /** True only when the invitation has an active publication. */
   published: boolean;
   events: readonly GuestAccessEventDto[];
@@ -131,8 +140,14 @@ export type GuestAccessDto = Readonly<{
 }>;
 
 export interface GuestAccessRepository {
-  /** Resolves a raw personalized-link token. Returns null when unusable. */
-  resolveByToken(rawToken: string): Promise<GuestAccessDto | null>;
+  /**
+   * Resolves a raw personalized-link token within the current invitation slug.
+   * Returns null when the token is malformed, unusable, or belongs elsewhere.
+   */
+  resolveByToken(
+    rawToken: string,
+    invitationSlug: string,
+  ): Promise<GuestAccessDto | null>;
 }
 
 /**
@@ -163,6 +178,7 @@ function toDto(row: GuestAccessRow): GuestAccessDto {
     status: row.status,
     timezone: row.wedding.timezone,
     slug: invitation?.slug ?? null,
+    invitationStatus: invitation?.status ?? null,
     published: (invitation?.publications.length ?? 0) > 0,
     events: row.wedding.events.map((event) => ({
       id: event.id,
@@ -189,11 +205,17 @@ export class PrismaGuestAccessRepository implements GuestAccessRepository {
 
   public async resolveByToken(
     rawToken: string,
+    invitationSlug: string,
   ): Promise<GuestAccessDto | null> {
-    if (!isWellFormedGuestToken(rawToken)) return null;
+    if (!isWellFormedGuestToken(rawToken) || !isPublicSlug(invitationSlug)) {
+      return null;
+    }
 
     const row = await this.client.guestHousehold.findFirst({
-      where: { tokenHash: hashToken(rawToken) },
+      where: {
+        tokenHash: hashToken(rawToken),
+        wedding: { invitation: { slug: invitationSlug } },
+      },
       select: guestAccessSelect,
     });
     return row === null ? null : toDto(row);

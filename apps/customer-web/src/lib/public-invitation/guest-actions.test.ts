@@ -1,17 +1,76 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GUESTBOOK_MAX_LENGTH,
   validateGuestbookMessage,
 } from "../guestbook/contract";
 import { normalizePax, validateRsvpUpdates } from "@wedding/database";
+import { submitGuestbookAction, submitRsvpAction } from "./guest-actions";
+
+const guestAccessMock = vi.hoisted(() => ({
+  resolveByToken:
+    vi.fn<(token: string, invitationSlug: string) => Promise<null>>(),
+}));
+
+vi.mock("@wedding/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@wedding/database")>();
+  return {
+    ...actual,
+    PrismaGuestAccessRepository: class {
+      public resolveByToken(token: string, invitationSlug: string) {
+        return guestAccessMock.resolveByToken(token, invitationSlug);
+      }
+    },
+  };
+});
 
 /**
- * The Server Actions themselves cannot be unit-tested here: they resolve a session
- * and reach the database, and the repository-level rules they delegate to are
- * already covered by `@wedding/database`'s own suites. What this pins down is the
- * validation contract the actions share with those rules, so a change to one that
- * silently diverges from the other fails here.
+ * The action tests keep the database rule in its own repository suite and focus
+ * here on the server-action boundary: the current invitation slug must be passed
+ * alongside the bearer token before either guest write can proceed.
  */
+
+beforeEach(() => {
+  guestAccessMock.resolveByToken.mockReset().mockResolvedValue(null);
+});
+
+describe("guest action invitation binding", () => {
+  it("passes the current invitation slug when resolving an RSVP token", async () => {
+    const result = await submitRsvpAction({
+      token: "token-from-a",
+      invitationSlug: "invitation-b",
+      idempotencyKey: "key-abcdefghijklmnop",
+      updates: [
+        {
+          eventId: "event-b",
+          response: "ATTENDING",
+          pax: 1,
+          expectedVersion: null,
+        },
+      ],
+    });
+
+    expect(result.kind).toBe("error");
+    expect(guestAccessMock.resolveByToken).toHaveBeenCalledWith(
+      "token-from-a",
+      "invitation-b",
+    );
+  });
+
+  it("passes the current invitation slug when resolving a guestbook token", async () => {
+    const result = await submitGuestbookAction({
+      token: "token-from-a",
+      invitationSlug: "invitation-b",
+      message: "Selamat menempuh hidup baru.",
+      idempotencyKey: "key-abcdefghijklmnop",
+    });
+
+    expect(result.kind).toBe("error");
+    expect(guestAccessMock.resolveByToken).toHaveBeenCalledWith(
+      "token-from-a",
+      "invitation-b",
+    );
+  });
+});
 
 describe("rsvp action input bounds", () => {
   it("accepts the payload sizes the form produces", () => {

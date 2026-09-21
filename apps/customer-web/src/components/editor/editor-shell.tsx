@@ -26,7 +26,12 @@ import {
   type StaleConflict,
 } from "../../lib/editor/stale-merge";
 import { reduceAutosaveState } from "../../lib/editor/autosave-state";
-import { saveEditor } from "../../lib/editor/stub-transport";
+import {
+  hasPendingMedia,
+  mediaStateForContent,
+  reconcileMediaAssets,
+} from "../../lib/editor/media-reconciliation";
+import { saveEditorDocument } from "../../lib/editor/transport";
 import {
   publishInvitationAction,
   type PublishOutcome,
@@ -39,6 +44,7 @@ import { MobilePreviewDialog } from "./mobile-preview-dialog";
 import { PublicationReadiness } from "./publication-readiness";
 import { StaleVersionPanel } from "./stale-version-panel";
 import { EditorProviderState } from "./provider-state";
+import { listMediaAssetsAction } from "../../lib/media/actions";
 
 export function EditorRouteView({
   result,
@@ -98,6 +104,7 @@ function EditorShell({
   const [uploadState, setUploadState] = useState<EditorMediaState | null>(
     result.initialUploadState,
   );
+  const [mediaRefreshError, setMediaRefreshError] = useState(false);
   const [previewMode, setPreviewMode] = useState<"phone" | "desktop">("phone");
   const [recoveryDraft, setRecoveryDraft] = useState<StoredEditorDraft | null>(
     null,
@@ -199,6 +206,57 @@ function EditorShell({
       );
   }, []);
 
+  useEffect(() => {
+    if (fixture !== "normal" || !hasPendingMedia(document.content)) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const refreshMedia = async () => {
+      if (cancelled || attempts >= maxAttempts) return;
+      attempts += 1;
+      const outcome = await listMediaAssetsAction();
+      if (cancelled) return;
+      if (outcome.kind !== "ok") {
+        setMediaRefreshError(true);
+        return;
+      }
+
+      setMediaRefreshError(false);
+      const current = documentRef.current;
+      const reconciled = reconcileMediaAssets(current.content, outcome);
+      if (!reconciled.changed) return;
+
+      const nextDocument: EditorDocument = {
+        ...current,
+        content: reconciled.content,
+      };
+      documentRef.current = nextDocument;
+      setDocument(nextDocument);
+      const nextState = mediaStateForContent(nextDocument.content);
+      setUploadState(nextState);
+      if (nextState === "PROCESSING" || nextState === "SCANNING") {
+        setSaveState((state) =>
+          reduceAutosaveState(state, { type: "UPLOAD_PROCESSING" }),
+        );
+      } else if (nextState === "REJECTED") {
+        setSaveState((state) =>
+          reduceAutosaveState(state, { type: "UPLOAD_REJECTED" }),
+        );
+      } else {
+        setSaveState((state) => reduceAutosaveState(state, { type: "CHANGE" }));
+      }
+    };
+
+    void refreshMedia();
+    const timer = window.setInterval(() => void refreshMedia(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [document.content, fixture]);
+
   const finishSave = useCallback((saved: EditorDocument) => {
     documentRef.current = saved;
     baseDocumentRef.current = saved;
@@ -219,7 +277,7 @@ function EditorShell({
       const base = baseDocumentRef.current;
       savingRef.current = true;
       setSaveState("saving");
-      void saveEditor({
+      void saveEditorDocument({
         fixture,
         document: snapshot,
         baseVersion: base.version,
@@ -277,6 +335,11 @@ function EditorShell({
             return;
           }
           if (action.kind === "provider-unavailable") {
+            saveStoredEditorDraft(snapshot.invitationId, {
+              document: snapshot,
+              baseVersion: base.version,
+              savedAt: Date.now(),
+            });
             setSaveState("provider-unavailable");
             return;
           }
@@ -299,7 +362,13 @@ function EditorShell({
     return () => window.clearTimeout(timer);
   }, [document, fixture, finishSave, saveState]);
 
-  const retrySave = useCallback(() => setSaveState("dirty"), []);
+  const retrySave = useCallback(
+    () =>
+      setSaveState((current) =>
+        reduceAutosaveState(current, { type: "RETRY" }),
+      ),
+    [],
+  );
   const restoreRecovery = useCallback(() => {
     if (!recoveryDraft) return;
     setDocument({
@@ -373,9 +442,13 @@ function EditorShell({
     result.template.manifest,
   );
   const statusMessage =
-    uploadState === "PROCESSING"
-      ? "Media sedang diproses; bagian ini belum siap untuk publikasi."
-      : null;
+    uploadState === "UPLOADED"
+      ? "Media sudah diunggah dan sedang menunggu pemeriksaan. Media belum tampil di undangan publik."
+      : uploadState === "SCANNING"
+        ? "Media sedang diperiksa untuk keamanan. Media belum tampil di undangan publik."
+        : uploadState === "PROCESSING"
+          ? "Media sedang diproses; bagian ini belum siap untuk publikasi."
+          : null;
 
   return (
     <div className="ed-shell">
@@ -405,8 +478,15 @@ function EditorShell({
             </Alert>
           ) : null}
           {statusMessage ? (
-            <Alert variant="info" title="Media sedang diproses">
+            <Alert variant="info" title="Status media diperbarui otomatis">
               {statusMessage}
+            </Alert>
+          ) : null}
+          {mediaRefreshError ? (
+            <Alert variant="warning" title="Status media belum diperbarui">
+              Kami belum dapat mengambil status terbaru. Halaman akan mencoba
+              lagi selama sekitar satu menit; jangan unggah ulang selama media
+              masih terlihat di daftar.
             </Alert>
           ) : null}
           {saveState === "offline" ? (

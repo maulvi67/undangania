@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { prisma } from "../client";
+import { guestbookMessageId } from "./guestbook-submission";
 
 /**
  * Submission rate limiting for the guest-facing writes.
@@ -148,12 +149,16 @@ export class PrismaSubmissionRateLimiter {
     householdId: string,
     now: Date,
     policy: RateLimitPolicy = RSVP_RATE_LIMIT,
+    idempotencyKey?: string,
   ): Promise<RateLimitDecision> {
     const rows = await this.client.outboxEvent.findMany({
       where: {
         aggregateType: "GuestHousehold",
         aggregateId: householdId,
         eventType: "RsvpSubmitted",
+        ...(idempotencyKey === undefined
+          ? {}
+          : { id: { not: idempotencyKey } }),
       },
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
@@ -174,9 +179,15 @@ export class PrismaSubmissionRateLimiter {
     householdId: string,
     now: Date,
     policy: RateLimitPolicy = GUESTBOOK_RATE_LIMIT,
+    idempotencyKey?: string,
   ): Promise<RateLimitDecision> {
     const rows = await this.client.guestbookMessage.findMany({
-      where: { householdId },
+      where: {
+        householdId,
+        ...(idempotencyKey === undefined
+          ? {}
+          : { id: { not: guestbookMessageId(householdId, idempotencyKey) } }),
+      },
       orderBy: { submittedAt: "desc" },
       select: { submittedAt: true },
       take: policy.limit,

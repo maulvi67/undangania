@@ -3,6 +3,7 @@ import { formatAdminTimestamp } from "../../lib/admin/formatters";
 import { OperationsTable } from "./operations-table";
 import { SectionState } from "./section-state";
 import { SeverityLabel } from "./attention-queue";
+import { AdminMutationAction } from "./admin-mutation-action";
 
 function jobDetails(row: FailedJobRow) {
   return (
@@ -106,9 +107,12 @@ export function FailedJobs({
               render: (row) => (
                 <div className="admin-cell-action">
                   {jobDetails(row)}
-                  <span className="admin-disabled-action">
-                    Retry · perlu pemeriksaan idempotensi
-                  </span>
+                  <AdminMutationAction
+                    action="retry_failed_job"
+                    targetId={row.id}
+                    targetType={row.queue === "notifikasi" ? "notification" : "outbox"}
+                    label="Retry dengan audit"
+                  />
                 </div>
               ),
             },

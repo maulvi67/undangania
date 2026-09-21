@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
-import { Prisma, type PrismaClient } from "@prisma/client";
+import {
+  Prisma,
+  type InvitationStatus,
+  type PrismaClient,
+} from "@prisma/client";
 import { prisma } from "../client";
 
 /**
@@ -39,6 +43,9 @@ export type GuestbookSubmitResult =
   | Readonly<{ kind: "success"; messageId: string; submittedAt: Date }>
   | Readonly<{ kind: "replayed"; messageId: string; submittedAt: Date }>
   | Readonly<{ kind: "invalid"; reason: GuestbookValidationFailure }>
+  | Readonly<{ kind: "idempotency-conflict" }>
+  | Readonly<{ kind: "paused" }>
+  | Readonly<{ kind: "expired" }>
   | Readonly<{ kind: "not-found" }>;
 
 const householdSelect = {
@@ -47,6 +54,20 @@ const householdSelect = {
   weddingId: true,
   displayName: true,
   status: true,
+  wedding: {
+    select: {
+      invitation: {
+        select: {
+          status: true,
+          publications: {
+            where: { active: true },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  },
 } as const satisfies Prisma.GuestHouseholdSelect;
 
 type HouseholdRow = Prisma.GuestHouseholdGetPayload<{
@@ -55,6 +76,7 @@ type HouseholdRow = Prisma.GuestHouseholdGetPayload<{
 
 const messageSelect = {
   id: true,
+  message: true,
   submittedAt: true,
 } as const satisfies Prisma.GuestbookMessageSelect;
 
@@ -189,12 +211,20 @@ export async function applyGuestbookSubmission(
     select: messageSelect,
   });
   if (existing !== null) {
-    return {
-      kind: "replayed",
-      messageId: existing.id,
-      submittedAt: existing.submittedAt,
-    };
+    return existing.message === validation.value
+      ? {
+          kind: "replayed",
+          messageId: existing.id,
+          submittedAt: existing.submittedAt,
+        }
+      : { kind: "idempotency-conflict" };
   }
+
+  const lifecycle = invitationLifecycleFailure(
+    household.wedding.invitation?.status ?? null,
+    household.wedding.invitation?.publications.length ?? 0,
+  );
+  if (lifecycle !== null) return { kind: lifecycle };
 
   const created = await client.guestbookMessage.create({
     data: {
@@ -237,6 +267,15 @@ export async function applyGuestbookSubmission(
     messageId: created.id,
     submittedAt: created.submittedAt,
   };
+}
+
+function invitationLifecycleFailure(
+  status: InvitationStatus | null,
+  activePublicationCount: number,
+): "paused" | "expired" | null {
+  if (status === "EXPIRED" || status === "ARCHIVED") return "expired";
+  if (status !== "PUBLISHED" || activePublicationCount === 0) return "paused";
+  return null;
 }
 
 /**

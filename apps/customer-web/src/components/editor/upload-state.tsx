@@ -2,8 +2,8 @@ import { Alert, Badge } from "@wedding/ui";
 import type { EditorMediaState } from "../../lib/editor/contract";
 
 const labels: Record<EditorMediaState, string> = {
-  PENDING_UPLOAD: "Menunggu unggah",
-  UPLOADED: "Sudah diunggah",
+  PENDING_UPLOAD: "Menunggu pengiriman",
+  UPLOADED: "Menunggu pemeriksaan",
   SCANNING: "Sedang diperiksa",
   PROCESSING: "Sedang diproses",
   READY: "Siap digunakan",
