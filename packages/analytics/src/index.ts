@@ -8,8 +8,21 @@ export {
   type AnalyticsRateLimitDecision,
   type AnalyticsRateLimitOperation,
   type AnalyticsRateLimiter,
-  type AnalyticsRateLimitScope,
+  AnalyticsRateLimiterUnavailableError,
 } from "./rate-limit";
+export {
+  ANALYTICS_REDIS_RATE_LIMIT_SCRIPT,
+  RedisAnalyticsRateLimiter,
+  type AnalyticsRedisEvalClient,
+  type RedisAnalyticsRateLimiterOptions,
+} from "./redis-rate-limit";
+export {
+  ANALYTICS_RETENTION_MAX_BATCH_SIZE,
+  dryRunAnalyticsRetention,
+  type AnalyticsRetentionCandidate,
+  type AnalyticsRetentionDryRun,
+  type AnalyticsRetentionRepository,
+} from "./retention";
 
 export const ANALYTICS_SCHEMA_VERSION = 1 as const;
 export const ANALYTICS_HASH_SECRET_MIN_LENGTH = 32;

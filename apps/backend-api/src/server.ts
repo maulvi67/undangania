@@ -23,6 +23,7 @@ import type {
 import {
   ANALYTICS_HASH_SECRET_MIN_LENGTH,
   AnalyticsReportLimitError,
+  assertAnalyticsRateLimitDecision,
   ingestAnalyticsEvent,
   parseAnalyticsReportRange,
   reportAnalyticsEvents,
@@ -222,19 +223,13 @@ async function enforceAnalyticsRateLimit(
   }
 
   try {
-    const decision = await limiter.consume({
-      scope: { tenantId: auth.tenantId, actorId: auth.actorId },
-      operation,
-      now: requestNow(options),
-    });
-    if (
-      !Number.isSafeInteger(decision.remaining) ||
-      decision.remaining < 0 ||
-      !Number.isSafeInteger(decision.retryAfterSeconds) ||
-      decision.retryAfterSeconds < 0
-    ) {
-      throw new Error("Invalid analytics rate-limit decision");
-    }
+    const decision = assertAnalyticsRateLimitDecision(
+      await limiter.consume({
+        scope: { tenantId: auth.tenantId, actorId: auth.actorId },
+        operation,
+        now: requestNow(options),
+      }),
+    );
     if (!decision.allowed) {
       throw new HttpError(
         429,

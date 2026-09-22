@@ -25,7 +25,7 @@ MediaAsset, Gallery, GalleryItem.
 Upload, verify, list, caption, remove, public read resolution.
 
 ## Validation
-MIME allowlist, size limits, server-observed object metadata, tenant/wedding scope, and safe server-generated object keys are enforced before processing. The provider-neutral worker contract requires magic-byte inspection, image dimensions, malware scanning, and derivative generation before `READY`. Provider adapters remain deployment-specific and are not activated by this repository change.
+MIME allowlist, size limits, server-observed object metadata, tenant/wedding scope, and safe server-generated object keys are enforced before processing. The application now provides a bounded content inspector contract: a storage adapter reads at most 64 KiB from a tenant-scoped object range, verifies the declared magic signature, and extracts JPEG/PNG/WebP dimensions without loading the original into the application. The provider-neutral worker contract still requires malware scanning and derivative generation before `READY`; those provider adapters remain deployment-specific and are not activated by this repository change.
 
 ## Edge cases
 Orphaned pending rows, failed signed uploads, provider metadata mismatch, missing/deleted assets, signed URL failure, and cross-tenant/cross-wedding asset IDs.
@@ -54,7 +54,7 @@ Keep the R2 bucket private. Configure bucket CORS to allow browser `PUT` request
 - Run an orphan cleanup job for stale `PENDING_UPLOAD`/`UPLOADED` rows and their objects.
 - Keep upload URLs around 15 minutes or less and public read URLs around 5 minutes.
 - Alert on repeated `ProviderUnavailable` outcomes and outbox events stuck in `PENDING`.
-- A worker consumes the versioned media-processing job through application ports. Provider configuration must supply an object inspector, malware scanner, and derivative writer; failures are retried without marking the asset `READY`.
+- A worker consumes the versioned media-processing job through application ports. The application exports a bounded content inspector that can be backed by `R2StorageAdapter.readPrefix`; provider configuration must still supply malware scanner and derivative writer adapters. Range requests must return `206 Partial Content`; failures are retried without marking the asset `READY`.
 - The editor reconciles persisted lifecycle states with a bounded three-second polling loop while an asset is `PENDING_UPLOAD`, `UPLOADED`, `SCANNING`, or `PROCESSING`. The loop stops at `READY`, `REJECTED`, `DELETED`, after 20 attempts, or when the editor unmounts.
 - Cleanup currently exposes a bounded dry-run candidate interface only. Destructive object/row cleanup requires data-retention and database-owner approval plus a scheduled, audited implementation.
 

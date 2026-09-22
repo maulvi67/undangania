@@ -1,6 +1,8 @@
 import {
+  createMediaContentInspector,
   MediaProcessingRetryableError,
   processMediaAsset,
+  type MediaObjectPrefixReader,
   type MediaProcessingJob,
   type MediaProcessingPorts,
 } from "@wedding/application";
@@ -21,6 +23,29 @@ type MediaJobPayload = MediaProcessingJob;
 type WorkerDependencies = Readonly<{
   media?: MediaProcessingPorts;
 }>;
+
+export type MediaProcessingAdapterDependencies = Readonly<{
+  media: MediaProcessingPorts["media"];
+  objectPrefixReader: MediaObjectPrefixReader;
+  scanner: MediaProcessingPorts["scanner"];
+  derivatives: MediaProcessingPorts["derivatives"];
+}>;
+
+/**
+ * Composes the storage-backed content inspector without binding the worker to a
+ * storage SDK. Scanner and derivative providers remain explicit dependencies and
+ * are never activated by this helper.
+ */
+export function createMediaProcessingPorts(
+  input: MediaProcessingAdapterDependencies,
+): MediaProcessingPorts {
+  return {
+    media: input.media,
+    inspector: createMediaContentInspector(input.objectPrefixReader),
+    scanner: input.scanner,
+    derivatives: input.derivatives,
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -77,8 +102,17 @@ export async function processJob(
     throw new Error("Media processing is not configured");
   }
 
+  const payload = mediaJobPayload(job.payload);
+  if (
+    job.tenantId === undefined ||
+    job.tenantId !== payload.tenantId ||
+    job.idempotencyKey !== payload.idempotencyKey
+  ) {
+    throw new Error("Invalid media processing job scope");
+  }
+
   try {
-    await processMediaAsset(mediaJobPayload(job.payload), media);
+    await processMediaAsset(payload, media);
   } catch (error) {
     if (error instanceof MediaProcessingRetryableError) throw error;
     throw error;

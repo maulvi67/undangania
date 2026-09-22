@@ -17,11 +17,11 @@ The application fails closed when any value is absent or invalid. Access and sec
 
 Configure R2 CORS for the exact customer-web origins that may upload. Allow browser `PUT` with `Content-Type` and `Content-Length`; do not make the bucket public. Signed upload URLs are short-lived, and public invitation read URLs are generated at render time with a shorter lifetime.
 
-No production credentials or provider deployment changes belong in this repository. The `MediaAsset` schema already exists, so enabling the adapter requires no migration.
+No production credentials or provider deployment changes belong in this repository. The `MediaAsset` schema already exists, so enabling the adapter requires no migration. The approved worker deployment may back `createMediaContentInspector` with the storage adapter's tenant-scoped `readPrefix` operation; it must keep the 64 KiB cap and require `206 Partial Content`. Malware scanning and derivative writing remain separate provider approvals.
 
 ## Analytics telemetry
 
-Configure `ANALYTICS_HASH_SECRET` independently per environment as a server-only secret of at least 32 characters. The backend fails closed with `503 PROVIDER_UNAVAILABLE` when it is absent or too short; never expose it to a client bundle or write it to logs. The backend also requires an injected distributed/atomic analytics rate limiter shared across replicas: the initial staging policy is 60 ingestion requests/minute and 30 report requests/minute per authenticated actor+tenant. Do not substitute a process-local limiter in production. Define retention/cleanup for `AnalyticsEventAccepted` rows in the existing outbox operations before enabling high-volume ingestion.
+Configure `ANALYTICS_HASH_SECRET` independently per environment as a server-only secret of at least 32 characters. The backend fails closed with `503 PROVIDER_UNAVAILABLE` when it is absent or too short; never expose it to a client bundle or write it to logs. The backend also requires an injected distributed/atomic analytics rate limiter shared across replicas: the initial staging policy is 60 ingestion requests/minute and 30 report requests/minute per authenticated actor+tenant. The repository includes a Redis-compatible atomic sliding-window adapter, but the deployment must inject an authenticated Redis client and must not substitute a process-local limiter in production. Define and approve retention/cleanup for `AnalyticsEventAccepted` rows in the existing outbox before enabling high-volume ingestion.
 
 ## Admin privileged mutations
 

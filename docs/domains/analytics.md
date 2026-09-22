@@ -62,8 +62,8 @@ The existing transactional outbox model is reused as the durable analytics write
 - `ANALYTICS_HASH_SECRET` is server-only and must be at least 32 characters. Raw tenant and actor identifiers never cross the analytics package's persistence payload boundary.
 - Consent is required at ingestion, but consent does not make arbitrary data permissible; the schema allowlist remains mandatory.
 - Reports are authenticated, tenant-scoped, aggregate-only, and sent with `Cache-Control: no-store`.
-- The route applies a strict request-body byte limit and requires an injected distributed rate limiter. The initial staging policy is 60 ingestion requests and 30 report requests per authenticated actor+tenant per rolling minute. A limiter must be atomic and shared across replicas; the backend fails closed with `503 PROVIDER_UNAVAILABLE` when it is not configured.
-- Retention and deletion policy for analytics rows must be defined before production data volume grows. The existing outbox worker/operational cleanup policy must also account for accepted analytics events.
+- The route applies a strict request-body byte limit and requires an injected distributed rate limiter. The initial staging policy is 60 ingestion requests and 30 report requests per authenticated actor+tenant per rolling minute. The Redis adapter uses an atomic sliding-window script and hashed key material; it must be shared across replicas. The backend fails closed with `503 PROVIDER_UNAVAILABLE` when it is not configured.
+- Retention and deletion policy for analytics rows must be defined before production data volume grows. The repository now exposes a bounded dry-run candidate list over accepted analytics events; no delete operation exists until the retention policy and audited scheduler are approved.
 
 ## Domain events
 

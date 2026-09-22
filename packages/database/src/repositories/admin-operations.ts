@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { prisma } from "../client";
 
@@ -356,6 +356,19 @@ const auditRowSelect = {
   createdAt: true,
 } as const satisfies Prisma.AuditEventSelect;
 
+const recoverPublicationSelect = {
+  id: true,
+  tenantId: true,
+  invitationId: true,
+  publicationVersion: true,
+  active: true,
+  invitation: { select: { tenantId: true, status: true } },
+} as const satisfies Prisma.InvitationPublicationSelect;
+
+type RecoverPublicationRow = Prisma.InvitationPublicationGetPayload<{
+  select: typeof recoverPublicationSelect;
+}>;
+
 type AuditEventRow = Prisma.AuditEventGetPayload<{
   select: typeof auditRowSelect;
 }>;
@@ -576,7 +589,23 @@ type AdminOperationsDelegates = Pick<
 type AdminOperationsPrismaClient = AdminOperationsDelegates &
   Pick<PrismaClient, "$transaction">;
 
-type AdminMutationClient = Readonly<{
+export type AdminMutationClient = Readonly<{
+  invitationPublication: {
+    findFirst(args: {
+      where: Prisma.InvitationPublicationWhereInput;
+      select: typeof recoverPublicationSelect;
+    }): Promise<RecoverPublicationRow | null>;
+    updateMany(args: {
+      where: Prisma.InvitationPublicationWhereInput;
+      data: Prisma.InvitationPublicationUpdateManyMutationInput;
+    }): Promise<{ count: number }>;
+  };
+  invitation: {
+    updateMany(args: {
+      where: Prisma.InvitationWhereInput;
+      data: Prisma.InvitationUpdateManyMutationInput;
+    }): Promise<{ count: number }>;
+  };
   notification: {
     updateMany(args: {
       where: Prisma.NotificationWhereInput;
@@ -588,6 +617,9 @@ type AdminMutationClient = Readonly<{
       where: Prisma.OutboxEventWhereInput;
       data: Prisma.OutboxEventUpdateManyMutationInput;
     }): Promise<{ count: number }>;
+    create(args: {
+      data: Prisma.OutboxEventUncheckedCreateInput;
+    }): Promise<{ id: string }>;
   };
   supportCase: {
     updateMany(args: {
@@ -620,21 +652,42 @@ type AdminMutationClient = Readonly<{
 
 type AdminMutationDelegates = Pick<
   PrismaClient,
-  "notification" | "outboxEvent" | "supportCase" | "template" | "auditEvent"
+  | "invitationPublication"
+  | "invitation"
+  | "notification"
+  | "outboxEvent"
+  | "supportCase"
+  | "template"
+  | "auditEvent"
 >;
 
 type AdminMutationPrismaClient = AdminMutationDelegates &
   Pick<PrismaClient, "$transaction">;
 
+export type AdminMutationDatabaseClient = AdminMutationClient &
+  Readonly<{
+    transaction<T>(
+      work: (client: AdminMutationClient) => Promise<T>,
+    ): Promise<T>;
+  }>;
+
 function adaptAdminMutationClient(
   client: AdminMutationDelegates,
 ): AdminMutationClient {
   return {
+    invitationPublication: {
+      findFirst: (args) => client.invitationPublication.findFirst(args),
+      updateMany: (args) => client.invitationPublication.updateMany(args),
+    },
+    invitation: {
+      updateMany: (args) => client.invitation.updateMany(args),
+    },
     notification: {
       updateMany: (args) => client.notification.updateMany(args),
     },
     outboxEvent: {
       updateMany: (args) => client.outboxEvent.updateMany(args),
+      create: (args) => client.outboxEvent.create(args),
     },
     supportCase: {
       updateMany: (args) => client.supportCase.updateMany(args),
@@ -695,6 +748,20 @@ function isUniqueConstraintError(error: unknown): boolean {
   );
 }
 
+class DuplicateAdminMutationAuditError extends Error {
+  public constructor() {
+    super("The admin mutation audit already exists");
+    this.name = "DuplicateAdminMutationAuditError";
+  }
+}
+
+class AdminMutationConflictError extends Error {
+  public constructor() {
+    super("The admin mutation lost its compare-and-swap race");
+    this.name = "AdminMutationConflictError";
+  }
+}
+
 function adaptAdminOperationsDelegates(
   client: AdminOperationsDelegates,
 ): AdminOperationsClient {
@@ -738,19 +805,38 @@ export function adaptAdminOperationsClient(
 }
 
 export class PrismaAdminMutationRepository implements AdminMutationRepository {
+  private readonly database: AdminMutationDatabaseClient;
+
   public constructor(
-    private readonly client: AdminMutationPrismaClient = prisma,
-  ) {}
+    client: AdminMutationPrismaClient | AdminMutationDatabaseClient = prisma,
+  ) {
+    this.database =
+      "transaction" in client
+        ? client
+        : {
+            ...adaptAdminMutationClient(client),
+            transaction: <T>(
+              work: (transactionClient: AdminMutationClient) => Promise<T>,
+            ) =>
+              client.$transaction(async (transactionClient) =>
+                work(adaptAdminMutationClient(transactionClient)),
+              ),
+          };
+  }
 
   private async transaction(
     work: (client: AdminMutationClient) => Promise<boolean>,
   ): Promise<boolean> {
     try {
-      return await this.client.$transaction((transactionClient) =>
-        work(adaptAdminMutationClient(transactionClient)),
-      );
+      return await this.database.transaction(work);
     } catch (error) {
       if (isUniqueConstraintError(error)) return false;
+      if (
+        error instanceof DuplicateAdminMutationAuditError ||
+        error instanceof AdminMutationConflictError
+      ) {
+        return false;
+      }
       throw error;
     }
   }
@@ -769,7 +855,9 @@ export class PrismaAdminMutationRepository implements AdminMutationRepository {
       });
       return true;
     } catch (error) {
-      if (isUniqueConstraintError(error)) return false;
+      if (isUniqueConstraintError(error)) {
+        throw new DuplicateAdminMutationAuditError();
+      }
       throw error;
     }
   }
@@ -838,6 +926,82 @@ export class PrismaAdminMutationRepository implements AdminMutationRepository {
     });
   }
 
+  public recoverPublication(input: AdminMutationWriteInput): Promise<boolean> {
+    return this.transaction(async (client) => {
+      if (input.tenantId === null) return false;
+      const target = await client.invitationPublication.findFirst({
+        where: {
+          id: input.targetId,
+          tenantId: input.tenantId,
+        },
+        select: recoverPublicationSelect,
+      });
+      if (target === null || target.active) return false;
+      if (target.invitation.tenantId !== input.tenantId) return false;
+      if (
+        target.invitation.status !== "READY" &&
+        target.invitation.status !== "PUBLISHED" &&
+        target.invitation.status !== "PAUSED"
+      ) {
+        return false;
+      }
+
+      // The target update is a CAS (`active: false`). The demotion and promotion
+      // remain in the same transaction so an operation can never commit with an
+      // audit record but without the publication state change.
+      await client.invitationPublication.updateMany({
+        where: {
+          tenantId: input.tenantId,
+          invitationId: target.invitationId,
+          active: true,
+        },
+        data: { active: false },
+      });
+      const promoted = await client.invitationPublication.updateMany({
+        where: {
+          id: input.targetId,
+          tenantId: input.tenantId,
+          invitationId: target.invitationId,
+          active: false,
+        },
+        data: { active: true },
+      });
+      if (promoted.count !== 1) {
+        throw new AdminMutationConflictError();
+      }
+
+      const invitation = await client.invitation.updateMany({
+        where: {
+          id: target.invitationId,
+          tenantId: input.tenantId,
+          status: { in: ["READY", "PUBLISHED", "PAUSED"] },
+        },
+        data: { status: "PUBLISHED" },
+      });
+      if (invitation.count !== 1) {
+        throw new AdminMutationConflictError();
+      }
+
+      await client.outboxEvent.create({
+        data: {
+          id: randomUUID(),
+          tenantId: input.tenantId,
+          eventType: "InvitationPublished",
+          aggregateType: "Invitation",
+          aggregateId: target.invitationId,
+          payload: {
+            publicationId: target.id,
+            invitationId: target.invitationId,
+            publicationVersion: target.publicationVersion,
+          },
+          payloadVersion: 1,
+          createdAt: input.now,
+        },
+      });
+      return this.appendAuditInTransaction(client, input.audit, input.now);
+    });
+  }
+
   public escalateSupport(input: AdminMutationWriteInput): Promise<boolean> {
     return this.transaction(async (client) => {
       const changed = await client.supportCase.updateMany({
@@ -854,10 +1018,7 @@ export class PrismaAdminMutationRepository implements AdminMutationRepository {
   }
 
   public async appendAudit(input: AdminMutationAuditInput): Promise<void> {
-    const created = await this.appendAuditInTransaction(
-      adaptAdminMutationClient(this.client),
-      input,
-    );
+    const created = await this.appendAuditInTransaction(this.database, input);
     if (!created) return;
   }
 
@@ -866,8 +1027,7 @@ export class PrismaAdminMutationRepository implements AdminMutationRepository {
     limit: number;
     audit: AdminMutationAuditInput;
   }): Promise<readonly AdminAuditExportRow[]> {
-    return this.client.$transaction(async (transactionClient) => {
-      const client = adaptAdminMutationClient(transactionClient);
+    return this.database.transaction(async (client) => {
       await client.auditEvent.create({ data: auditCreateData(input.audit) });
       const rows = await client.auditEvent.findMany({
         where: {

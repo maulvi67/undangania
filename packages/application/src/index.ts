@@ -176,11 +176,14 @@ export {
   type RemoveMediaAssetResult,
 } from "./media";
 export {
+  createMediaContentInspector,
   detectMediaSignature,
+  MEDIA_INSPECTION_MAX_PREFIX_BYTES,
   MEDIA_REJECTION_CODES,
   processMediaAsset,
   MediaProcessingRetryableError,
   type MediaContentInspector,
+  type MediaObjectPrefixReader,
   type MediaDerivativeProcessor,
   type MediaInspection,
   type MediaMalwareScanner,

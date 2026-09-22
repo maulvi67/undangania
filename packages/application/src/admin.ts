@@ -335,25 +335,33 @@ export type AdminMutationWriteInput = Readonly<{
 
 export interface AdminMutationRepository {
   /** Performs the CAS write and its audit insert in one database transaction. */
-  retryFailedJob(input: AdminMutationWriteInput & {
-    targetType: AdminMutationTargetType;
-  }): Promise<boolean>;
+  retryFailedJob(
+    input: AdminMutationWriteInput & {
+      targetType: AdminMutationTargetType;
+    },
+  ): Promise<boolean>;
   /** Performs an immutable-version/status CAS and its audit insert atomically. */
-  moderateTemplate(input: AdminMutationWriteInput & {
-    version: string;
-    fromStatus: string;
-    toStatus: string;
-  }): Promise<boolean>;
+  moderateTemplate(
+    input: AdminMutationWriteInput & {
+      version: string;
+      fromStatus: string;
+      toStatus: string;
+    },
+  ): Promise<boolean>;
+  /** Re-activates an existing immutable publication snapshot atomically. */
+  recoverPublication(input: AdminMutationWriteInput): Promise<boolean>;
   /** Escalation is a state transition, never an overwrite of support content. */
   escalateSupport(input: AdminMutationWriteInput): Promise<boolean>;
   /** Provider-neutral append for external actions such as reconciliation. */
   appendAudit(event: AdminMutationAuditEvent): Promise<void>;
   /** Bounded, masked export; reveal has no port by design. */
-  exportAudit(input: Readonly<{
-    tenantId: string | null;
-    limit: number;
-    audit: AdminMutationAuditEvent;
-  }>): Promise<readonly AdminAuditExportRow[]>;
+  exportAudit(
+    input: Readonly<{
+      tenantId: string | null;
+      limit: number;
+      audit: AdminMutationAuditEvent;
+    }>,
+  ): Promise<readonly AdminAuditExportRow[]>;
 }
 
 export interface AdminPaymentReconciliationPort {
@@ -361,26 +369,27 @@ export interface AdminPaymentReconciliationPort {
    * Requests a provider-side check only. Implementations must not write Payment
    * truth; a verified provider notification remains the only state transition.
    */
-  request(input: Readonly<{
-    tenantId: string;
-    paymentId: string;
-    correlationId: string;
-    idempotencyKey: string;
-  }>): Promise<Readonly<{ requestId: string }>>;
+  request(
+    input: Readonly<{
+      tenantId: string;
+      paymentId: string;
+      correlationId: string;
+      idempotencyKey: string;
+    }>,
+  ): Promise<Readonly<{ requestId: string }>>;
 }
 
-export type AdminMutationIdempotencyClaim =
-  | "claimed"
-  | "replayed"
-  | "conflict";
+export type AdminMutationIdempotencyClaim = "claimed" | "replayed" | "conflict";
 
 export interface AdminMutationIdempotencyPort {
-  claim(input: Readonly<{
-    actorId: string;
-    idempotencyKey: string;
-    fingerprint: string;
-    at: Date;
-  }>): Promise<AdminMutationIdempotencyClaim>;
+  claim(
+    input: Readonly<{
+      actorId: string;
+      idempotencyKey: string;
+      fingerprint: string;
+      at: Date;
+    }>,
+  ): Promise<AdminMutationIdempotencyClaim>;
 }
 
 /**
@@ -388,9 +397,7 @@ export interface AdminMutationIdempotencyPort {
  * shared implementation; this bounded process-local store is intentionally not
  * selected by the production API path.
  */
-export class InMemoryAdminMutationIdempotencyPort
-  implements AdminMutationIdempotencyPort
-{
+export class InMemoryAdminMutationIdempotencyPort implements AdminMutationIdempotencyPort {
   private readonly entries = new Map<
     string,
     Readonly<{ fingerprint: string; expiresAt: number }>
@@ -415,7 +422,9 @@ export class InMemoryAdminMutationIdempotencyPort
     const key = `${input.actorId}:${input.idempotencyKey}`;
     const existing = this.entries.get(key);
     if (existing !== undefined) {
-      return existing.fingerprint === input.fingerprint ? "replayed" : "conflict";
+      return existing.fingerprint === input.fingerprint
+        ? "replayed"
+        : "conflict";
     }
 
     while (this.entries.size >= this.maxEntries) {
@@ -479,7 +488,9 @@ function validateAdminMutationInput(input: AdminMutationRequest): void {
     throw new InvalidInputError("Target operasi tidak valid.");
   }
   if (!validBoundedText(input.reason, 500)) {
-    throw new InvalidInputError("Reason wajib diisi dan maksimal 500 karakter.");
+    throw new InvalidInputError(
+      "Reason wajib diisi dan maksimal 500 karakter.",
+    );
   }
   if (input.confirmation !== "CONFIRM") {
     throw new InvalidInputError("Konfirmasi operasi tidak valid.");
@@ -492,12 +503,7 @@ function validateAdminMutationInput(input: AdminMutationRequest): void {
   }
 
   if (TENANT_BOUND_MUTATIONS.includes(input.action)) {
-    if (
-      input.tenantId === null &&
-      input.action !== "retry_failed_job" &&
-      input.action !== "reconcile_payment" &&
-      input.action !== "escalate_support"
-    ) {
+    if (input.tenantId === null) {
       throw new InvalidInputError("Operasi ini memerlukan tenant.");
     }
   } else if (input.action === "moderate_template") {
@@ -551,7 +557,9 @@ function assertTenantScope(
 function targetTypeFor(input: AdminMutationRequest): string {
   switch (input.action) {
     case "retry_failed_job":
-      return input.targetType === "notification" ? "Notification" : "OutboxEvent";
+      return input.targetType === "notification"
+        ? "Notification"
+        : "OutboxEvent";
     case "reconcile_payment":
       return "Payment";
     case "recover_publication":
@@ -670,11 +678,7 @@ export async function executeAdminMutation(
 
   // Unsupported actions fail closed after authentication but before claiming an
   // idempotency key, so enabling a future contract does not strand a key.
-  if (
-    input.action === "recover_publication" ||
-    input.action === "escalate_printing" ||
-    input.action === "reveal_audit"
-  ) {
+  if (input.action === "escalate_printing" || input.action === "reveal_audit") {
     throw new NotImplementedError(
       "Kontrak operasi ini belum tersedia dan tidak dijalankan.",
     );
@@ -703,7 +707,10 @@ export async function executeAdminMutation(
         now: options.now,
         audit,
       });
-      if (!changed) throw new ConflictError("Pekerjaan sudah berubah atau tidak ditemukan.");
+      if (!changed)
+        throw new ConflictError(
+          "Pekerjaan sudah berubah atau tidak ditemukan.",
+        );
       return completed(input, "Pekerjaan dimasukkan kembali ke antrean.");
     }
     case "moderate_template": {
@@ -716,8 +723,23 @@ export async function executeAdminMutation(
         now: options.now,
         audit,
       });
-      if (!changed) throw new ConflictError("Template sudah berubah atau tidak ditemukan.");
+      if (!changed)
+        throw new ConflictError("Template sudah berubah atau tidak ditemukan.");
       return completed(input, "Status template diperbarui.");
+    }
+    case "recover_publication": {
+      const changed = await ports.repository.recoverPublication({
+        tenantId: input.tenantId,
+        targetId: input.targetId,
+        now: options.now,
+        audit,
+      });
+      if (!changed) {
+        throw new ConflictError(
+          "Snapshot publikasi sudah berubah, tidak ditemukan, atau tidak dapat dipulihkan.",
+        );
+      }
+      return completed(input, "Snapshot publikasi dipulihkan.");
     }
     case "escalate_support": {
       const changed = await ports.repository.escalateSupport({
@@ -726,7 +748,8 @@ export async function executeAdminMutation(
         now: options.now,
         audit,
       });
-      if (!changed) throw new ConflictError("Kasus sudah berubah atau tidak ditemukan.");
+      if (!changed)
+        throw new ConflictError("Kasus sudah berubah atau tidak ditemukan.");
       return completed(input, "Kasus dukungan dieskalasikan.");
     }
     case "reconcile_payment": {

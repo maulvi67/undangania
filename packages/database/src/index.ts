@@ -188,6 +188,8 @@ export {
   type AdminLifecycleExceptionRowDto,
   type AdminLifecycleRowDto,
   type AdminMutationAuditInput,
+  type AdminMutationClient,
+  type AdminMutationDatabaseClient,
   type AdminMutationIdempotencyClaim,
   type AdminMutationTargetType,
   type AdminMutationWriteInput,

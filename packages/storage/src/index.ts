@@ -10,6 +10,13 @@ export interface StoragePort {
   }): Promise<{ url: string; expiresAt: string }>;
   delete(objectKey: string): Promise<void>;
   headObject(objectKey: string): Promise<StorageObjectMetadata>;
+  readPrefix(
+    input: Readonly<{
+      tenantId: string;
+      objectKey: string;
+      maxBytes: number;
+    }>,
+  ): Promise<Uint8Array>;
   createReadUrl(objectKey: string, expiresInSeconds: number): Promise<string>;
 }
 
@@ -25,11 +32,15 @@ export type StorageFetchResponse = Readonly<{
   headers: Readonly<{
     get(name: string): string | null;
   }>;
+  arrayBuffer(): Promise<ArrayBuffer>;
 }>;
 
 export type StorageFetch = (
   input: string,
-  init: Readonly<{ method: "HEAD" | "DELETE" }>,
+  init: Readonly<{
+    method: "GET" | "HEAD" | "DELETE";
+    headers?: Readonly<Record<string, string>>;
+  }>,
 ) => Promise<StorageFetchResponse>;
 
 export type R2StorageAdapterOptions = Readonly<{
@@ -46,6 +57,7 @@ export type R2StorageAdapterOptions = Readonly<{
 export const DEFAULT_UPLOAD_EXPIRES_IN_SECONDS = 15 * 60;
 export const DEFAULT_READ_EXPIRES_IN_SECONDS = 5 * 60;
 export const MAX_SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 60;
+export const MAX_OBJECT_PREFIX_BYTES = 64 * 1024;
 const INTERNAL_REQUEST_EXPIRES_IN_SECONDS = 60;
 const AWS_ALGORITHM = "AWS4-HMAC-SHA256";
 const AWS_TERMINATOR = "aws4_request";
@@ -53,7 +65,12 @@ const AWS_REGION = "auto";
 const AWS_SERVICE = "s3";
 
 const DEFAULT_FETCH: StorageFetch = async (input, init) =>
-  fetch(input, { method: init.method });
+  fetch(
+    input,
+    init.headers === undefined
+      ? { method: init.method }
+      : { method: init.method, headers: init.headers },
+  );
 
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
@@ -348,6 +365,73 @@ export class R2StorageAdapter implements StoragePort {
       contentType: response.headers.get("content-type"),
       etag: response.headers.get("etag")?.replace(/^"|"$/g, "") ?? null,
     };
+  }
+
+  public async readPrefix(
+    input: Readonly<{
+      tenantId: string;
+      objectKey: string;
+      maxBytes: number;
+    }>,
+  ): Promise<Uint8Array> {
+    const tenantId = requireNonBlank(input.tenantId, "Tenant ID");
+    const key = requireNonBlank(input.objectKey, "Storage object key");
+    if (!key.startsWith(`${tenantId}/`)) {
+      throw new Error("Storage object key must be tenant-scoped");
+    }
+    if (
+      !isPositiveSafeInteger(input.maxBytes) ||
+      input.maxBytes > MAX_OBJECT_PREFIX_BYTES
+    ) {
+      throw new Error(
+        `Object prefix size must be a positive integer no greater than ${MAX_OBJECT_PREFIX_BYTES} bytes`,
+      );
+    }
+
+    const response = await this.fetcher(
+      presignedUrl({
+        endpoint: this.endpoint,
+        bucket: this.bucket,
+        objectKey: key,
+        accessKeyId: this.accessKeyId,
+        secretAccessKey: this.secretAccessKey,
+        method: "GET",
+        expiresInSeconds: INTERNAL_REQUEST_EXPIRES_IN_SECONDS,
+        now: this.now(),
+      }),
+      {
+        method: "GET",
+        headers: { range: `bytes=0-${input.maxBytes - 1}` },
+      },
+    );
+    if (response.status !== 206) {
+      throw new Error("Storage prefix request did not return partial content");
+    }
+    const contentRange = response.headers.get("content-range");
+    const rangeMatch = /^bytes 0-(\d+)\/(?:\d+|\*)$/u.exec(contentRange ?? "");
+    if (rangeMatch === null) {
+      throw new Error("Storage prefix response range was invalid");
+    }
+    const rangeEnd = Number(rangeMatch[1]);
+    if (!Number.isSafeInteger(rangeEnd) || rangeEnd + 1 > input.maxBytes) {
+      throw new Error("Storage prefix response was too large");
+    }
+
+    const contentLengthValue = response.headers.get("content-length");
+    if (contentLengthValue !== null) {
+      const contentLength = Number(contentLengthValue);
+      if (
+        !isNonNegativeSafeInteger(contentLength) ||
+        contentLength > input.maxBytes
+      ) {
+        throw new Error("Storage prefix response was too large");
+      }
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > input.maxBytes) {
+      throw new Error("Storage prefix response was too large");
+    }
+    return bytes;
   }
 
   public async createReadUrl(

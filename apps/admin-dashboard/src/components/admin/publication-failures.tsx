@@ -6,6 +6,7 @@ import { formatAdminTimestamp } from "../../lib/admin/formatters";
 import { OperationsTable } from "./operations-table";
 import { SectionState } from "./section-state";
 import { SeverityLabel } from "./attention-queue";
+import { AdminMutationAction } from "./admin-mutation-action";
 
 function publicationDetails(row: PublicationFailureRow) {
   return (
@@ -113,8 +114,14 @@ export function PublicationFailures({
               render: (row) => (
                 <div className="admin-cell-action">
                   {publicationDetails(row)}
-                  <span className="admin-disabled-action">
-                    Retry · perlu otorisasi dan konfirmasi
+                  <AdminMutationAction
+                    action="recover_publication"
+                    targetId={row.id}
+                    label="Pulihkan snapshot"
+                  />
+                  <span className="ui-visually-hidden">
+                    {" "}
+                    untuk {row.invitationReference}
                   </span>
                 </div>
               ),
