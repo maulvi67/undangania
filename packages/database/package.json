@@ -20,7 +20,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:identity": "vitest run --passWithNoTests src/password.test.ts src/repositories/user-auth.test.ts"
+    "test:identity": "vitest run --passWithNoTests src/password.test.ts src/repositories/user-auth.test.ts src/repositories/oauth-account.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

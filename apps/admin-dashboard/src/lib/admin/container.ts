@@ -1,11 +1,9 @@
 import { PrismaAdminOperationsRepository } from "@wedding/database";
 import {
   PLATFORM_SECTIONS,
-  type AdminAuditRow,
   type AdminPlatformPort,
   type AdminPorts,
   type AdminQueryScope,
-  type AdminRow,
   type AdminTenantScopedPort,
 } from "@wedding/application";
 
@@ -22,8 +20,7 @@ function tenantScopedPort(): AdminTenantScopedPort {
   const repository = new PrismaAdminOperationsRepository();
 
   return {
-    loadPayments: (scope: AdminQueryScope): Promise<readonly AdminRow[]> =>
-      repository.loadPayments(scope),
+    loadPayments: (scope: AdminQueryScope) => repository.loadPayments(scope),
     loadPrinting: (scope: AdminQueryScope) => repository.loadPrinting(scope),
     loadSupport: (scope: AdminQueryScope) => repository.loadSupport(scope),
     loadPublicationFailures: (scope: AdminQueryScope) =>
@@ -39,8 +36,7 @@ function platformPort(): AdminPlatformPort {
     loadFailedJobs: (scope: AdminQueryScope) =>
       repository.loadFailedJobs(scope),
     loadTemplates: (scope: AdminQueryScope) => repository.loadTemplates(scope),
-    loadAudit: (scope: AdminQueryScope): Promise<readonly AdminAuditRow[]> =>
-      repository.loadAudit(scope),
+    loadAudit: (scope: AdminQueryScope) => repository.loadAudit(scope),
   };
 }
 

@@ -14,6 +14,10 @@ enum UserStatus {
   DELETED
 }
 
+enum OAuthProvider {
+  GOOGLE
+}
+
 enum MemberRole {
   OWNER
   EDITOR
@@ -130,6 +134,20 @@ model User {
   sessions        Session[]
   authTokens      AuthToken[]
   mfaCredentials  MfaCredential[]
+  oauthAccounts   OAuthAccount[]
+}
+
+model OAuthAccount {
+  id                String       @id @default(uuid())
+  userId            String
+  provider          OAuthProvider
+  providerAccountId String       @db.VarChar(255)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {

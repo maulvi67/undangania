@@ -7,10 +7,17 @@ Identity and access.
 customer, collaborator, vendor user, reseller, admin.
 
 ## Entities
-User, Account, Session, TenantMembership.
+User, Account, Session, TenantMembership, OAuthAccount.
 
 ## Business rules
-unique normalized email; MFA for privileged roles; revocable sessions.
+
+- Email is unique after normalization; sessions are revocable.
+- Privileged roles require MFA.
+- Google OAuth accepts verified identities and never grants roles.
+- New Google users receive the standard customer workspace and provider binding
+  in one transaction.
+- Existing password accounts are not silently linked by email. Explicit account
+  linking is not implemented yet.
 
 ## Status and transitions
 INVITED → ACTIVE → SUSPENDED → DELETED.
@@ -34,7 +41,14 @@ UserRegistered, MemberInvited, RoleChanged, SessionRevoked.
 auth provider, audit.
 
 ## Security considerations
-credential/session protection, enumeration prevention.
+
+- Protect credentials and sessions; prevent account enumeration.
+- Verify Google ID-token signature, issuer, audience, expiry, nonce, and verified
+  email claim.
+- Do not store provider tokens. Reuse the existing hashed-token session cookie.
+- Reject privileged users from the customer Google flow until their separate MFA
+  ceremony is complete.
+- See `docs/security/google-oauth.md`.
 
 ## Owning module
 `identity` owns the invariant and write model. Other modules integrate through application ports or versioned events.

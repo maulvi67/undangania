@@ -26,7 +26,10 @@ export const metadata: Metadata = {
 };
 
 interface MasukPageProps {
-  searchParams: Promise<{ next?: string | string[] }>;
+  searchParams: Promise<{
+    next?: string | string[];
+    oauth?: string | string[];
+  }>;
 }
 
 export default async function MasukPage({ searchParams }: MasukPageProps) {
@@ -35,10 +38,20 @@ export default async function MasukPage({ searchParams }: MasukPageProps) {
   // Server-side validation before the value ever reaches the client form;
   // the action validates again before any redirect.
   const next = safeRedirectTarget(rawNext);
+  const rawOAuthError = Array.isArray(params.oauth)
+    ? params.oauth[0]
+    : params.oauth;
+  const oauthError =
+    rawOAuthError === "failed" || rawOAuthError === "unavailable"
+      ? rawOAuthError
+      : undefined;
 
   return (
     <AuthShell>
-      <SignInForm next={next} />
+      <SignInForm
+        next={next}
+        {...(oauthError === undefined ? {} : { oauthError })}
+      />
     </AuthShell>
   );
 }

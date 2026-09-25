@@ -248,6 +248,20 @@ export type AdminSections = Omit<
 export function okSection<TRow>(
   rows: readonly TRow[],
   updatedAt: string,
-): Readonly<{ status: "ok"; rows: TRow[]; updatedAt: string }> {
-  return { status: "ok", rows: [...rows], updatedAt };
+  pagination: Readonly<{
+    page: number;
+    limit: number;
+    hasNextPage: boolean;
+  }>,
+): Readonly<{
+  status: "ok";
+  rows: TRow[];
+  updatedAt: string;
+  pagination: Readonly<{
+    page: number;
+    limit: number;
+    hasNextPage: boolean;
+  }>;
+}> {
+  return { status: "ok", rows: [...rows], updatedAt, pagination };
 }

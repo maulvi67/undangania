@@ -3,6 +3,7 @@ import {
   ADMIN_FIXTURES,
   adminDashboardSchema,
   parseAdminFixture,
+  parseAdminQuery,
 } from "./contract";
 import { getAdminFixtureNames, loadAdminDashboard } from "./fixture-transport";
 
@@ -11,6 +12,15 @@ describe("admin dashboard contract", () => {
     expect(parseAdminFixture("unknown")).toBe("attention");
     expect(parseAdminFixture(["stale", "healthy"])).toBe("stale");
     expect(parseAdminFixture(undefined)).toBe("attention");
+  });
+
+  it("bounds and normalizes query parameters", () => {
+    expect(
+      parseAdminQuery({ page: "0", limit: "999", search: "  payment-1  " }),
+    ).toEqual({ page: 1, limit: 50, search: "payment-1" });
+    expect(
+      parseAdminQuery({ page: "3", limit: "20", search: "a".repeat(101) }),
+    ).toEqual({ page: 3, limit: 20, search: "a".repeat(100) });
   });
 
   it("validates every successful fixture", async () => {

@@ -18,11 +18,11 @@ export function AdminShell({
         Langsung ke konten utama
       </a>
       <AdminHeader session={session} freshness={freshness} />
-      <div className="admin-mobile-shell-nav">
-        <AdminSidebar />
+      <div className="lg:hidden">
+        <AdminSidebar mobile />
       </div>
       <div className="admin-layout">
-        <aside className="admin-sidebar-column">
+        <aside className="admin-sidebar-panel hidden lg:block">
           <AdminSidebar />
         </aside>
         <main className="admin-main" id="konten-utama">
@@ -30,11 +30,9 @@ export function AdminShell({
         </main>
       </div>
       <footer className="admin-footer">
-        <div>
+        <div className="mx-auto flex w-full max-w-[96rem] flex-wrap items-center justify-between gap-x-5 gap-y-2">
           <strong>Wedding System Operations</strong>
-          <span>
-            Ringkasan read-only · tindakan sensitif memerlukan otorisasi server.
-          </span>
+          <span>Data masked · tindakan sensitif memerlukan otorisasi server dan audit.</span>
         </div>
       </footer>
     </div>

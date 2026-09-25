@@ -1,6 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import {
+  downloadMaskedAuditCsv,
+  parseMaskedAuditExport,
+} from "../../lib/admin/audit-export";
 
 type AdminMutationActionName =
   | "retry_failed_job"
@@ -52,6 +57,7 @@ export function AdminMutationAction({
   toStatus,
   exportResult = false,
 }: AdminMutationActionProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [stepUpCode, setStepUpCode] = useState("");
@@ -104,12 +110,25 @@ export function AdminMutationAction({
         });
         return;
       }
+      if (exportResult) {
+        const rows = parseMaskedAuditExport(responseBody);
+        if (rows.length === 0) {
+          setState({
+            kind: "error",
+            message:
+              "Server tidak mengembalikan baris audit masked yang valid.",
+          });
+          return;
+        }
+        downloadMaskedAuditCsv(rows);
+      }
       setState({
         kind: "success",
         message: exportResult
-          ? "Export audit masked siap diproses oleh server."
+          ? "Export audit masked berhasil diunduh."
           : "Operasi berhasil dicatat dan diproses.",
       });
+      router.refresh();
       setReason("");
       setStepUpCode("");
       setConfirmed(false);
@@ -133,7 +152,7 @@ export function AdminMutationAction({
           {state.message}
         </p>
       ) : (
-        <form className="admin-mutation__form" onSubmit={submit}>
+        <form className="admin-mutation__form grid min-w-60 gap-3 rounded-md border border-[var(--color-line)] bg-[var(--color-panel-muted)] p-3" onSubmit={submit}>
           <label>
             Reason
             <textarea
@@ -154,7 +173,7 @@ export function AdminMutationAction({
               required
             />
           </label>
-          <label className="admin-mutation__confirm">
+          <label className="admin-mutation__confirm flex items-start gap-2 text-xs font-medium">
             <input
               type="checkbox"
               checked={confirmed}
@@ -168,7 +187,7 @@ export function AdminMutationAction({
             </p>
           ) : null}
           <button
-            className="ui-button ui-button--secondary ui-button--sm"
+            className="inline-flex min-h-9 items-center justify-center rounded-md border border-[var(--color-accent)] bg-white px-3 text-xs font-bold text-[var(--color-accent-strong)] hover:bg-[var(--color-panel-muted)]"
             type="submit"
             disabled={state.kind === "submitting"}
           >

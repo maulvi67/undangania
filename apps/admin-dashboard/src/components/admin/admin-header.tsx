@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { IconLock, IconShield } from "@wedding/ui";
+import { Badge } from "../ui/badge";
+import { AdminRefreshControl } from "./admin-refresh-control";
 import type { AdminDashboard } from "../../lib/admin/contract";
 import { formatAdminTimestamp } from "../../lib/admin/formatters";
 
@@ -12,7 +14,7 @@ export function AdminHeader({
 }) {
   return (
     <header className="admin-topbar">
-      <div className="admin-topbar__brand-block">
+      <div className="admin-topbar__inner">
         <Link
           className="admin-brand"
           href="/"
@@ -21,50 +23,35 @@ export function AdminHeader({
           <span className="admin-brand__mark" aria-hidden="true">
             W
           </span>
-          <span>
-            <strong>Wedding System</strong>
-            <small>Operations</small>
+          <span className="min-w-0">
+            <strong className="block truncate text-sm leading-tight sm:text-base">Wedding System</strong>
+            <small className="block truncate text-xs text-[var(--color-ink-soft)]">Admin operations</small>
           </span>
         </Link>
-        <span
-          className="admin-environment"
-          title="Tampilan ini menggunakan data simulasi lokal"
-        >
-          {session.environmentLabel}
-        </span>
-      </div>
 
-      <div className="admin-security-summary" aria-label="Status akses admin">
-        <span className="admin-security-item">
-          <IconShield aria-hidden="true" />
-          <span>
-            <strong>{session.roleLabel}</strong>
-            <small>{session.scope}</small>
+        <div className="admin-topbar__status" aria-label="Status akses admin">
+          <div className="admin-topbar__access hidden xl:flex">
+            <IconShield className="size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <strong>{session.roleLabel}</strong>
+              <small>{session.scope}</small>
+            </span>
+          </div>
+          <div className="admin-topbar__access hidden md:flex">
+            <IconLock className="size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <strong>{session.mfaActive ? "MFA aktif" : "MFA fixture"}</strong>
+              <small>Perlindungan admin</small>
+            </span>
+          </div>
+          <Badge className={freshness.status === "stale" ? "admin-badge--warning" : "admin-badge--success"}>
+            {freshness.status === "stale" ? "Perlu diperbarui" : "Data terbaru"}
+          </Badge>
+          <span className="hidden text-xs text-[var(--color-ink-soft)] lg:block">
+            {formatAdminTimestamp(session.lastRefreshed)} WIB
           </span>
-        </span>
-        <span className="admin-security-item">
-          <IconLock aria-hidden="true" />
-          <span>
-            <strong>
-              {session.mfaActive ? "MFA aktif" : "MFA belum aktif"}
-            </strong>
-            <small>Perlindungan admin</small>
-          </span>
-        </span>
-        <span
-          className="admin-freshness"
-          data-stale={freshness.status === "stale"}
-        >
-          <strong>
-            {freshness.status === "stale"
-              ? "Data perlu diperbarui"
-              : "Data terbaru"}
-          </strong>
-          <small>{formatAdminTimestamp(session.lastRefreshed)} WIB</small>
-        </span>
-        <Link className="admin-refresh-link" href="/?state=attention">
-          Perbarui
-        </Link>
+          <AdminRefreshControl />
+        </div>
       </div>
     </header>
   );

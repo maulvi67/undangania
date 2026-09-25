@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "@wedding/ui/tokens.css";
 import "@wedding/ui/ui.css";
+import "./globals.css";
 import "./admin.css";
 
 export const metadata: Metadata = {

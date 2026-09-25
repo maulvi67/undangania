@@ -20,6 +20,7 @@ This document records the P1 implementation delivered without activating approva
 - Customer editor state no longer treats `UPLOADED` as directly ready.
 - Admin `recover_publication` is implemented end-to-end. It reactivates an existing immutable publication snapshot only inside the owning tenant, refuses expired/archived/draft invitations, demotes competing active snapshots, restores the invitation to `PUBLISHED`, emits the existing `InvitationPublished` outbox event, and records the admin audit in the same transaction.
 - Admin publication-failure UI now exposes the audited recovery action. Production execution remains gated by the explicit `ADMIN_PRODUCTION_MUTATIONS_APPROVED` flag and MFA step-up.
+- Admin dashboard production reads now use the authenticated membership tenant for tenant-bound queues and reserve `tenantId: null` for platform-wide queues only. The dashboard has bounded server-side `page`, `limit`, and `search` query handling, deterministic page metadata, masked export download, and working refresh/retry controls.
 - `escalate_printing` and `reveal_audit` remain fail-closed. Printing has no escalation state or support-case relation in the current schema; audit reveal is intentionally not exposed because the contract provides masked export only.
 
 ## Files and requirement areas
@@ -36,7 +37,10 @@ This document records the P1 implementation delivered without activating approva
 - `services/background-worker/src/index.ts`: provider-neutral media job dispatch, envelope scope validation, and `createMediaProcessingPorts` composition.
 - `apps/customer-web/src/lib/editor/media-contract.ts`: client state transition correction.
 - `apps/admin-dashboard/src/components/admin/publication-failures.tsx`: audited publication recovery control.
-- `apps/admin-dashboard/src/components/admin/admin-mutation-action.tsx`: recovery action contract in the shared privileged-action form.
+- `apps/admin-dashboard/src/app/page.tsx` and `apps/admin-dashboard/src/lib/admin/production-transport.ts`: validated query state and tenant/platform read separation.
+- `apps/admin-dashboard/src/components/admin/admin-mutation-action.tsx`: recovery action contract in the shared privileged-action form, refresh-after-success, and masked export download.
+- `apps/admin-dashboard/src/lib/admin/audit-export.ts`: defensive masked audit response parsing and CSV download formatting.
+- `apps/admin-dashboard/src/components/admin/admin-pagination.tsx`, `admin-query-controls.tsx`, and `admin-refresh-control.tsx`: bounded query, pagination, and refresh UI.
 - `packages/application/src/admin.ts`: recovery mutation port, validation, approval gate, and execution mapping.
 - `packages/application/src/admin-mutations.test.ts`: recovery authorization, idempotency, conflict, and production-gate tests.
 - `packages/database/src/repositories/admin-operations.ts`: tenant-scoped transactional recovery, outbox, audit, CAS, and structural transaction boundary.
@@ -77,6 +81,7 @@ Targeted validation completed:
 - `npm test -w @wedding/application -- --run src/admin-mutations.test.ts`
 - `npm test -w @wedding/database -- --run src/repositories/admin-operations-mutation.test.ts`
 - `npx prettier --check` on all changed application, database, and admin-dashboard files.
+- Admin dashboard unit tests cover query normalization, fixture contract validation, mapper behavior, and masked export parsing/CSV escaping.
 
 The existing full repository validation baseline remains documented in the prior handoff. Full format check still has unrelated pre-existing failures; targeted formatting should be run for the changed files.
 
@@ -97,7 +102,7 @@ The existing full repository validation baseline remains documented in the prior
 - Generic durable outbox leasing, claim, retry, and scheduled worker execution remain pending and require additive migration/DB-owner approval.
 - Rejection reason persistence remains application-code-safe stable codes; adding a persisted reason column needs an additive migration and database-owner review.
 - `escalate_printing` needs a product/domain decision and likely an additive schema relation or escalation model before implementation. It must not overload `PrintingStatus`.
-- `reveal_audit` remains intentionally unavailable; use the bounded masked export path.
+- `reveal_audit` remains intentionally unavailable; use the bounded masked export path. Exported rows are accepted client-side only when the server marks them `masked: true` and contain no raw identifier fields.
 
 ## Next action
 

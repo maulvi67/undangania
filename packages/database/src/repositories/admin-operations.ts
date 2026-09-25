@@ -396,6 +396,7 @@ type AdminPaymentClient = Readonly<{
     findMany(args: {
       where: Prisma.PaymentWhereInput;
       orderBy: Prisma.PaymentOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof paymentRowSelect;
     }): Promise<PaymentRow[]>;
@@ -407,6 +408,7 @@ type AdminFailedJobClient = Readonly<{
     findMany(args: {
       where: Prisma.NotificationWhereInput;
       orderBy: Prisma.NotificationOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof notificationRowSelect;
     }): Promise<NotificationRow[]>;
@@ -415,6 +417,7 @@ type AdminFailedJobClient = Readonly<{
     findMany(args: {
       where: Prisma.OutboxEventWhereInput;
       orderBy: Prisma.OutboxEventOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof outboxRowSelect;
     }): Promise<OutboxRow[]>;
@@ -426,6 +429,7 @@ type AdminPublicationClient = Readonly<{
     findMany(args: {
       where: Prisma.InvitationPublicationWhereInput;
       orderBy: Prisma.InvitationPublicationOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof publicationFailureSelect;
     }): Promise<PublicationFailureRow[]>;
@@ -437,6 +441,7 @@ type AdminPrintingClient = Readonly<{
     findMany(args: {
       where: Prisma.PrintingOrderWhereInput;
       orderBy: Prisma.PrintingOrderOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof printingRowSelect;
     }): Promise<PrintingOrderRow[]>;
@@ -448,6 +453,7 @@ type AdminSupportClient = Readonly<{
     findMany(args: {
       where: Prisma.SupportCaseWhereInput;
       orderBy: Prisma.SupportCaseOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof supportCaseSelect;
     }): Promise<SupportCaseRow[]>;
@@ -459,6 +465,7 @@ type AdminTemplateClient = Readonly<{
     findMany(args: {
       where: Prisma.TemplateWhereInput;
       orderBy: Prisma.TemplateOrderByWithRelationInput[];
+      skip: number;
       take: number;
       select: typeof templateStatusSelect;
     }): Promise<TemplateStatusRow[]>;
@@ -470,6 +477,7 @@ type AdminAuditClient = Readonly<{
     findMany(args: {
       where: Prisma.AuditEventWhereInput;
       orderBy: Prisma.AuditEventOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof auditRowSelect;
     }): Promise<AuditEventRow[]>;
@@ -481,6 +489,7 @@ type AdminLifecycleClient = Readonly<{
     findMany(args: {
       where: Prisma.InvitationWhereInput;
       orderBy: Prisma.InvitationOrderByWithRelationInput;
+      skip: number;
       take: number;
       select: typeof invitationLifecycleSelect;
     }): Promise<InvitationLifecycleRow[]>;
@@ -1285,33 +1294,43 @@ export type AdminLifecycleRowDto = Readonly<{
  */
 export type AdminOperationsScope = Readonly<{
   tenantId: string | null;
+  /** Includes one probe row so callers can expose a truthful next page. */
   limit: number;
+  offset: number;
+  search?: string;
   now: Date;
+}>;
+
+export type AdminSectionPageDto<TRow> = Readonly<{
+  rows: readonly TRow[];
+  hasNextPage: boolean;
 }>;
 
 export interface AdminOperationsRepository {
   loadPayments(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminPaymentRowDto[]>;
+  ): Promise<AdminSectionPageDto<AdminPaymentRowDto>>;
   loadFailedJobs(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminFailedJobRowDto[]>;
+  ): Promise<AdminSectionPageDto<AdminFailedJobRowDto>>;
   loadPublicationFailures(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminPublicationFailureRowDto[]>;
+  ): Promise<AdminSectionPageDto<AdminPublicationFailureRowDto>>;
   loadPrinting(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminPrintingRowDto[]>;
+  ): Promise<AdminSectionPageDto<AdminPrintingRowDto>>;
   loadSupport(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminSupportRowDto[]>;
+  ): Promise<AdminSectionPageDto<AdminSupportRowDto>>;
   loadTemplates(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminTemplateStatusRowDto[]>;
-  loadAudit(scope: AdminOperationsScope): Promise<readonly AdminAuditRowDto[]>;
+  ): Promise<AdminSectionPageDto<AdminTemplateStatusRowDto>>;
+  loadAudit(
+    scope: AdminOperationsScope,
+  ): Promise<AdminSectionPageDto<AdminAuditRowDto>>;
   loadLifecycle(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminLifecycleExceptionRowDto[]>;
+  ): Promise<AdminSectionPageDto<AdminLifecycleExceptionRowDto>>;
 }
 
 /**
@@ -1331,6 +1350,31 @@ function tenantFilter(
 function boundedLimit(limit: number): number {
   if (!Number.isInteger(limit) || limit <= 0) return 50;
   return Math.min(limit, 200);
+}
+
+function pageOffset(scope: AdminOperationsScope): number {
+  return Number.isInteger(scope.offset) && scope.offset >= 0 ? scope.offset : 0;
+}
+
+function queryLimit(scope: AdminOperationsScope): number {
+  // One extra row is used only to determine whether a next page exists.
+  return boundedLimit(scope.limit) + 1;
+}
+
+function pageResult<TRow>(
+  rows: readonly TRow[],
+  scope: AdminOperationsScope,
+): AdminSectionPageDto<TRow> {
+  const limit = boundedLimit(scope.limit);
+  return {
+    rows: rows.slice(0, limit),
+    hasNextPage: rows.length > limit,
+  };
+}
+
+function searchText(scope: AdminOperationsScope): string | undefined {
+  const value = scope.search?.trim();
+  return value === undefined || value.length === 0 ? undefined : value;
 }
 
 function baseRow(
@@ -1378,74 +1422,118 @@ export class PrismaAdminOperationsRepository implements AdminOperationsRepositor
 
   public async loadPayments(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminPaymentRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminPaymentRowDto>> {
+    const search = searchText(scope);
     const rows = await this.client.payment.findMany({
-      where: { ...tenantFilter(scope.tenantId) },
+      where: {
+        ...tenantFilter(scope.tenantId),
+        ...(search === undefined
+          ? {}
+          : {
+              OR: [
+                {
+                  providerTransactionId: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  order: {
+                    orderNumber: { contains: search, mode: "insensitive" },
+                  },
+                },
+              ],
+            }),
+      },
       orderBy: { updatedAt: "desc" },
-      take: boundedLimit(scope.limit),
+      skip: pageOffset(scope),
+      take: queryLimit(scope),
       select: paymentRowSelect,
     });
 
-    return rows.map((row) => ({
-      ...baseRow({
-        id: row.id,
-        reference: row.providerTransactionId,
-        severity: severityForPayment({
-          paymentStatus: row.status,
-          orderStatus: row.order.status,
+    return pageResult(
+      rows.map((row) => ({
+        ...baseRow({
+          id: row.id,
+          reference: row.providerTransactionId,
+          severity: severityForPayment({
+            paymentStatus: row.status,
+            orderStatus: row.order.status,
+          }),
+          status: row.status,
+          // The order owner is an internal user id, so it is masked rather than
+          // reported as a name this layer does not have.
+          owner: maskIdentifier(row.order.userId),
+          at: row.updatedAt,
+          now: scope.now,
         }),
-        status: row.status,
-        // The order owner is an internal user id, so it is masked rather than
-        // reported as a name this layer does not have.
-        owner: maskIdentifier(row.order.userId),
-        at: row.updatedAt,
-        now: scope.now,
-      }),
-      orderReference: row.order.orderNumber,
-      paymentReference: row.providerTransactionId,
-      // `Payment` has no customer column; the tenant is the closest owning
-      // workspace and is masked so the row stays correlatable, not identifying.
-      maskedCustomer: maskIdentifier(row.tenantId),
-      provider: row.provider,
-      method: "QRIS",
-      internalStatus: row.status,
-      // The provider's own status is only ever recorded through a verified
-      // notification, so the internal status is the honest value to show until
-      // one arrives.
-      providerStatus: row.paidAt === null ? "menunggu" : "berhasil",
-      amountMinor: decimalString(row.amountMinor),
-      currency: row.currency,
-      reconciliation: reconciliationState({
-        paymentStatus: row.status,
-        paidAt: row.paidAt,
-      }),
-      lastProviderCheck: isoString(row.updatedAt),
-    }));
+        orderReference: row.order.orderNumber,
+        paymentReference: row.providerTransactionId,
+        // `Payment` has no customer column; the tenant is the closest owning
+        // workspace and is masked so the row stays correlatable, not identifying.
+        maskedCustomer: maskIdentifier(row.tenantId),
+        provider: row.provider,
+        method: "QRIS",
+        internalStatus: row.status,
+        // The provider's own status is only ever recorded through a verified
+        // notification, so the internal status is the honest value to show until
+        // one arrives.
+        providerStatus: row.paidAt === null ? "menunggu" : "berhasil",
+        amountMinor: decimalString(row.amountMinor),
+        currency: row.currency,
+        reconciliation: reconciliationState({
+          paymentStatus: row.status,
+          paidAt: row.paidAt,
+        }),
+        lastProviderCheck: isoString(row.updatedAt),
+      })),
+      scope,
+    );
   }
 
   public async loadFailedJobs(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminFailedJobRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminFailedJobRowDto>> {
+    const search = searchText(scope);
     const notificationWhere: Prisma.NotificationWhereInput = {
       ...tenantFilter(scope.tenantId),
       status: { in: ["FAILED", "QUEUED"] },
+      ...(search === undefined
+        ? {}
+        : {
+            OR: [
+              { id: { contains: search, mode: "insensitive" } },
+              { templateCode: { contains: search, mode: "insensitive" } },
+            ],
+          }),
     };
     const outboxWhere: Prisma.OutboxEventWhereInput = {
       ...tenantFilter(scope.tenantId),
       status: { in: ["FAILED", "PENDING"] },
+      ...(search === undefined
+        ? {}
+        : {
+            OR: [
+              { id: { contains: search, mode: "insensitive" } },
+              { eventType: { contains: search, mode: "insensitive" } },
+              { aggregateId: { contains: search, mode: "insensitive" } },
+            ],
+          }),
     };
-    const limit = boundedLimit(scope.limit);
+    const limit = queryLimit(scope) + pageOffset(scope);
 
     const [notifications, outbox] = await Promise.all([
       this.client.notification.findMany({
         where: notificationWhere,
         orderBy: { createdAt: "desc" },
+        skip: 0,
         take: limit,
         select: notificationRowSelect,
       }),
       this.client.outboxEvent.findMany({
         where: outboxWhere,
         orderBy: { createdAt: "desc" },
+        skip: 0,
         take: limit,
         select: outboxRowSelect,
       }),
@@ -1503,14 +1591,26 @@ export class PrismaAdminOperationsRepository implements AdminOperationsRepositor
       info: 3,
       healthy: 4,
     };
-    return [...notificationRows, ...outboxRows]
-      .sort((left, right) => ranking[left.severity] - ranking[right.severity])
-      .slice(0, limit);
+    const sortedRows = [...notificationRows, ...outboxRows].sort(
+      (left, right) => {
+        const severityDifference =
+          ranking[left.severity] - ranking[right.severity];
+        if (severityDifference !== 0) return severityDifference;
+        const updatedDifference = right.updatedAt.localeCompare(left.updatedAt);
+        if (updatedDifference !== 0) return updatedDifference;
+        return left.id.localeCompare(right.id);
+      },
+    );
+    return pageResult(sortedRows.slice(pageOffset(scope)), {
+      ...scope,
+      offset: 0,
+    });
   }
 
   public async loadPublicationFailures(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminPublicationFailureRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminPublicationFailureRowDto>> {
+    const search = searchText(scope);
     const rows = await this.client.invitationPublication.findMany({
       where: {
         ...tenantFilter(scope.tenantId),
@@ -1518,90 +1618,133 @@ export class PrismaAdminOperationsRepository implements AdminOperationsRepositor
         // demotes-then-promotes leaves a non-active row behind when the promote
         // step never completes.
         active: false,
+        ...(search === undefined
+          ? {}
+          : {
+              invitation: {
+                OR: [
+                  { id: { contains: search, mode: "insensitive" } },
+                  { slug: { contains: search, mode: "insensitive" } },
+                ],
+              },
+            }),
       },
       orderBy: { publishedAt: "desc" },
-      take: boundedLimit(scope.limit),
+      skip: pageOffset(scope),
+      take: queryLimit(scope),
       select: publicationFailureSelect,
     });
 
-    return rows.map((row) => ({
-      ...baseRow({
-        id: row.id,
-        reference: row.invitation.slug,
-        severity: SEVERITY.high,
-        status: row.invitation.status,
-        owner: maskIdentifier(row.publishedBy),
-        at: row.publishedAt,
-        now: scope.now,
-      }),
-      invitationReference: row.invitation.slug,
-      attemptedVersion: row.publicationVersion,
-      // The currently active version is not readable from this row alone, and
-      // guessing it would misreport which snapshot is live.
-      currentPublishedVersion: null,
-      // Derived from how far the publication got: a row that exists but is not
-      // active stopped between snapshotting and promotion.
-      failureStage: "promosi",
-      failedAt: isoString(row.publishedAt),
-      previousSnapshotActive: false,
-      retryState: "dicoba ulang",
-    }));
+    return pageResult(
+      rows.map((row) => ({
+        ...baseRow({
+          id: row.id,
+          reference: row.invitation.slug,
+          severity: SEVERITY.high,
+          status: row.invitation.status,
+          owner: maskIdentifier(row.publishedBy),
+          at: row.publishedAt,
+          now: scope.now,
+        }),
+        invitationReference: row.invitation.slug,
+        attemptedVersion: row.publicationVersion,
+        // The currently active version is not readable from this row alone, and
+        // guessing it would misreport which snapshot is live.
+        currentPublishedVersion: null,
+        // Derived from how far the publication got: a row that exists but is not
+        // active stopped between snapshotting and promotion.
+        failureStage: "promosi",
+        failedAt: isoString(row.publishedAt),
+        previousSnapshotActive: false,
+        retryState: "dicoba ulang",
+      })),
+      scope,
+    );
   }
 
   public async loadPrinting(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminPrintingRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminPrintingRowDto>> {
+    const search = searchText(scope);
     const rows = await this.client.printingOrder.findMany({
       where: {
         ...tenantFilter(scope.tenantId),
         status: { notIn: ["COMPLETED", "CANCELLED"] },
+        ...(search === undefined
+          ? {}
+          : {
+              OR: [
+                { id: { contains: search, mode: "insensitive" } },
+                { orderId: { contains: search, mode: "insensitive" } },
+                {
+                  vendor: {
+                    businessName: { contains: search, mode: "insensitive" },
+                  },
+                },
+              ],
+            }),
       },
       orderBy: { updatedAt: "asc" },
-      take: boundedLimit(scope.limit),
+      skip: pageOffset(scope),
+      take: queryLimit(scope),
       select: printingRowSelect,
     });
 
-    return rows.map((row) => {
-      const stuck = isPrintingStuck({
-        status: row.status,
-        updatedAt: row.updatedAt,
-        now: scope.now,
-      });
-
-      return {
-        ...baseRow({
-          id: row.id,
-          reference: row.orderId,
-          severity: stuck ? SEVERITY.high : SEVERITY.info,
+    return pageResult(
+      rows.map((row) => {
+        const stuck = isPrintingStuck({
           status: row.status,
-          owner: maskIdentifier(row.tenantId),
-          at: row.updatedAt,
+          updatedAt: row.updatedAt,
           now: scope.now,
-        }),
-        orderReference: row.orderId,
-        // The workspace is identified by tenant, which is masked so the console
-        // never displays a customer's own name.
-        maskedWorkspace: maskIdentifier(row.tenantId),
-        vendor: row.vendor.businessName,
-        productionStatus: row.status,
-        shippingStatus: shippingStatusFor(row.shipments),
-        lastProviderUpdate: isoString(row.updatedAt),
-        stuckFor: formatDuration(row.updatedAt, scope.now),
-        escalationState: escalationStateForStuck(stuck),
-      };
-    });
+        });
+
+        return {
+          ...baseRow({
+            id: row.id,
+            reference: row.orderId,
+            severity: stuck ? SEVERITY.high : SEVERITY.info,
+            status: row.status,
+            owner: maskIdentifier(row.tenantId),
+            at: row.updatedAt,
+            now: scope.now,
+          }),
+          orderReference: row.orderId,
+          // The workspace is identified by tenant, which is masked so the console
+          // never displays a customer's own name.
+          maskedWorkspace: maskIdentifier(row.tenantId),
+          vendor: row.vendor.businessName,
+          productionStatus: row.status,
+          shippingStatus: shippingStatusFor(row.shipments),
+          lastProviderUpdate: isoString(row.updatedAt),
+          stuckFor: formatDuration(row.updatedAt, scope.now),
+          escalationState: escalationStateForStuck(stuck),
+        };
+      }),
+      scope,
+    );
   }
 
   public async loadSupport(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminSupportRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminSupportRowDto>> {
+    const search = searchText(scope);
     const rows = await this.client.supportCase.findMany({
       where: {
         ...tenantFilter(scope.tenantId),
         status: { not: "CLOSED" },
+        ...(search === undefined
+          ? {}
+          : {
+              OR: [
+                { id: { contains: search, mode: "insensitive" } },
+                { reference: { contains: search, mode: "insensitive" } },
+                { category: { contains: search, mode: "insensitive" } },
+              ],
+            }),
       },
       orderBy: { openedAt: "desc" },
-      take: boundedLimit(scope.limit),
+      skip: pageOffset(scope),
+      take: queryLimit(scope),
       select: supportCaseSelect,
     });
 
@@ -1620,95 +1763,129 @@ export class PrismaAdminOperationsRepository implements AdminOperationsRepositor
       }
     };
 
-    return rows.map((row) => ({
-      ...baseRow({
-        id: row.id,
-        reference: row.reference,
-        severity: severityFromStored(row.severity),
-        status: row.status,
-        owner: row.owner === null ? "belum ditugaskan" : row.owner,
-        at: row.updatedAt,
-        now: scope.now,
-      }),
-      caseId: row.reference,
-      category: row.category,
-      maskedWorkspace: maskIdentifier(row.tenantId),
-      // The last response is a timestamp, and the author's name is not stored
-      // here — reporting the time keeps the row truthful without inventing a
-      // responder.
-      lastResponse:
-        row.lastResponseAt === null
-          ? "belum ada balasan"
-          : formatAge(row.lastResponseAt, scope.now),
-      escalationState: row.escalationState,
-    }));
+    return pageResult(
+      rows.map((row) => ({
+        ...baseRow({
+          id: row.id,
+          reference: row.reference,
+          severity: severityFromStored(row.severity),
+          status: row.status,
+          owner: row.owner === null ? "belum ditugaskan" : row.owner,
+          at: row.updatedAt,
+          now: scope.now,
+        }),
+        caseId: row.reference,
+        category: row.category,
+        maskedWorkspace: maskIdentifier(row.tenantId),
+        // The last response is a timestamp, and the author's name is not stored
+        // here — reporting the time keeps the row truthful without inventing a
+        // responder.
+        lastResponse:
+          row.lastResponseAt === null
+            ? "belum ada balasan"
+            : formatAge(row.lastResponseAt, scope.now),
+        escalationState: row.escalationState,
+      })),
+      scope,
+    );
   }
 
   public async loadTemplates(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminTemplateStatusRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminTemplateStatusRowDto>> {
     // Platform-wide by design: the template catalog is shared across tenants.
+    const search = searchText(scope);
     const rows = await this.client.template.findMany({
-      where: {},
+      where:
+        search === undefined
+          ? {}
+          : {
+              OR: [
+                { id: { contains: search, mode: "insensitive" } },
+                { name: { contains: search, mode: "insensitive" } },
+              ],
+            },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-      take: boundedLimit(scope.limit),
+      skip: pageOffset(scope),
+      take: queryLimit(scope),
       select: templateStatusSelect,
     });
 
-    return rows.map((row) => ({
-      ...baseRow({
-        id: `${row.id}@${row.version}`,
-        reference: row.id,
-        severity: row.status === "ACTIVE" ? SEVERITY.healthy : SEVERITY.info,
-        status: row.status,
-        owner: "katalog",
-        at: row.createdAt,
-        now: scope.now,
-      }),
-      templateId: row.id,
-      name: row.name,
-      availability: row.status,
-      version: row.version,
-      // The template-to-package link lives in the catalog configuration, not in
-      // this table, so it is reported as unmapped rather than guessed.
-      packageLink: "belum dipetakan",
-      readiness: row.licenseStatus,
-      lastChanged: isoString(row.createdAt),
-      reason: row.licenseStatus === "VERIFIED" ? "siap" : "menunggu verifikasi",
-    }));
+    return pageResult(
+      rows.map((row) => ({
+        ...baseRow({
+          id: `${row.id}@${row.version}`,
+          reference: row.id,
+          severity: row.status === "ACTIVE" ? SEVERITY.healthy : SEVERITY.info,
+          status: row.status,
+          owner: "katalog",
+          at: row.createdAt,
+          now: scope.now,
+        }),
+        templateId: row.id,
+        name: row.name,
+        availability: row.status,
+        version: row.version,
+        // The template-to-package link lives in the catalog configuration, not in
+        // this table, so it is reported as unmapped rather than guessed.
+        packageLink: "belum dipetakan",
+        readiness: row.licenseStatus,
+        lastChanged: isoString(row.createdAt),
+        reason:
+          row.licenseStatus === "VERIFIED" ? "siap" : "menunggu verifikasi",
+      })),
+      scope,
+    );
   }
 
   public async loadAudit(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminAuditRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminAuditRowDto>> {
     // Platform-wide by design. Reading audit rows across tenants is the point of
     // the section; the caller has already proven platform-admin privilege.
+    const search = searchText(scope);
     const rows = await this.client.auditEvent.findMany({
-      where: { ...tenantFilter(scope.tenantId) },
+      where: {
+        ...tenantFilter(scope.tenantId),
+        ...(search === undefined
+          ? {}
+          : {
+              OR: [
+                { action: { contains: search, mode: "insensitive" } },
+                { targetId: { contains: search, mode: "insensitive" } },
+                { correlationId: { contains: search, mode: "insensitive" } },
+              ],
+            }),
+      },
       orderBy: { createdAt: "desc" },
-      take: boundedLimit(scope.limit),
+      skip: pageOffset(scope),
+      take: queryLimit(scope),
       select: auditRowSelect,
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      timestamp: isoString(row.createdAt),
-      // An actor is either a person or a system component. For a person the id
-      // is masked; the display name is deliberately not joined in here.
-      actor: maskIdentifier(row.userId ?? row.actorType),
-      role: row.actorType,
-      action: row.action,
-      target: `${row.targetType}:${maskIdentifier(row.targetId)}`,
-      reason: row.reason ?? "tidak dicatat",
-      result: "tercatat",
-      correlationId: row.correlationId,
-      masked: true,
-    }));
+    return pageResult(
+      rows.map((row) => ({
+        id: row.id,
+        timestamp: isoString(row.createdAt),
+        // An actor is either a person or a system component. For a person the id
+        // is masked; the display name is deliberately not joined in here.
+        actor: maskIdentifier(row.userId ?? row.actorType),
+        role: row.actorType,
+        action: row.action,
+        target: `${row.targetType}:${maskIdentifier(row.targetId)}`,
+        reason: row.reason ?? "tidak dicatat",
+        result: "tercatat",
+        correlationId: row.correlationId,
+        masked: true,
+      })),
+      scope,
+    );
   }
 
   public async loadLifecycle(
     scope: AdminOperationsScope,
-  ): Promise<readonly AdminLifecycleExceptionRowDto[]> {
+  ): Promise<AdminSectionPageDto<AdminLifecycleExceptionRowDto>> {
+    const search = searchText(scope);
     const rows = await this.client.invitation.findMany({
       where: {
         ...tenantFilter(scope.tenantId),
@@ -1716,28 +1893,40 @@ export class PrismaAdminOperationsRepository implements AdminOperationsRepositor
         // exception an operator can act on: the draft is complete and the
         // customer is waiting.
         status: "READY",
+        ...(search === undefined
+          ? {}
+          : {
+              OR: [
+                { id: { contains: search, mode: "insensitive" } },
+                { slug: { contains: search, mode: "insensitive" } },
+              ],
+            }),
       },
       orderBy: { updatedAt: "asc" },
-      take: boundedLimit(scope.limit),
+      skip: pageOffset(scope),
+      take: queryLimit(scope),
       select: invitationLifecycleSelect,
     });
 
-    return rows.map((row) => ({
-      ...baseRow({
-        id: row.id,
-        reference: row.slug,
-        severity: SEVERITY.warning,
-        status: row.status,
-        owner: maskIdentifier(row.tenantId),
-        at: row.updatedAt,
-        now: scope.now,
-      }),
-      resourceType: "undangan",
-      currentState: row.status,
-      expectedState: "PUBLISHED",
-      impact: "undangan belum dapat diakses tamu",
-      suggestedAction: "minta pemilik menerbitkan undangan",
-      lastTransition: isoString(row.updatedAt),
-    }));
+    return pageResult(
+      rows.map((row) => ({
+        ...baseRow({
+          id: row.id,
+          reference: row.slug,
+          severity: SEVERITY.warning,
+          status: row.status,
+          owner: maskIdentifier(row.tenantId),
+          at: row.updatedAt,
+          now: scope.now,
+        }),
+        resourceType: "undangan",
+        currentState: row.status,
+        expectedState: "PUBLISHED",
+        impact: "undangan belum dapat diakses tamu",
+        suggestedAction: "minta pemilik menerbitkan undangan",
+        lastTransition: isoString(row.updatedAt),
+      })),
+      scope,
+    );
   }
 }

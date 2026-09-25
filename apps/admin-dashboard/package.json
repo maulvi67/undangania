@@ -12,12 +12,20 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@wedding/ui": "*",
     "@wedding/database": "*",
+    "@wedding/ui": "*",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "motion": "12.42.2",
+    "tailwind-merge": "3.6.0",
+    "tailwindcss": "4.1.18"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.18",
+    "postcss": "8.5.28"
+  }
 }

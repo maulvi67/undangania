@@ -25,6 +25,7 @@ const EARLIER = new Date("2026-09-15T03:00:00.000Z");
 const SCOPE: AdminOperationsScope = {
   tenantId: "tenant-1",
   limit: 10,
+  offset: 0,
   now: NOW,
 };
 
@@ -310,12 +311,13 @@ describe("PrismaAdminOperationsRepository.loadPayments", () => {
       createClient({ payment: { findMany } }),
     );
 
-    const rows = await repository.loadPayments(SCOPE);
+    const rows = (await repository.loadPayments(SCOPE)).rows;
 
     expect(findMany).toHaveBeenCalledWith({
       where: { tenantId: "tenant-1" },
       orderBy: { updatedAt: "desc" },
-      take: 10,
+      skip: 0,
+      take: 11,
       select: expect.anything(),
     });
     expect(rows).toHaveLength(1);
@@ -332,7 +334,7 @@ describe("PrismaAdminOperationsRepository.loadPayments", () => {
       }),
     );
 
-    const rows = await repository.loadPayments(SCOPE);
+    const rows = (await repository.loadPayments(SCOPE)).rows;
     const serialized = JSON.stringify(rows);
 
     expect(rows[0]?.maskedCustomer).toBe("te***");
@@ -353,7 +355,7 @@ describe("PrismaAdminOperationsRepository.loadPayments", () => {
       }),
     );
 
-    const rows = await repository.loadPayments(SCOPE);
+    const rows = (await repository.loadPayments(SCOPE)).rows;
 
     expect(rows[0]?.providerStatus).toBe("menunggu");
     expect(rows[0]?.reconciliation).toBe("perlu ditinjau");
@@ -415,7 +417,7 @@ describe("PrismaAdminOperationsRepository.loadFailedJobs", () => {
       }),
     );
 
-    const rows = await repository.loadFailedJobs(SCOPE);
+    const rows = (await repository.loadFailedJobs(SCOPE)).rows;
 
     expect(rows).toHaveLength(2);
     // The failed outbox event outranks the merely queued notification.
@@ -449,7 +451,7 @@ describe("PrismaAdminOperationsRepository.loadFailedJobs", () => {
       }),
     );
 
-    const rows = await repository.loadFailedJobs(SCOPE);
+    const rows = (await repository.loadFailedJobs(SCOPE)).rows;
 
     expect(rows[0]?.failureReason).toBe("tidak ada kesalahan tercatat");
   });
@@ -513,7 +515,7 @@ describe("PrismaAdminOperationsRepository.loadPublicationFailures", () => {
       createClient({ invitationPublication: { findMany } }),
     );
 
-    const rows = await repository.loadPublicationFailures(SCOPE);
+    const rows = (await repository.loadPublicationFailures(SCOPE)).rows;
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -550,7 +552,7 @@ describe("PrismaAdminOperationsRepository.loadPrinting", () => {
       }),
     );
 
-    const rows = await repository.loadPrinting(SCOPE);
+    const rows = (await repository.loadPrinting(SCOPE)).rows;
 
     expect(rows[0]?.escalationState).toBe("perlu dieskalasi");
     expect(rows[0]?.shippingStatus).toBe("belum dikirim");
@@ -583,7 +585,7 @@ describe("PrismaAdminOperationsRepository.loadPrinting", () => {
       }),
     );
 
-    const rows = await repository.loadPrinting(SCOPE);
+    const rows = (await repository.loadPrinting(SCOPE)).rows;
     expect(rows[0]?.maskedWorkspace).toBe("te***");
     expect(JSON.stringify(rows)).not.toContain("tenant-1");
   });
@@ -611,7 +613,7 @@ describe("PrismaAdminOperationsRepository.loadSupport", () => {
       createClient({ supportCase: { findMany } }),
     );
 
-    const rows = await repository.loadSupport(SCOPE);
+    const rows = (await repository.loadSupport(SCOPE)).rows;
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -647,7 +649,7 @@ describe("PrismaAdminOperationsRepository.loadSupport", () => {
       }),
     );
 
-    const rows = await repository.loadSupport(SCOPE);
+    const rows = (await repository.loadSupport(SCOPE)).rows;
     expect(rows[0]?.lastResponse).toBe("3 jam");
     expect(rows[0]?.owner).toBe("Nadia");
   });
@@ -671,7 +673,8 @@ describe("PrismaAdminOperationsRepository.loadTemplates", () => {
       createClient({ template: { findMany } }),
     );
 
-    const rows = await repository.loadTemplates({ ...SCOPE, tenantId: null });
+    const rows = (await repository.loadTemplates({ ...SCOPE, tenantId: null }))
+      .rows;
 
     // The catalog is shared across tenants, so this is deliberately unfiltered.
     expect(findMany).toHaveBeenCalledWith(
@@ -702,7 +705,7 @@ describe("PrismaAdminOperationsRepository.loadTemplates", () => {
       }),
     );
 
-    const rows = await repository.loadTemplates(SCOPE);
+    const rows = (await repository.loadTemplates(SCOPE)).rows;
     expect(rows[0]?.packageLink).toBe("belum dipetakan");
     expect(rows[0]?.reason).toBe("menunggu verifikasi");
   });
@@ -731,7 +734,7 @@ describe("PrismaAdminOperationsRepository.loadAudit", () => {
       }),
     );
 
-    const rows = await repository.loadAudit(SCOPE);
+    const rows = (await repository.loadAudit(SCOPE)).rows;
     const serialized = JSON.stringify(rows);
 
     expect(rows[0]?.actor).toBe("us***");
@@ -763,7 +766,7 @@ describe("PrismaAdminOperationsRepository.loadAudit", () => {
       }),
     );
 
-    const rows = await repository.loadAudit(SCOPE);
+    const rows = (await repository.loadAudit(SCOPE)).rows;
     expect(rows[0]?.actor).toBe("SY***");
     expect(rows[0]?.reason).toBe("tidak dicatat");
   });
@@ -800,7 +803,7 @@ describe("PrismaAdminOperationsRepository.loadLifecycle", () => {
       }),
     );
 
-    const rows = await repository.loadLifecycle(SCOPE);
+    const rows = (await repository.loadLifecycle(SCOPE)).rows;
 
     expect(rows[0]?.currentState).toBe("READY");
     expect(rows[0]?.expectedState).toBe("PUBLISHED");
@@ -834,7 +837,7 @@ describe("PrismaAdminOperationsRepository limit handling", () => {
     await repository.loadPayments({ ...SCOPE, limit: 100_000 });
 
     expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 200 }),
+      expect.objectContaining({ take: 201 }),
     );
   });
 
@@ -849,11 +852,11 @@ describe("PrismaAdminOperationsRepository limit handling", () => {
 
     expect(findMany).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ take: 50 }),
+      expect.objectContaining({ take: 51 }),
     );
     expect(findMany).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ take: 50 }),
+      expect.objectContaining({ take: 51 }),
     );
   });
 });

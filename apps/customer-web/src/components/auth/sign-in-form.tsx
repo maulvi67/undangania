@@ -18,7 +18,13 @@ import { AuthLinkRow } from "./auth-link-row";
  * target (the page ran it through safeRedirectTarget); the action re-validates
  * again before redirecting — the client copy is never trusted.
  */
-export function SignInForm({ next }: { next: string }) {
+export function SignInForm({
+  next,
+  oauthError,
+}: {
+  next: string;
+  oauthError?: "failed" | "unavailable";
+}) {
   const [state, formAction, pending] = useActionState(
     signInAction,
     INITIAL_AUTH_FORM_STATE,
@@ -69,16 +75,37 @@ export function SignInForm({ next }: { next: string }) {
   }
 
   const formError = formLevelMessage(state);
+  const oauthMessage =
+    oauthError === "failed"
+      ? "Masuk dengan Google belum berhasil. Coba lagi atau gunakan email dan kata sandi."
+      : oauthError === "unavailable"
+        ? "Masuk dengan Google sedang tidak tersedia. Gunakan email dan kata sandi atau coba lagi nanti."
+        : "";
+  const visibleError = formError || oauthMessage;
 
   return (
     <>
       <h1 className="auth-title">Masuk</h1>
       <p className="auth-lede">Lanjutkan persiapan undangan Anda.</p>
-      {formError ? (
+      {visibleError ? (
         <div className="auth-alert" tabIndex={-1} ref={alertRef}>
-          <Alert variant="error" title={formError} />
+          <Alert variant="error" title={visibleError} />
         </div>
       ) : null}
+      <div className="auth-provider-options">
+        <Link
+          className="auth-google-button"
+          href={`/api/auth/google?next=${encodeURIComponent(next)}`}
+        >
+          <span className="auth-google-mark" aria-hidden="true">
+            G
+          </span>
+          Lanjutkan dengan Google
+        </Link>
+        <p className="auth-divider">
+          <span>atau masuk dengan email</span>
+        </p>
+      </div>
       <form action={formAction} className="auth-form" noValidate>
         <input type="hidden" name="next" value={next} />
         <EmailField autoComplete="username" error={state.fieldErrors.email} />

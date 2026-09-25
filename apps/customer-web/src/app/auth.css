@@ -64,6 +64,75 @@
   color: var(--color-text-muted);
 }
 
+/* ---------- Metode masuk ---------- */
+
+.auth-provider-options {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.auth-google-button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.auth-google-button:hover {
+  border-color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.auth-google-button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.auth-google-button:active {
+  transform: translateY(1px);
+}
+
+.auth-google-mark {
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.auth-divider {
+  display: grid;
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  height: 1px;
+  background: var(--color-border);
+  content: "";
+}
+
 /* ---------- Formulir ---------- */
 
 .auth-form {

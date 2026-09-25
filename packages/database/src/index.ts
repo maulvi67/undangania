@@ -16,6 +16,10 @@ export {
   type UserAuthRepository,
 } from "./repositories/user-auth";
 export {
+  PrismaOAuthAccountRepository,
+  type GoogleAccountProvisionInput,
+} from "./repositories/oauth-account";
+export {
   generateOpaqueToken,
   generateSessionToken,
   hashToken,

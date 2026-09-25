@@ -99,6 +99,21 @@ WHATSAPP_PROVIDER=console
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 ```
 
+Untuk menguji Google OAuth secara lokal, buat OAuth client bertipe web di Google
+Cloud dan daftarkan URI callback persis:
+
+```dotenv
+GOOGLE_CLIENT_ID=<client-id>
+GOOGLE_CLIENT_SECRET=<server-only-client-secret>
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+```
+
+Simpan secret hanya di `.env` lokal atau secret manager. Jangan gunakan variabel
+`NEXT_PUBLIC_*` untuk client secret. Panduan konfigurasi dan batas akun ada di
+`docs/security/google-oauth.md`. Migration OAuth bersifat additive dan belum
+dijalankan; jangan jalankan pada staging atau production tanpa persetujuan
+pemilik database serta backup terverifikasi.
+
 Buat secret lokal acak:
 
 ```bash

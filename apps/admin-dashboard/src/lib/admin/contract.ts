@@ -42,12 +42,19 @@ const operationalRowSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
+const sectionPageSchema = z.object({
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  hasNextPage: z.boolean(),
+});
+
 const sectionSchema = <T extends z.ZodType>(rowSchema: T) =>
   z.discriminatedUnion("status", [
     z.object({
       status: z.literal("ok"),
       rows: z.array(rowSchema),
       updatedAt: z.string().datetime(),
+      pagination: sectionPageSchema.optional(),
     }),
     z.object({
       status: z.literal("unavailable"),
@@ -171,8 +178,15 @@ const freshnessSchema = z.object({
   message: z.string().min(1),
 });
 
+const dashboardQuerySchema = z.object({
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  search: z.string().max(100),
+});
+
 export const adminDashboardSchema = z.object({
   fixture: z.enum(ADMIN_FIXTURES),
+  query: dashboardQuerySchema,
   session: sessionSchema,
   freshness: freshnessSchema,
   attention: sectionSchema(attentionRowSchema),
@@ -202,6 +216,49 @@ export type AdminLoad =
   | { kind: "permission-denied"; message: string }
   | { kind: "session-expired"; message: string }
   | { kind: "unavailable"; message: string };
+
+export const ADMIN_QUERY_DEFAULTS = {
+  page: 1,
+  limit: 50,
+  search: "",
+} as const;
+
+export type AdminQuery = {
+  page: number;
+  limit: number;
+  search: string;
+};
+
+function firstQueryValue(
+  value: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export function parseAdminQuery(params: {
+  page?: string | string[];
+  limit?: string | string[];
+  search?: string | string[];
+}): AdminQuery {
+  const pageValue = firstQueryValue(params.page);
+  const limitValue = firstQueryValue(params.limit);
+  const searchValue = firstQueryValue(params.search);
+  const page = Number(pageValue ?? ADMIN_QUERY_DEFAULTS.page);
+  const limit = Number(limitValue ?? ADMIN_QUERY_DEFAULTS.limit);
+  const search = (searchValue ?? ADMIN_QUERY_DEFAULTS.search).trim();
+
+  return {
+    page:
+      Number.isInteger(page) && page >= 1 && page <= 100
+        ? page
+        : ADMIN_QUERY_DEFAULTS.page,
+    limit:
+      Number.isInteger(limit) && limit >= 1 && limit <= 50
+        ? limit
+        : ADMIN_QUERY_DEFAULTS.limit,
+    search: search.length <= 100 ? search : search.slice(0, 100),
+  };
+}
 
 export function parseAdminFixture(
   value: string | string[] | undefined,

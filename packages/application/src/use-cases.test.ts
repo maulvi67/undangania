@@ -863,6 +863,7 @@ describe("loadAdminSection", () => {
     expect(ports.tenantScoped.loadPayments).toHaveBeenCalledWith({
       tenantId: "tenant-1",
       limit: 50,
+      offset: 0,
       now: NOW,
     });
   });

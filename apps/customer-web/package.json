@@ -19,6 +19,7 @@
     "@wedding/database": "*",
     "@wedding/template-engine": "*",
     "@wedding/template-editor": "*",
+    "jose": "^6.2.12",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

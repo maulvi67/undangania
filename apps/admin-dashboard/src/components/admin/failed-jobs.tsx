@@ -28,11 +28,11 @@ export function FailedJobs({
 }) {
   return (
     <section
-      className="admin-section"
+      className="admin-section min-w-0 overflow-hidden rounded-xl border border-[var(--color-line)] bg-white shadow-[0_12px_32px_rgba(36,52,47,0.06)]"
       id="pekerjaan-gagal"
       aria-labelledby="jobs-title"
     >
-      <div className="admin-section__heading">
+      <div className="admin-section__heading flex items-start justify-between gap-4 border-b border-[var(--color-line)] bg-[var(--color-panel-muted)] px-5 py-4">
         <div>
           <p className="admin-eyebrow">Worker operations</p>
           <h2 id="jobs-title">Pekerjaan gagal</h2>

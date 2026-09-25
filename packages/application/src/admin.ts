@@ -44,8 +44,16 @@ export type AdminSection =
 
 export type AdminQueryScope = Readonly<{
   tenantId: string | null;
+  /** The requested page size plus one probe row for `hasNextPage`. */
   limit: number;
+  offset: number;
+  search?: string;
   now: Date;
+}>;
+
+export type AdminSectionPage<TRow> = Readonly<{
+  rows: readonly TRow[];
+  hasNextPage: boolean;
 }>;
 
 export type AdminRow = Readonly<{
@@ -81,11 +89,13 @@ export type AdminAuditRow = Readonly<{
 
 /** Port: sections that are always bound to a single tenant. */
 export interface AdminTenantScopedPort {
-  loadPayments(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
-  loadPrinting(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
-  loadSupport(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
-  loadPublicationFailures(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
-  loadLifecycle(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
+  loadPayments(scope: AdminQueryScope): Promise<AdminSectionPage<AdminRow>>;
+  loadPrinting(scope: AdminQueryScope): Promise<AdminSectionPage<AdminRow>>;
+  loadSupport(scope: AdminQueryScope): Promise<AdminSectionPage<AdminRow>>;
+  loadPublicationFailures(
+    scope: AdminQueryScope,
+  ): Promise<AdminSectionPage<AdminRow>>;
+  loadLifecycle(scope: AdminQueryScope): Promise<AdminSectionPage<AdminRow>>;
 }
 
 /**
@@ -94,9 +104,9 @@ export interface AdminTenantScopedPort {
  * and the type system should not let a tenant-scoped caller hold one.
  */
 export interface AdminPlatformPort {
-  loadFailedJobs(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
-  loadTemplates(scope: AdminQueryScope): Promise<readonly AdminRow[]>;
-  loadAudit(scope: AdminQueryScope): Promise<readonly AdminAuditRow[]>;
+  loadFailedJobs(scope: AdminQueryScope): Promise<AdminSectionPage<AdminRow>>;
+  loadTemplates(scope: AdminQueryScope): Promise<AdminSectionPage<AdminRow>>;
+  loadAudit(scope: AdminQueryScope): Promise<AdminSectionPage<AdminAuditRow>>;
 }
 
 export type AdminPorts = Readonly<{
@@ -107,6 +117,10 @@ export type AdminPorts = Readonly<{
 }>;
 
 export const DEFAULT_ADMIN_LIMIT = 50;
+export const DEFAULT_ADMIN_PAGE = 1;
+export const MAX_ADMIN_PAGE = 100;
+export const MAX_ADMIN_OFFSET = 5_000;
+export const MAX_ADMIN_SEARCH_LENGTH = 100;
 
 /**
  * Sections that read across tenants. Named here so the authorization check and
@@ -134,9 +148,11 @@ export function isPlatformAdmin(context: TenantContext): boolean {
 
 export type LoadAdminSectionInput = Readonly<{
   section: AdminSection;
-  /** Required for tenant-bound sections; must be null for platform sections. */
+  /** Required for tenant-bound sections; platform sections use null internally. */
   tenantId: string | null;
   limit?: number;
+  offset?: number;
+  search?: string;
   now: Date;
 }>;
 
@@ -156,23 +172,31 @@ export function loadAdminSection(
   context: TenantContext | null | undefined,
   input: LoadAdminSectionInput & Readonly<{ section: "audit" }>,
   ports: AdminPorts,
-): Promise<readonly AdminAuditRow[]>;
+): Promise<AdminSectionPage<AdminAuditRow>>;
 export function loadAdminSection(
   context: TenantContext | null | undefined,
   input: LoadAdminSectionInput,
   ports: AdminPorts,
-): Promise<readonly AdminRow[]>;
+): Promise<AdminSectionPage<AdminRow>>;
 export async function loadAdminSection(
   context: TenantContext | null | undefined,
   input: LoadAdminSectionInput,
   ports: AdminPorts,
-): Promise<readonly AdminRow[] | readonly AdminAuditRow[]> {
+): Promise<AdminSectionPage<AdminRow> | AdminSectionPage<AdminAuditRow>> {
   const tenant = requireTenantContext(context);
   assertAnyRole(tenant, ADMIN_ROLES);
 
   const limit = input.limit ?? DEFAULT_ADMIN_LIMIT;
-  if (!Number.isInteger(limit) || limit <= 0) {
+  if (!Number.isInteger(limit) || limit <= 0 || limit > DEFAULT_ADMIN_LIMIT) {
     throw new InvalidInputError("Batas jumlah baris tidak valid.");
+  }
+  const offset = input.offset ?? 0;
+  if (!Number.isInteger(offset) || offset < 0 || offset > MAX_ADMIN_OFFSET) {
+    throw new InvalidInputError("Offset halaman tidak valid.");
+  }
+  const search = input.search?.trim();
+  if (search !== undefined && search.length > MAX_ADMIN_SEARCH_LENGTH) {
+    throw new InvalidInputError("Pencarian terlalu panjang.");
   }
 
   const platform = isPlatformSection(input.section);
@@ -196,6 +220,8 @@ export async function loadAdminSection(
   const scope: AdminQueryScope = {
     tenantId: input.tenantId,
     limit,
+    offset,
+    ...(search === undefined || search.length === 0 ? {} : { search }),
     now: input.now,
   };
 

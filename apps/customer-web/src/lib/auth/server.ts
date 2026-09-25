@@ -1,5 +1,8 @@
+import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import {
+  hashPassword,
+  PrismaOAuthAccountRepository,
   PrismaSessionRepository,
   PrismaTenantMembershipRepository,
   PrismaUserAuthRepository,
@@ -14,6 +17,7 @@ import {
   type RequestAuthContext,
 } from "@wedding/application";
 import { verifyPassword } from "@wedding/database";
+import type { GoogleIdentity } from "./google-oauth";
 import type { SignInInput } from "./contract";
 
 export const SESSION_COOKIE_NAME = "ws_session";
@@ -25,6 +29,7 @@ const CUSTOMER_ROLES = [
   "VIEWER",
 ] as const satisfies readonly MemberRole[];
 const ADMIN_ROLES = ["ADMIN"] as const satisfies readonly MemberRole[];
+const CUSTOMER_ROLE_SET: ReadonlySet<MemberRole> = new Set(CUSTOMER_ROLES);
 
 export type AuthenticatedRequest = Readonly<{
   context: RequestAuthContext;
@@ -171,6 +176,93 @@ export async function authenticateAndCreateSession(input: SignInInput): Promise<
     if (error instanceof AuthServiceUnavailableError) {
       return { ok: false, code: "PROVIDER_UNAVAILABLE" };
     }
+    return { ok: false, code: "PROVIDER_UNAVAILABLE" };
+  }
+}
+
+export async function authenticateGoogleAndCreateSession(
+  identity: GoogleIdentity,
+): Promise<
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | "ACCOUNT_CONFLICT"
+        | "PRIVILEGED_ACCOUNT"
+        | "SUSPENDED"
+        | "PROVIDER_UNAVAILABLE";
+    }
+> {
+  try {
+    const oauthAccounts = new PrismaOAuthAccountRepository();
+    const users = new PrismaUserAuthRepository();
+    let user = await oauthAccounts.findGoogleUser(identity.providerAccountId);
+
+    if (user === null) {
+      const existingEmailUser = await users.findByEmail(identity.email);
+      if (existingEmailUser !== null) {
+        // Do not silently bind a Google identity to an existing password account.
+        return { ok: false, code: "ACCOUNT_CONFLICT" };
+      }
+
+      const passwordHash = await hashPassword(
+        randomBytes(32).toString("base64url"),
+      );
+      try {
+        user = await oauthAccounts.provisionGoogleUser({
+          providerAccountId: identity.providerAccountId,
+          email: identity.email,
+          displayName: identity.displayName,
+          passwordHash,
+          verifiedAt: new Date(),
+        });
+      } catch {
+        // Resolve uniqueness races without ever binding to an email-only match.
+        user = await oauthAccounts.findGoogleUser(identity.providerAccountId);
+        if (user === null) {
+          const racedEmailUser = await users.findByEmail(identity.email);
+          if (racedEmailUser !== null) {
+            return { ok: false, code: "ACCOUNT_CONFLICT" };
+          }
+          return { ok: false, code: "PROVIDER_UNAVAILABLE" };
+        }
+      }
+    }
+
+    if (user.status === "SUSPENDED" || user.status === "DELETED") {
+      return { ok: false, code: "SUSPENDED" };
+    }
+
+    const memberships =
+      await new PrismaTenantMembershipRepository().resolveForUser({
+        userId: user.id,
+      });
+    const hasCustomerMembership = memberships.some((membership) =>
+      CUSTOMER_ROLE_SET.has(membership.role),
+    );
+    const hasPrivilegedMembership = memberships.some(
+      (membership) => !CUSTOMER_ROLE_SET.has(membership.role),
+    );
+    if (!hasCustomerMembership || hasPrivilegedMembership) {
+      // OAuth cannot substitute for the separate privileged-role MFA ceremony.
+      return { ok: false, code: "PRIVILEGED_ACCOUNT" };
+    }
+
+    const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
+    const created = await new PrismaSessionRepository().create(
+      user.id,
+      expiresAt,
+    );
+    const store = await cookies();
+    store.set(SESSION_COOKIE_NAME, created.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_TTL_SECONDS,
+    });
+    return { ok: true };
+  } catch {
     return { ok: false, code: "PROVIDER_UNAVAILABLE" };
   }
 }

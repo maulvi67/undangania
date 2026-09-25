@@ -11,15 +11,23 @@ const UPDATED_AT = "2026-03-21T07:28:00.000Z";
 const PROVIDER_CHECKED_AT = "2026-03-21T07:20:00.000Z";
 const FAILED_AT = "2026-03-21T06:45:00.000Z";
 
+const FIXTURE_PAGINATION = {
+  page: 1,
+  limit: 50,
+  hasNextPage: false,
+};
+
 const EMPTY_SECTION = {
   status: "ok" as const,
   rows: [],
   updatedAt: UPDATED_AT,
+  pagination: FIXTURE_PAGINATION,
 };
 
 function baseDashboard(fixture: AdminFixture): AdminDashboard {
   return {
     fixture,
+    query: { page: 1, limit: 50, search: "" },
     session: {
       environment: "SIMULATION",
       environmentLabel: "Local · data simulasi",
@@ -63,6 +71,7 @@ function baseDashboard(fixture: AdminFixture): AdminDashboard {
         },
       ],
       updatedAt: UPDATED_AT,
+      pagination: FIXTURE_PAGINATION,
     },
     failedJobs: EMPTY_SECTION,
     publicationFailures: EMPTY_SECTION,
@@ -90,6 +99,7 @@ function baseDashboard(fixture: AdminFixture): AdminDashboard {
         },
       ],
       updatedAt: UPDATED_AT,
+      pagination: FIXTURE_PAGINATION,
     },
     lifecycle: EMPTY_SECTION,
     audit: {
@@ -109,6 +119,7 @@ function baseDashboard(fixture: AdminFixture): AdminDashboard {
         },
       ],
       updatedAt: UPDATED_AT,
+      pagination: FIXTURE_PAGINATION,
     },
   };
 }

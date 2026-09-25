@@ -25,13 +25,20 @@ Register/sign in → verify or recover → securely enter intended journey
 - Session expired.
 - Suspended account.
 - Safe post-auth redirect.
-- Optional provider login only if approved.
+- Google OAuth login, approved by the user on 2026-09-25.
 
 ## 5. Out of scope
 
 - Changing identity provider or session architecture without approval.
 - Admin MFA implementation in this UI task.
-- Social login not selected by product/security.
+- Other social providers and explicit account linking are not selected.
+
+## Approved extension
+
+The user approved Google OAuth in addition to the existing email/password
+sign-in. The existing `ws_session` architecture remains unchanged. Google
+identities are not automatically linked to existing email/password accounts;
+admin MFA remains a separate requirement.
 
 ## 6. Business and UX rules
 
@@ -93,9 +100,13 @@ Idle, submitting, invalid credentials, verification required, email sent, invali
 
 ## 14. File boundaries
 
-Allowed: auth route UI, transport contract integration, auth component tests.
+Allowed for the approved Google extension: auth UI, Google OAuth start/callback
+routes, provider-token verification, the additive OAuth-account repository and
+migration, and focused tests.
 
-Prohibited: identity provider replacement, cookie policy, session persistence, role logic, production OAuth credentials.
+Prohibited: identity provider replacement, cookie policy changes, session
+persistence changes, role grants, admin MFA changes, and production OAuth
+credentials.
 
 ## 15. Required reviewers and approval
 
