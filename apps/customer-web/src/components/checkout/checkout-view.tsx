@@ -117,7 +117,7 @@ function messageFor(outcome: CheckoutActionOutcome): string | null {
     case "not-found":
       return "Desain ini belum memiliki harga yang aktif. Hubungi bantuan bila masalah berlanjut.";
     case "unauthenticated":
-      return "Masuk ke akun Wedding System untuk melanjutkan pembayaran.";
+      return "Masuk ke akun Undangania untuk melanjutkan pembayaran.";
     case "provider-unavailable":
       return "Pembayaran belum dapat dimulai. Tidak ada pembayaran yang berjalan.";
     case "unavailable":

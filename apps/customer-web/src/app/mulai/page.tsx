@@ -9,7 +9,7 @@ import "../onboarding.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const title = "Mulai persiapan undangan — Wedding System";
+const title = "Mulai persiapan undangan — Undangania";
 const description =
   "Isi data dasar pernikahan Anda — mempelai, acara pertama, dan preferensi — lalu mulai menyusun undangan digital Anda.";
 
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     url: "/mulai",
     title,
     description,
-    siteName: "Wedding System",
+    siteName: "Undangania",
   },
 };
 
@@ -57,7 +57,7 @@ export default async function MulaiPage({ searchParams }: MulaiPageProps) {
           }
           description={
             request === null
-              ? "Masuk ke akun Wedding System untuk menyiapkan workspace undangan Anda."
+              ? "Masuk ke akun Undangania untuk menyiapkan workspace undangan Anda."
               : "Data pernikahan untuk akun ini belum dapat dibuka. Coba muat ulang sebentar lagi."
           }
           action={

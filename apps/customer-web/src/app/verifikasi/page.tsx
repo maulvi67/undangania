@@ -8,9 +8,9 @@ import "../auth.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const title = "Verifikasi email — Wedding System";
+const title = "Verifikasi email — Undangania";
 const description =
-  "Verifikasi alamat email Anda untuk mengaktifkan akun Wedding System.";
+  "Verifikasi alamat email Anda untuk mengaktifkan akun Undangania.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     url: "/verifikasi",
     title,
     description,
-    siteName: "Wedding System",
+    siteName: "Undangania",
   },
 };
 

@@ -1,6 +1,6 @@
 ---
 name: cost-guardrail-review
-description: Wedding System MVP workflow for cost guardrail review.
+description: Undangania MVP workflow for cost guardrail review.
 ---
 # Procedure
 1. Identify billable operations.

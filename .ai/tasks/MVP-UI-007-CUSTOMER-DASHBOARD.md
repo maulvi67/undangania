@@ -76,12 +76,16 @@ New workspace, draft, ready, published, paused, expiring, expired, payment pendi
 
 ## 12. Acceptance criteria
 
-- [ ] Primary next action matches each lifecycle state.
-- [ ] Permissions alter actions correctly.
-- [ ] Partial service failure does not blank the whole dashboard.
-- [ ] Summaries link to relevant detail screens.
+- [x] Primary next action matches each lifecycle state.
+- [x] Permissions alter actions correctly.
+- [x] Partial service failure does not blank the whole dashboard.
+- [x] Summaries link to relevant detail screens.
 - [ ] Mobile hierarchy remains clear.
 - [ ] Tenant and UI quality gates pass.
+
+Dashboard navigation and visual follow-up are implemented. Browser execution,
+responsive evidence, screenshots, and the consolidated UI quality gate remain
+pending; see `.ai/handoffs/MVP-UI-007/HANDOFF.md`.
 
 ## 13. Test plan and evidence
 

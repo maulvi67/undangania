@@ -46,4 +46,4 @@ No scope drift; contracts respected; least privilege; task-specific tests; npm g
 
 ## Example task
 
-Evaluate and deliver the Wedding System task assigned to this role, such as RSVP idempotency, template visual QA, Midtrans webhook verification, printing proof approval, or WhatsApp delivery retry, while documenting evidence and blocked decisions.
+Evaluate and deliver the Undangania task assigned to this role, such as RSVP idempotency, template visual QA, Midtrans webhook verification, printing proof approval, or WhatsApp delivery retry, while documenting evidence and blocked decisions.

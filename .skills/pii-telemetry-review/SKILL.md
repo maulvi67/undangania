@@ -1,6 +1,6 @@
 ---
 name: pii-telemetry-review
-description: Wedding System MVP workflow for pii telemetry review.
+description: Undangania MVP workflow for pii telemetry review.
 ---
 # Procedure
 1. Inspect logs/traces/analytics/errors/jobs.

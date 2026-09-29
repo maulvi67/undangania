@@ -1,6 +1,6 @@
 ---
 name: printing-order-flow
-description: Implement printing vendor fulfillment. Use for Wedding System tasks that match this workflow.
+description: Implement printing vendor fulfillment. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

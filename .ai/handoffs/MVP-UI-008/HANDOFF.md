@@ -42,7 +42,7 @@ Implemented the approved guided editor flow:
   stale merge.
 - The route remains a Next.js Server Component for initial loading; the editor
   workspace is the intentionally bounded client island.
-- Existing Wedding System tokens and `@wedding/ui` primitives are reused.
+- Existing Undangania tokens and `@wedding/ui` primitives are reused.
 - No direct database access was added.
 
 ## Schema/API/event changes

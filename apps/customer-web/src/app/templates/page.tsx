@@ -20,7 +20,7 @@ import "../catalog.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const title = "Katalog Desain Undangan Pernikahan — Wedding System";
+const title = "Katalog Desain Undangan Pernikahan — Undangania";
 const description =
   "Telusuri koleksi desain undangan pernikahan digital. Semua desain memiliki fitur inti yang sama — RSVP, buku tamu, galeri, dan manajemen tamu; perbedaan harga mencerminkan kompleksitas visual dan aset.";
 
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     url: "/templates",
     title,
     description,
-    siteName: "Wedding System",
+    siteName: "Undangania",
   },
   twitter: { card: "summary" },
 };

@@ -1,6 +1,6 @@
 ---
 name: database-migration
-description: Create safe Prisma/PostgreSQL migration. Use for Wedding System tasks that match this workflow.
+description: Create safe Prisma/PostgreSQL migration. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

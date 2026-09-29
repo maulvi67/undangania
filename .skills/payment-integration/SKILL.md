@@ -1,6 +1,6 @@
 ---
 name: payment-integration
-description: Wedding System MVP workflow for payment integration.
+description: Undangania MVP workflow for payment integration.
 ---
 # Procedure
 1. Implement adapter and verified webhook.

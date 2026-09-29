@@ -1,6 +1,6 @@
 ---
 name: understand-codebase
-description: Map repository boundaries, ownership, contracts and relevant runtime paths before changing code. Use for Wedding System tasks that match this workflow.
+description: Map repository boundaries, ownership, contracts and relevant runtime paths before changing code. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

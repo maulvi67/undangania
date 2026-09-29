@@ -1,6 +1,6 @@
 ---
 name: browser-compatibility
-description: Validate Chromium, Firefox and WebKit compatibility. Use for Wedding System tasks that match this workflow.
+description: Validate Chromium, Firefox and WebKit compatibility. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

@@ -6,7 +6,7 @@ import { loadRsvpOverview } from "../../lib/oversight/server";
 import "../guests.css";
 
 export const metadata: Metadata = {
-  title: "RSVP — Wedding System",
+  title: "RSVP — Undangania",
   description: "Jawaban konfirmasi kehadiran dari tamu undangan Anda.",
   robots: { index: false, follow: false },
 };
@@ -34,7 +34,7 @@ export default async function RsvpPage() {
         <div className="gst-state">
           <StatePanel
             title="Masuk untuk melihat konfirmasi"
-            description="Masuk ke akun Wedding System untuk melihat jawaban kehadiran dari tamu Anda."
+            description="Masuk ke akun Undangania untuk melihat jawaban kehadiran dari tamu Anda."
             action={
               <Link
                 className="ui-button ui-button--primary ui-button--md"

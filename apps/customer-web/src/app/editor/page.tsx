@@ -19,7 +19,7 @@ import { getAuthenticatedRequest } from "../../lib/auth/server";
 import "../editor.css";
 
 export const metadata: Metadata = {
-  title: "Editor undangan — Wedding System",
+  title: "Editor undangan — Undangania",
   description:
     "Isi dan periksa undangan pernikahan Anda melalui editor terpandu.",
   robots: { index: false, follow: false },

@@ -1,6 +1,6 @@
 ---
 name: api-development
-description: Wedding System MVP workflow for api development.
+description: Undangania MVP workflow for api development.
 disable-model-invocation: false
 ---
 

@@ -19,8 +19,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Status pembayaran — Wedding System",
-  description: "Periksa status pembayaran pesanan Wedding System.",
+  title: "Status pembayaran — Undangania",
+  description: "Periksa status pembayaran pesanan Undangania.",
   robots: { index: false, follow: false },
 };
 

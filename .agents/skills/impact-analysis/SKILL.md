@@ -1,6 +1,6 @@
 ---
 name: impact-analysis
-description: Wedding System MVP workflow for impact analysis.
+description: Undangania MVP workflow for impact analysis.
 disable-model-invocation: false
 ---
 

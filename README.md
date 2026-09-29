@@ -1,6 +1,6 @@
-# Wedding System Agentic Codebase
+# Undangania Agentic Codebase
 
-Production-oriented starter monorepo for an Indonesian Wedding Management System. The repository combines customer, admin, and vendor applications with a backend API, workers, notification service, invitation template engine/editor, shared business packages, database schema, infrastructure, documentation, AI agents, reusable skills, and orchestrated workflows.
+Production-oriented starter monorepo for Undangania, an Indonesian wedding management platform. The repository combines customer, admin, and vendor applications with a backend API, workers, notification service, invitation template engine/editor, shared business packages, database schema, infrastructure, documentation, AI agents, reusable skills, and orchestrated workflows.
 
 ## Product surfaces
 

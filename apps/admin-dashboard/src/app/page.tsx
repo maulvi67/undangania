@@ -7,7 +7,7 @@ import { loadAdminDashboardFromDatabase } from "../lib/admin/production-transpor
 import { getAdminAccess } from "../lib/admin/server-auth";
 
 export const metadata: Metadata = {
-  title: "Ringkasan operasi — Wedding System",
+  title: "Ringkasan operasi — Undangania",
   robots: { index: false, follow: false },
 };
 

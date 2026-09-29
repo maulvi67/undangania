@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: Perform evidence-based security and privacy review. Use for Wedding System tasks that match this workflow.
+description: Perform evidence-based security and privacy review. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

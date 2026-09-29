@@ -59,7 +59,7 @@ DEVELOPMENT_GUIDE.md
 ```bash
 git init
 git add .
-git commit -m "chore: initialize wedding system codebase"
+git commit -m "chore: initialize undangania codebase"
 git branch -M main
 git checkout -b develop
 ```

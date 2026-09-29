@@ -1,6 +1,6 @@
 ---
 name: impact-analysis
-description: Assess direct, indirect, data, API, event, security, operational and migration impact. Use for Wedding System tasks that match this workflow.
+description: Assess direct, indirect, data, API, event, security, operational and migration impact. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

@@ -69,19 +69,19 @@ export async function generateMetadata({
 }: PublicInvitationPageProps): Promise<Metadata> {
   const { slug } = await params;
   const snapshot = await snapshotFor(slug, "normal");
-  if (!snapshot) return { title: "Undangan tidak tersedia — Wedding System" };
+  if (!snapshot) return { title: "Undangan tidak tersedia — Undangania" };
   if ("kind" in snapshot && snapshot.kind !== "published") {
     return {
       title:
         snapshot.kind === "paused"
-          ? "Undangan sedang dijeda — Wedding System"
-          : "Undangan sudah berakhir — Wedding System",
+          ? "Undangan sedang dijeda — Undangania"
+          : "Undangan sudah berakhir — Undangania",
     };
   }
 
   const parsed = invitationViewModelSchema.safeParse(snapshot.model);
   if (!parsed.success) {
-    return { title: "Undangan tidak tersedia — Wedding System" };
+    return { title: "Undangan tidak tersedia — Undangania" };
   }
 
   return {
@@ -183,9 +183,9 @@ export default async function PublicInvitationPage({
           <Link
             className="gld-header__brand"
             href="/"
-            aria-label="Wedding System"
+            aria-label="Undangania"
           >
-            Wedding System
+            Undangania
           </Link>
           <span className="gld-header__note">Undangan digital</span>
         </header>
@@ -200,7 +200,7 @@ export default async function PublicInvitationPage({
               : "Masa aktif undangan ini telah selesai sehingga halaman dan konfirmasi tamu tidak dapat digunakan."}
           </p>
           <Link className="gld-button" href="/">
-            Kembali ke Wedding System
+            Kembali ke Undangania
           </Link>
         </main>
       </div>
@@ -237,9 +237,9 @@ export default async function PublicInvitationPage({
         <Link
           className="gld-header__brand"
           href="/"
-          aria-label="Wedding System"
+          aria-label="Undangania"
         >
-          Wedding System
+          Undangania
         </Link>
         <span className="gld-header__note">Undangan digital</span>
       </header>
@@ -260,7 +260,7 @@ export default async function PublicInvitationPage({
         )}
       </main>
       <footer className="gld-page__footer">
-        <p>Dibuat dengan tenang oleh Wedding System.</p>
+        <p>Dibuat dengan tenang oleh Undangania.</p>
       </footer>
     </div>
   );

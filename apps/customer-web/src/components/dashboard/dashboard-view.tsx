@@ -1,11 +1,6 @@
 import Link from "next/link";
-import {
-  Alert,
-  ApplicationShell,
-  ErrorState,
-  StatePanel,
-  type NavItem,
-} from "@wedding/ui";
+import { Alert, ErrorState, StatePanel } from "@wedding/ui";
+import { DashboardShell } from "./dashboard-shell";
 import { signInHref } from "../../lib/auth/redirect";
 import {
   DASHBOARD_ROUTES,
@@ -24,39 +19,9 @@ import { InvitationStatus } from "./invitation-status";
 import { NextActions } from "./next-actions";
 import { RsvpSummary } from "./rsvp-summary";
 
-function navigation(role?: DashboardAggregate["role"]): ReadonlyArray<NavItem> {
-  const items: NavItem[] = [
-    { href: DASHBOARD_ROUTES.dashboard, label: "Dasbor", current: true },
-    { href: DASHBOARD_ROUTES.editor, label: "Editor" },
-    { href: DASHBOARD_ROUTES.guests, label: "Tamu" },
-    { href: DASHBOARD_ROUTES.rsvp, label: "RSVP" },
-    { href: DASHBOARD_ROUTES.guestbook, label: "Buku tamu" },
-  ];
-  if (role === "OWNER")
-    items.push({ href: DASHBOARD_ROUTES.orders, label: "Pesanan" });
-  return items;
-}
-
-function Shell({
-  children,
-  role,
-}: {
-  children: React.ReactNode;
-  role?: DashboardAggregate["role"];
-}) {
-  return (
-    <ApplicationShell
-      nav={navigation(role)}
-      footerNote="Satu workspace untuk mengelola undangan, tamu, dan konfirmasi kehadiran."
-    >
-      {children}
-    </ApplicationShell>
-  );
-}
-
 function UnauthenticatedDashboard() {
   return (
-    <Shell>
+    <DashboardShell>
       <div className="dash-state">
         <h1 className="ui-visually-hidden">Dasbor</h1>
         <StatePanel
@@ -80,13 +45,13 @@ function UnauthenticatedDashboard() {
           }
         />
       </div>
-    </Shell>
+    </DashboardShell>
   );
 }
 
 function UnavailableDashboard() {
   return (
-    <Shell>
+    <DashboardShell>
       <div className="dash-state">
         <h1 className="ui-visually-hidden">Dasbor</h1>
         <ErrorState
@@ -105,7 +70,7 @@ function UnavailableDashboard() {
           Butuh bantuan? <Link href="/#faq">Lihat pertanyaan umum.</Link>
         </p>
       </div>
-    </Shell>
+    </DashboardShell>
   );
 }
 
@@ -122,16 +87,33 @@ function DashboardContent({ aggregate }: { aggregate: DashboardAggregate }) {
   const paymentPending =
     aggregate.payment.status === "ok" &&
     aggregate.payment.data.state === "PENDING";
-  const lead = aggregate.workspace.coupleNames
-    ? `${aggregate.workspace.coupleNames}${aggregate.workspace.city ? ` · ${aggregate.workspace.city}` : ""}`
-    : "Mulai dengan data dasar pernikahan Anda.";
+  const coupleNames = aggregate.workspace.coupleNames;
+  const lead =
+    coupleNames === null
+      ? "Mulai dari profil pernikahan Anda."
+      : `Kelola persiapan dan undangan${aggregate.workspace.city ? ` · ${aggregate.workspace.city}` : ""}.`;
+  const publicUrl =
+    (status.state === "PUBLISHED" || status.state === "EXPIRING") &&
+    aggregate.invitation.status === "ok"
+      ? aggregate.invitation.data.publicUrl
+      : null;
 
   return (
     <div className="dash-page">
       <header className="dash-page__header">
-        <p className="dash-section__eyebrow">Workspace pernikahan</p>
-        <h1>Dasbor</h1>
-        <p className="dash-page__lead">{lead}</p>
+        <div className="dash-page__title-group">
+          <p className="dash-section__eyebrow">Ringkasan workspace</p>
+          <h1>{coupleNames ?? "Persiapan pernikahan"}</h1>
+          <p className="dash-page__lead">{lead}</p>
+        </div>
+        {publicUrl !== null ? (
+          <Link
+            className="ui-button ui-button--secondary ui-button--md dash-page__header-action"
+            href={publicUrl}
+          >
+            Lihat undangan
+          </Link>
+        ) : null}
       </header>
 
       <CountdownBand aggregate={aggregate} today={today} />
@@ -183,8 +165,11 @@ export function DashboardView({ result }: { result: DashboardLoad }) {
   if (result.kind === "unauthenticated") return <UnauthenticatedDashboard />;
   if (result.kind === "unavailable") return <UnavailableDashboard />;
   return (
-    <Shell role={result.data.role}>
+    <DashboardShell
+      role={result.data.role}
+      coupleNames={result.data.workspace.coupleNames}
+    >
       <DashboardContent aggregate={result.data} />
-    </Shell>
+    </DashboardShell>
   );
 }

@@ -1,6 +1,6 @@
 ---
 name: publication-snapshot-review
-description: Wedding System MVP workflow for publication snapshot review.
+description: Undangania MVP workflow for publication snapshot review.
 ---
 # Procedure
 1. Trace draft and publish.

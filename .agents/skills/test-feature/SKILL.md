@@ -1,6 +1,6 @@
 ---
 name: test-feature
-description: Wedding System MVP workflow for test feature.
+description: Undangania MVP workflow for test feature.
 disable-model-invocation: false
 ---
 

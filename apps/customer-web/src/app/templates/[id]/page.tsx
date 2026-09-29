@@ -37,9 +37,9 @@ export async function generateMetadata({
   const { id } = await params;
   const template = getTemplate(id);
   if (!template || template.status !== "ACTIVE") {
-    return { title: "Desain tidak tersedia — Wedding System" };
+    return { title: "Desain tidak tersedia — Undangania" };
   }
-  const title = `${template.name} — Desain Undangan — Wedding System`;
+  const title = `${template.name} — Desain Undangan — Undangania`;
   const description = `${template.designCharacter} Harga final, semua fitur inti undangan termasuk.`;
   return {
     metadataBase: new URL(siteUrl),
@@ -52,7 +52,7 @@ export async function generateMetadata({
       url: `/templates/${template.id}`,
       title,
       description,
-      siteName: "Wedding System",
+      siteName: "Undangania",
     },
     twitter: { card: "summary" },
   };

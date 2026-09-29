@@ -86,7 +86,7 @@ export interface MfaPort {
 
 export type MfaPorts = Readonly<{ mfa: MfaPort }>;
 
-const ISSUER = "Wedding System";
+const ISSUER = "Undangania";
 const TOTP_CODE_PATTERN = /^\d{6}$/;
 const RECOVERY_CODE_PATTERN = /^[0-9A-F]{20}$/;
 

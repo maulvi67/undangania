@@ -1,6 +1,6 @@
 ---
 name: ui-ux-brief
-description: Wedding System MVP workflow for ui ux brief.
+description: Undangania MVP workflow for ui ux brief.
 disable-model-invocation: false
 ---
 

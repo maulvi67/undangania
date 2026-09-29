@@ -1,6 +1,6 @@
 ---
 name: accessibility-audit
-description: Audit Wedding System UI against WCAG-oriented accessibility requirements using source inspection, axe automation, keyboard checks, and manual verification.
+description: Audit Undangania UI against WCAG-oriented accessibility requirements using source inspection, axe automation, keyboard checks, and manual verification.
 ---
 # Required context
 Read AGENTS, active task, UI/UX rule, affected screen, component states, and acceptance criteria.

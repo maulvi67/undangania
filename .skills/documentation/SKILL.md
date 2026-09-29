@@ -1,6 +1,6 @@
 ---
 name: documentation
-description: Create or update authoritative documentation. Use for Wedding System tasks that match this workflow.
+description: Create or update authoritative documentation. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

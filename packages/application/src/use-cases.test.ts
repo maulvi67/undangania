@@ -1344,7 +1344,7 @@ describe("beginMfaEnrolment", () => {
     expect(ports.mfa.beginEnrolment).toHaveBeenCalledWith({
       userId: "admin-1",
       accountName: "rani@contoh.id",
-      issuer: "Wedding System",
+      issuer: "Undangania",
     });
     expect(start.uri).toContain("otpauth://");
   });

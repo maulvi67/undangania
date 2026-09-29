@@ -1,6 +1,6 @@
 ---
 name: ui-implementation
-description: Wedding System MVP workflow for ui implementation.
+description: Undangania MVP workflow for ui implementation.
 ---
 # Procedure
 1. Use approved brief and shared primitives.

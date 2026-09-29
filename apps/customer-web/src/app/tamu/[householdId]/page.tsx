@@ -13,7 +13,7 @@ import { guestRequestScope } from "../../../lib/guests/request";
 import "../../guests.css";
 
 export const metadata: Metadata = {
-  title: "Rumah tangga — Wedding System",
+  title: "Rumah tangga — Undangania",
   robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function GuestHouseholdPage({ params }: Props) {
         <div className="gst-state">
           <StatePanel
             title="Masuk untuk melihat rumah tangga"
-            description="Masuk ke akun Wedding System untuk mengelola rumah tangga dan tautan personal."
+            description="Masuk ke akun Undangania untuk mengelola rumah tangga dan tautan personal."
             action={
               <a
                 className="ui-button ui-button--primary ui-button--md"

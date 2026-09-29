@@ -1,6 +1,6 @@
 ---
 name: pull-request-summary
-description: Create an evidence-focused PR summary. Use for Wedding System tasks that match this workflow.
+description: Create an evidence-focused PR summary. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

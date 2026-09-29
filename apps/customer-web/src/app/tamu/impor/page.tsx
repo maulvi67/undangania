@@ -9,7 +9,7 @@ import { guestRequestScope } from "../../../lib/guests/request";
 import "../../guests.css";
 
 export const metadata: Metadata = {
-  title: "Impor tamu — Wedding System",
+  title: "Impor tamu — Undangania",
   robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";
@@ -43,7 +43,7 @@ export default async function GuestImportPage({ searchParams }: Props) {
         <div className="gst-state">
           <StatePanel
             title="Masuk untuk mengimpor tamu"
-            description="Masuk ke akun Wedding System untuk mengelola daftar tamu di workspace Anda."
+            description="Masuk ke akun Undangania untuk mengelola daftar tamu di workspace Anda."
             action={
               <a
                 className="ui-button ui-button--primary ui-button--md"

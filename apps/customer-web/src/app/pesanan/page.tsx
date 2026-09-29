@@ -6,7 +6,7 @@ import { formatIdrMinor } from "../../lib/checkout/contract";
 import "../guests.css";
 
 export const metadata: Metadata = {
-  title: "Pesanan — Wedding System",
+  title: "Pesanan — Undangania",
   description: "Riwayat pesanan dan status pembayaran workspace Anda.",
   robots: { index: false, follow: false },
 };
@@ -125,7 +125,7 @@ export default async function OrdersPage() {
         <div className="gst-state">
           <StatePanel
             title="Masuk untuk melihat pesanan"
-            description="Masuk ke akun Wedding System untuk melihat riwayat pesanan workspace Anda."
+            description="Masuk ke akun Undangania untuk melihat riwayat pesanan workspace Anda."
             action={
               <Link
                 className="ui-button ui-button--primary ui-button--md"

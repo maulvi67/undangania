@@ -1,6 +1,6 @@
 ---
 name: ui-implementation
-description: Wedding System MVP workflow for ui implementation.
+description: Undangania MVP workflow for ui implementation.
 disable-model-invocation: false
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: ui-quality-gate
-description: Wedding System MVP workflow for ui quality gate.
+description: Undangania MVP workflow for ui quality gate.
 ---
 # Procedure
 1. Use Next DevTools for runtime errors.

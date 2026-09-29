@@ -5,7 +5,7 @@ import "@wedding/ui/ui.css";
 import "./template-preview.css";
 import "./landing.css";
 
-export const metadata = { title: "Wedding System" };
+export const metadata = { title: "Undangania" };
 
 /*
  * Self-hosted via next/font: no third-party font request at runtime, latin

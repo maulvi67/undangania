@@ -138,3 +138,11 @@ Those should be run after the development phase according to the project workflo
 ## Precise next action
 
 Create a separate backend/admin-contract task for authenticated, server-authorized, paginated operational read models. Define role-scoped DTOs and permission checks before enabling any reconciliation, retry, template status mutation, support mutation, audit reveal/export, or customer-data access.
+
+## Build and browser validation follow-up — 2026-09-29
+
+- Root cause: `package-lock.json` had metadata-less placeholders for all 11 `lightningcss@1.30.2` optional platform binaries. Added the matching package versions, canonical npm tarball URLs, SHA-512 integrity values, and platform constraints. No direct dependency or version upgrade was added.
+- `npm run build -w @wedding/admin-dashboard` passed after staging the exact Windows x64 `1.30.2` package locally and clearing stale `.next` output. The registry mirror served package metadata, but its tarball transfer timed out; clean npm reification from the updated lockfile remains unverified. No `1.32.0` binary was used.
+- Typecheck, lint, and 15 unit tests passed. A local Chromium fixture smoke found no horizontal overflow at 320, 360, 375, 390, 412, 768, 1024, 1280, or 1440px; axe WCAG 2.1 A/AA reported 0 violations. Mobile/desktop screenshots were saved under the local temp directory `C:\Users\MAULVIA\AppData\Local\Temp\wedding-system-admin-dashboard` and were not committed.
+- Next dev HMR WebSocket handshakes failed, making shortcut/theme interaction checks inconclusive. Manual keyboard, 200% zoom/reflow, exceptional-state, cross-browser, and full screenshot review remain pending. Existing accessibility/responsive Playwright specs do not cover admin, and the root package has no `test:responsive` script.
+- No API, schema, database, authentication, authorization, or payment behavior changed.

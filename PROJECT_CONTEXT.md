@@ -2,7 +2,7 @@
 
 ## Product
 
-Wedding System is a multi-tenant platform for Indonesian couples, wedding organizers, vendors, template designers, resellers, and platform administrators. The commercial entry point is a marketplace of digital invitation templates. Each wedding workspace manages events, website content, guests, RSVP, guestbook, gift information, media, orders, payment, subscriptions, printing, notifications, domains, and analytics.
+Undangania is a multi-tenant platform for Indonesian couples, wedding organizers, vendors, template designers, resellers, and platform administrators. The commercial entry point is a marketplace of digital invitation templates. Each wedding workspace manages events, website content, guests, RSVP, guestbook, gift information, media, orders, payment, subscriptions, printing, notifications, domains, and analytics.
 
 ## Core business decisions
 

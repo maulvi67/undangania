@@ -6,8 +6,8 @@ import "./globals.css";
 import "./admin.css";
 
 export const metadata: Metadata = {
-  title: "Operasi Admin — Wedding System",
-  description: "Konsol internal untuk operasi Wedding System.",
+  title: "Operasi Admin — Undangania",
+  description: "Konsol internal untuk operasi Undangania.",
   robots: { index: false, follow: false },
 };
 

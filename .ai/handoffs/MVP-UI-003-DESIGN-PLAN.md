@@ -116,7 +116,7 @@ countdowns/scarcity, hover-only CTAs.
 
 ## 7. SEO and metadata
 
-- Route metadata: title "Katalog Desain Undangan Pernikahan — Wedding System",
+- Route metadata: title "Katalog Desain Undangan Pernikahan — Undangania",
   description in Bahasa Indonesia mentioning same-core-features and design
   characters, canonical **`/templates`** (query params never canonicalized —
   filtered views canonical to the base URL), OG locale `id_ID`.

@@ -1,10 +1,10 @@
 # MVP-UI-007 Customer Dashboard Handoff
 
-Status: IMPLEMENTED — development validation complete
+Status: IMPLEMENTED — browser validation pending
 
 ## Scope
 
-Implemented the approved customer dashboard for Wedding System. The route is
+Implemented the approved customer dashboard for Undangania. The route is
 `/dashboard` and is a server-rendered, decision-oriented workspace overview.
 
 Primary job:
@@ -41,7 +41,7 @@ Primary job:
   - support link to `/#faq`;
   - loading skeleton and whole-page unauthenticated/provider-unavailable
     states.
-- Preserved the Wedding System visual direction: ivory background, paper
+- Preserved the Undangania visual direction: ivory background, paper
   surfaces, ink text, olive action, serif display type, hairline borders, and
   soft shadows. No gradients, charts, decorative card wall, or new motion.
 - Used `ApplicationShell` for desktop navigation and mobile drawer.
@@ -207,3 +207,58 @@ instruction.
 Implement the tenant-scoped dashboard aggregate repository/API with session and
 role authorization, verified payment state, and bounded aggregate queries;
 then rerun the browser UI quality gates against the real data provider.
+
+## Follow-up: customer dashboard navigation and visual pass
+
+Status: implementation complete; runtime browser checks remain pending.
+
+The dashboard now uses a local customer workspace shell with a grouped desktop
+sidebar and accessible mobile drawer. Its warm ivory, paper, ink, and olive
+visual direction reuses existing shared tokens. The countdown and dashboard
+summaries still use the existing session-scoped aggregate; no business state or
+metrics were added.
+
+Navigation maps to existing customer routes: wedding profile to `/mulai`, guest
+list to `/tamu`, RSVP to `/rsvp`, templates to `/templates`, editor actions to
+`/editor`, guest links to `/tamu?link=ACTIVE`, and owner order history to
+`/pesanan`. Budget and WhatsApp sharing are visible as non-interactive
+“Segera hadir” items because those customer flows are not available. Billing
+navigation remains hidden from editors. Preview opens the editor; publish opens
+the editor's existing readiness section.
+
+Files changed:
+
+- `apps/customer-web/src/components/dashboard/dashboard-shell.tsx`
+- `apps/customer-web/src/components/dashboard/dashboard-view.tsx`
+- `apps/customer-web/src/components/dashboard/countdown-band.tsx`
+- `apps/customer-web/src/components/dashboard/completion-progress.tsx`
+- `apps/customer-web/src/app/dashboard/loading.tsx`
+- `apps/customer-web/src/app/dashboard.css`
+- `apps/customer-web/src/components/dashboard/dashboard-shell.test.ts`
+- `tests/e2e/customer-dashboard.spec.ts`
+- `tests/accessibility/customer-dashboard.a11y.spec.ts`
+- `tests/responsive/customer-dashboard.responsive.spec.ts`
+
+Architecture and security impact: dashboard-only presentation change. The shell
+reuses the existing UI `Drawer`; the route remains server-rendered. No database,
+API, auth, payment, session, tenant, or sensitive-data behavior changed. No
+migration or rollback is required.
+
+Validation:
+
+- Customer-web typecheck passed.
+- Full customer-web test suite passed: 37 files, 256 tests. Focused navigation
+tests also passed: 3 tests.
+- Customer-web production build passed; `/dashboard` remains dynamic.
+- Customer-web lint completed with zero errors and two existing warnings in
+  unrelated invitation/editor files.
+- Prettier check passed for all changed source and test files.
+- Playwright discovered two dashboard E2E tests and ten accessibility/responsive
+tests. Browser execution and screenshots were not possible because no local
+server was listening on port 3000. Run those suites with the approved local app
+server before release; verify keyboard focus, axe, and all nine target widths.
+
+Known product limits: Budget and automated WhatsApp sharing are not implemented.
+Account navigation exposes only the existing owner order-history page, not a
+new account-management screen. These entries must not be presented as functional
+until supported routes and server behavior exist.

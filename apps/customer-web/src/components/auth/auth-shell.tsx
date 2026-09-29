@@ -15,13 +15,13 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <main id="konten-utama" tabIndex={-1} className="auth-main">
         <div className="auth-card">
           <Link className="auth-logo" href="/">
-            Wedding System
+            Undangania
           </Link>
           {children}
         </div>
       </main>
       <p className="auth-legal">
-        &copy; {new Date().getFullYear()} Wedding System. Undangan digital untuk
+        &copy; {new Date().getFullYear()} Undangania. Undangan digital untuk
         hari bahagia Anda.
       </p>
     </div>

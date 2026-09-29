@@ -1,6 +1,6 @@
 ---
 name: tenant-isolation-review
-description: Wedding System MVP workflow for tenant isolation review.
+description: Undangania MVP workflow for tenant isolation review.
 ---
 # Procedure
 1. List affected tenant data.

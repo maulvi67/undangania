@@ -9,7 +9,7 @@ import { hasAnyRole } from "@wedding/application";
 import "../guests.css";
 
 export const metadata: Metadata = {
-  title: "Buku tamu — Wedding System",
+  title: "Buku tamu — Undangania",
   description: "Tinjau doa dan ucapan dari tamu undangan Anda.",
   robots: { index: false, follow: false },
 };
@@ -46,7 +46,7 @@ export default async function GuestbookPage() {
         <div className="gst-state">
           <StatePanel
             title="Masuk untuk melihat buku tamu"
-            description="Masuk ke akun Wedding System untuk meninjau ucapan dari tamu Anda."
+            description="Masuk ke akun Undangania untuk meninjau ucapan dari tamu Anda."
             action={
               <Link
                 className="ui-button ui-button--primary ui-button--md"

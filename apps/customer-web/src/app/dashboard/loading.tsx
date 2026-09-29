@@ -1,18 +1,10 @@
-import { ApplicationShell, Skeleton } from "@wedding/ui";
+import { Skeleton } from "@wedding/ui";
+import { DashboardShell } from "../../components/dashboard/dashboard-shell";
 import "../dashboard.css";
-
-const NAV = [
-  { href: "/dashboard", label: "Dasbor", current: true },
-  { href: "/editor", label: "Editor" },
-  { href: "/tamu", label: "Tamu" },
-  { href: "/rsvp", label: "RSVP" },
-  { href: "/buku-tamu", label: "Buku tamu" },
-  { href: "/pesanan", label: "Pesanan" },
-] as const;
 
 export default function DashboardLoading() {
   return (
-    <ApplicationShell nav={NAV} footerNote="Memuat workspace pernikahan…">
+    <DashboardShell>
       <div className="dash-loading" role="status" aria-live="polite">
         <span className="ui-visually-hidden">Memuat dasbor…</span>
         <Skeleton
@@ -42,6 +34,6 @@ export default function DashboardLoading() {
           <Skeleton height="12rem" />
         </div>
       </div>
-    </ApplicationShell>
+    </DashboardShell>
   );
 }

@@ -5,19 +5,17 @@ import { AdminSidebar } from "./admin-sidebar";
 
 export function AdminShell({
   children,
-  session,
-  freshness,
+  dashboard,
 }: {
   children: ReactNode;
-  session: AdminDashboard["session"];
-  freshness: AdminDashboard["freshness"];
+  dashboard: AdminDashboard;
 }) {
   return (
     <div className="admin-shell">
       <a className="admin-skip-link" href="#konten-utama">
         Langsung ke konten utama
       </a>
-      <AdminHeader session={session} freshness={freshness} />
+      <AdminHeader data={dashboard} />
       <div className="lg:hidden">
         <AdminSidebar mobile />
       </div>
@@ -31,8 +29,11 @@ export function AdminShell({
       </div>
       <footer className="admin-footer">
         <div className="mx-auto flex w-full max-w-[96rem] flex-wrap items-center justify-between gap-x-5 gap-y-2">
-          <strong>Wedding System Operations</strong>
-          <span>Data masked · tindakan sensitif memerlukan otorisasi server dan audit.</span>
+          <strong>Undangania Operations</strong>
+          <span>
+            Data masked · tindakan sensitif memerlukan otorisasi server dan
+            audit.
+          </span>
         </div>
       </footer>
     </div>

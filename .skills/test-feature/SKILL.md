@@ -1,6 +1,6 @@
 ---
 name: test-feature
-description: Wedding System MVP workflow for test feature.
+description: Undangania MVP workflow for test feature.
 ---
 # Procedure
 1. Map acceptance criteria.

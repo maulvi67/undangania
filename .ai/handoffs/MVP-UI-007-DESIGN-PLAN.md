@@ -262,7 +262,7 @@ is icon + text (visually-hidden "Selesai:"); 44px targets; visible focus
 ## 11. SEO/metadata and performance
 
 - Private page: `robots: { index: false }`, no canonical/OG promotion; title
-  "Dasbor — Wedding System".
+  "Dasbor — Undangania".
 - One server-side aggregate read; zero client fetch (no waterfalls, task
   §10); no charts; no images; only client JS = shell drawer; route-level
   loading skeleton; dynamic rendering.

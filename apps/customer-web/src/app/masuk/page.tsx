@@ -6,9 +6,9 @@ import "../auth.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const title = "Masuk — Wedding System";
+const title = "Masuk — Undangania";
 const description =
-  "Masuk ke akun Wedding System Anda untuk melanjutkan persiapan undangan pernikahan digital Anda.";
+  "Masuk ke akun Undangania Anda untuk melanjutkan persiapan undangan pernikahan digital Anda.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     url: "/masuk",
     title,
     description,
-    siteName: "Wedding System",
+    siteName: "Undangania",
   },
 };
 

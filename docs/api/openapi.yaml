@@ -1,5 +1,5 @@
 openapi: 3.1.0
-info: { title: Wedding System API, version: 0.1.0 }
+info: { title: Undangania API, version: 0.1.0 }
 servers: [{ url: /api/v1 }]
 paths:
   /templates: { get: { summary: List active templates, responses: { '200': { description: OK } } } }

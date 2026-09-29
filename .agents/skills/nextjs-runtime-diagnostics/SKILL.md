@@ -1,6 +1,6 @@
 ---
 name: nextjs-runtime-diagnostics
-description: Wedding System MVP workflow for nextjs runtime diagnostics.
+description: Undangania MVP workflow for nextjs runtime diagnostics.
 disable-model-invocation: false
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: develop-digital-invitation
-description: Implement invitation/editor/publication capability using canonical contracts. Use for Wedding System tasks that match this workflow.
+description: Implement invitation/editor/publication capability using canonical contracts. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

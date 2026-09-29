@@ -1,6 +1,6 @@
 ---
 name: payment-gateway-integration
-description: Integrate payment provider safely. Use for Wedding System tasks that match this workflow.
+description: Integrate payment provider safely. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

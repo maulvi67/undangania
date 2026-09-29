@@ -1,6 +1,6 @@
 ---
 name: responsive-layout-audit
-description: Validate Wedding System product UI and invitation templates across mobile, tablet, desktop, orientation, zoom, and difficult content fixtures.
+description: Validate Undangania product UI and invitation templates across mobile, tablet, desktop, orientation, zoom, and difficult content fixtures.
 ---
 # Viewports
 Minimum: 320x568, 360x800, 375x812, 390x844, 412x915, 768x1024, 1024x768, 1280x800, 1440x900. Include landscape for editor and checkout.

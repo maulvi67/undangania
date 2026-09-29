@@ -1,6 +1,6 @@
 ---
 name: mvp-bootstrap
-description: Wedding System MVP workflow for mvp bootstrap.
+description: Undangania MVP workflow for mvp bootstrap.
 ---
 # Procedure
 1. Inspect baseline failures.

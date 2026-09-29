@@ -1,6 +1,6 @@
 ---
 name: implementation-plan
-description: Produce an approval-ready implementation plan. Use for Wedding System tasks that match this workflow.
+description: Produce an approval-ready implementation plan. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

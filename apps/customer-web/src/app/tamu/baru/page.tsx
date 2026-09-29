@@ -8,7 +8,7 @@ import { guestRequestScope } from "../../../lib/guests/request";
 import "../../guests.css";
 
 export const metadata: Metadata = {
-  title: "Tambah rumah tangga — Wedding System",
+  title: "Tambah rumah tangga — Undangania",
   robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export default async function NewGuestHouseholdPage() {
         <div className="gst-state">
           <StatePanel
             title="Masuk untuk menambah tamu"
-            description="Masuk ke akun Wedding System untuk mengelola rumah tangga di workspace Anda."
+            description="Masuk ke akun Undangania untuk mengelola rumah tangga di workspace Anda."
             action={
               <a
                 className="ui-button ui-button--primary ui-button--md"

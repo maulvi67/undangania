@@ -1,6 +1,6 @@
 ---
 name: database-migration
-description: Wedding System MVP workflow for database migration.
+description: Undangania MVP workflow for database migration.
 disable-model-invocation: false
 ---
 

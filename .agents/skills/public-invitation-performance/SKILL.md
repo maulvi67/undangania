@@ -1,6 +1,6 @@
 ---
 name: public-invitation-performance
-description: Wedding System MVP workflow for public invitation performance.
+description: Undangania MVP workflow for public invitation performance.
 disable-model-invocation: false
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: unit-integration-e2e-tests
-description: Create appropriate automated tests. Use for Wedding System tasks that match this workflow.
+description: Create appropriate automated tests. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

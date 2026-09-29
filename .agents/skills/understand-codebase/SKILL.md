@@ -1,6 +1,6 @@
 ---
 name: understand-codebase
-description: Wedding System MVP workflow for understand codebase.
+description: Undangania MVP workflow for understand codebase.
 disable-model-invocation: false
 ---
 

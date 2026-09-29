@@ -1,6 +1,6 @@
 ---
 name: provider-contract-review
-description: Wedding System MVP workflow for provider contract review.
+description: Undangania MVP workflow for provider contract review.
 ---
 # Procedure
 1. Retrieve current docs.

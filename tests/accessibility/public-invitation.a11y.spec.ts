@@ -44,12 +44,12 @@ test.describe("golden public invitation accessibility", () => {
     }
     await expect(page.locator(".ui-skip-link")).toBeFocused();
     if (browserName === "webkit") {
-      await page.getByRole("link", { name: "Wedding System" }).focus();
+      await page.getByRole("link", { name: "Undangania" }).focus();
     } else {
       await page.keyboard.press("Tab");
     }
     await expect(
-      page.getByRole("link", { name: "Wedding System" }),
+      page.getByRole("link", { name: "Undangania" }),
     ).toBeFocused();
     if (browserName === "webkit") {
       await page.locator(".gld-opening > summary").focus();

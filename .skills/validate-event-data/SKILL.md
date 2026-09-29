@@ -1,6 +1,6 @@
 ---
 name: validate-event-data
-description: Validate wedding dates, timezones, venues and event consistency. Use for Wedding System tasks that match this workflow.
+description: Validate wedding dates, timezones, venues and event consistency. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

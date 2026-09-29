@@ -1,6 +1,6 @@
 ---
 name: create-validate-template
-description: Create or validate an original/licensed template. Use for Wedding System tasks that match this workflow.
+description: Create or validate an original/licensed template. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

@@ -16,7 +16,7 @@ export function EditorHeader({
       <div className="ed-header__inner">
         <div className="ed-header__identity">
           <Link className="ed-header__brand" href="/">
-            Wedding System
+            Undangania
           </Link>
           <span className="ed-header__separator" aria-hidden="true">
             /

@@ -242,15 +242,15 @@ describe("buildTotpUri", () => {
     const uri = buildTotpUri({
       secret: RFC_SECRET,
       accountName: "rani@contoh.id",
-      issuer: "Wedding System",
+      issuer: "Undangania",
     });
     const parsed = new URL(uri);
 
     expect(parsed.protocol).toBe("otpauth:");
     expect(parsed.host).toBe("totp");
-    expect(parsed.pathname).toBe("/Wedding%20System:rani@contoh.id");
+    expect(parsed.pathname).toBe("/Undangania:rani@contoh.id");
     expect(parsed.searchParams.get("secret")).toBe(RFC_SECRET);
-    expect(parsed.searchParams.get("issuer")).toBe("Wedding System");
+    expect(parsed.searchParams.get("issuer")).toBe("Undangania");
     expect(parsed.searchParams.get("digits")).toBe("6");
     expect(parsed.searchParams.get("period")).toBe("30");
   });

@@ -1,6 +1,6 @@
 ---
 name: invitation-copywriting
-description: Create factual, culturally appropriate invitation copy drafts. Use for Wedding System tasks that match this workflow.
+description: Create factual, culturally appropriate invitation copy drafts. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

@@ -4,7 +4,7 @@ import { loadDashboardForSession } from "../../lib/dashboard/server";
 import "../dashboard.css";
 
 export const metadata: Metadata = {
-  title: "Dasbor — Wedding System",
+  title: "Dasbor — Undangania",
   robots: { index: false },
 };
 

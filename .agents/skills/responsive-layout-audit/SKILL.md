@@ -1,6 +1,6 @@
 ---
 name: responsive-layout-audit
-description: Validate Wedding System product UI and invitation templates across mobile, tablet, desktop, orientation, zoom, and difficult content fixtures.
+description: Validate Undangania product UI and invitation templates across mobile, tablet, desktop, orientation, zoom, and difficult content fixtures.
 disable-model-invocation: false
 ---
 

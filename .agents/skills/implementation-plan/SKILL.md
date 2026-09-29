@@ -1,6 +1,6 @@
 ---
 name: implementation-plan
-description: Wedding System MVP workflow for implementation plan.
+description: Undangania MVP workflow for implementation plan.
 disable-model-invocation: false
 ---
 

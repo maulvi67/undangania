@@ -1,6 +1,6 @@
 ---
 name: optimize-assets
-description: Optimize image, font, audio and template assets. Use for Wedding System tasks that match this workflow.
+description: Optimize image, font, audio and template assets. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

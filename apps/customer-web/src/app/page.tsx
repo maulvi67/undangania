@@ -15,7 +15,7 @@ import { ScrollReveal } from "../components/marketing/scroll-reveal";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const title = "Wedding System — Undangan Pernikahan Digital";
+const title = "Undangania — Undangan Pernikahan Digital";
 const description =
   "Buat undangan pernikahan digital yang elegan tanpa perlu keahlian desain. Pilih desain, isi detail acara, dan bagikan ke tamu — semua desain termasuk fitur undangan lengkap.";
 
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     url: "/",
     title,
     description,
-    siteName: "Wedding System",
+    siteName: "Undangania",
   },
   twitter: { card: "summary" },
 };
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Wedding System",
+  name: "Undangania",
   inLanguage: "id-ID",
 };
 

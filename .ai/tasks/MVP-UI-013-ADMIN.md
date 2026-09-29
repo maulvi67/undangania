@@ -129,3 +129,29 @@ Use ui-ux-brief and implementation-plan with the authorization matrix. Define ro
 - [ ] Screenshots, measurements, and test evidence stored in handoff.
 - [ ] Documentation and task status updated.
 - [ ] Reviewer decision is APPROVE or approved CONDITIONAL APPROVAL.
+
+## Implementation checkpoint — 2026-09-25
+
+This checkpoint records a focused UI slice; it does not complete the task or release gate.
+
+### Delivered
+
+- Added a responsive operations breakdown chart based only on row counts from the active page. Unavailable and permission-denied sections remain distinct from zero rows.
+- Added a Ctrl/Command+K search dialog that submits the existing server-side operation filter and links to available dashboard sections.
+- Added a notification menu derived from the authorized attention queue, local read state, a persisted light/dark preference, and a role/scope context menu.
+- Kept the existing Next.js App Router and shared UI package. Client components receive only the chart summary or minimal notification/session projections.
+- Added row-count aggregation tests. No API, database, schema, authorization, or payment behavior changed.
+
+### Validation evidence
+
+- `npm run typecheck -w @wedding/admin-dashboard` — passed.
+- `npm run lint -w @wedding/admin-dashboard` — passed.
+- `npm test -w @wedding/admin-dashboard` — passed; 4 files, 15 tests.
+- Targeted Prettier check, CSS parse, and `git diff --check` — passed.
+- `npm run build -w @wedding/admin-dashboard` — passed on 2026-09-29 after completing the locked optional LightningCSS platform metadata and clearing stale `.next` output. The exact Windows x64 `1.30.2` package was staged locally because the registry mirror's tarball transfer timed out; clean npm reification remains unverified.
+- Local Chromium fixture smoke: no document horizontal overflow at 320, 360, 375, 390, 412, 768, 1024, 1280, and 1440px; axe WCAG 2.1 A/AA scan reported 0 violations. Screenshots are in the local temp directory `C:\Users\MAULVIA\AppData\Local\Temp\wedding-system-admin-dashboard` (`dashboard-390.png`, `dashboard-1440.png`).
+- Interactive/full browser gates remain pending: the local Next dev HMR WebSocket handshake failed, so hydration-dependent shortcut/theme checks were inconclusive. Manual keyboard, 200% zoom/reflow, remaining exceptional states, cross-browser checks, and screenshots for those states are not validated. Existing Playwright accessibility/responsive suites do not cover the admin dashboard; no `test:responsive` script is defined.
+
+### Remaining release work
+
+When registry access is available, verify a clean npm install from the updated lockfile, then complete the admin-specific Playwright, accessibility, responsive, and UI quality gates. Reviewers and approval listed above remain required. Do not present this checkpoint as completion of analytics, customer management, settings, or other unsupported modules.

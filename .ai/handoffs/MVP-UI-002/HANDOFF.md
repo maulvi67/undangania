@@ -21,7 +21,7 @@ primary CTA → `/templates`, secondary CTA → `/demo`.
 
 ## Decisions
 
-- Editorial visual thesis: hairline rules, serif display type, no gradients; brand "Wedding System".
+- Editorial visual thesis: hairline rules, serif display type, no gradients; current brand "Undangania" supersedes the original brand choice.
 - Fully static Server Component page (no client JS shipped for the page itself);
   `Drawer` in header is the only client island via `@wedding/ui`.
 - CSS-composed illustrative template previews (no fabricated product screenshots);

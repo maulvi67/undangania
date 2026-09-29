@@ -1,6 +1,6 @@
 ---
 name: deployment-rollback-plan
-description: Create deployment and rollback plan. Use for Wedding System tasks that match this workflow.
+description: Create deployment and rollback plan. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

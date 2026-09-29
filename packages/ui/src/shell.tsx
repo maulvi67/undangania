@@ -28,7 +28,7 @@ function navList(nav: ReadonlyArray<NavItem>, className: string) {
 }
 
 export function ApplicationShell({
-  brand = "Wedding System",
+  brand = "Undangania",
   nav,
   children,
   footerNote,

@@ -167,7 +167,7 @@ describe("PrismaMfaRepository.beginEnrolment", () => {
     const enrolment = await repository.beginEnrolment({
       userId: USER_ID,
       accountName: "rani@contoh.id",
-      issuer: "Wedding System",
+      issuer: "Undangania",
     });
 
     expect(enrolment.secret).toMatch(/^[A-Z2-7]+$/);
@@ -196,7 +196,7 @@ describe("PrismaMfaRepository.beginEnrolment", () => {
     await repository.beginEnrolment({
       userId: USER_ID,
       accountName: "rani@contoh.id",
-      issuer: "Wedding System",
+      issuer: "Undangania",
     });
 
     expect(updateMany).toHaveBeenCalledWith({
@@ -229,7 +229,7 @@ describe("PrismaMfaRepository.confirmEnrolment", () => {
     const enrolment = await seeder.beginEnrolment({
       userId: USER_ID,
       accountName: "rani@contoh.id",
-      issuer: "Wedding System",
+      issuer: "Undangania",
     });
     const stored = created.mock.calls[0]?.[0] as {
       data: { secretEncrypted: string };
@@ -438,7 +438,7 @@ describe("PrismaMfaRepository.verify", () => {
     const enrolment = await seeder.beginEnrolment({
       userId: USER_ID,
       accountName: "rani@contoh.id",
-      issuer: "Wedding System",
+      issuer: "Undangania",
     });
     const stored = created.mock.calls[0]?.[0] as {
       data: { secretEncrypted: string };

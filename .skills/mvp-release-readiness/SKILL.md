@@ -1,6 +1,6 @@
 ---
 name: mvp-release-readiness
-description: Wedding System MVP workflow for mvp release readiness.
+description: Undangania MVP workflow for mvp release readiness.
 ---
 # Procedure
 1. Verify scope.

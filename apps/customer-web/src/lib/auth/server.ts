@@ -276,7 +276,7 @@ export async function registerAndProvisionAccount(input: {
     await users.register({
       email: input.email,
       password: input.password,
-      displayName: input.email.split("@")[0] ?? "Pengguna Wedding System",
+      displayName: input.email.split("@")[0] ?? "Pengguna Undangania",
       tenantName: "Workspace pernikahan",
     });
     return "done";

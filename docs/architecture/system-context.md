@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart LR
-  Couple[Couple / Customer] --> Platform[Wedding System]
+  Couple[Couple / Customer] --> Platform[Undangania]
   Guest[Guest] --> Platform
   Vendor[Vendor / Printer] --> Platform
   Reseller[Reseller] --> Platform

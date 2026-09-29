@@ -5,9 +5,9 @@ import "../auth.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const title = "Lupa kata sandi — Wedding System";
+const title = "Lupa kata sandi — Undangania";
 const description =
-  "Kirim tautan pemulihan untuk mengatur ulang kata sandi akun Wedding System Anda.";
+  "Kirim tautan pemulihan untuk mengatur ulang kata sandi akun Undangania Anda.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     url: "/lupa-sandi",
     title,
     description,
-    siteName: "Wedding System",
+    siteName: "Undangania",
   },
 };
 

@@ -20,7 +20,7 @@ export function generateStaticParams() {
 
 /** Noindex: demo content is synthetic and must not compete with real pages. */
 export const metadata: Metadata = {
-  title: "Demo undangan — Wedding System",
+  title: "Demo undangan — Undangania",
   robots: { index: false, follow: false },
 };
 

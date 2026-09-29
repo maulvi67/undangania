@@ -15,7 +15,7 @@ export function MarketingHeader() {
     <header className="ui-header">
       <div className="ui-container ui-header__inner">
         <Link className="ui-brand" href="/">
-          Wedding System
+          Undangania
         </Link>
         <nav className="ui-nav" aria-label="Utama">
           {NAV_ITEMS.slice(0, 4).map((item) => (

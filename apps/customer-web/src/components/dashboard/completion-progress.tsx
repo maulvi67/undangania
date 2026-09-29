@@ -12,7 +12,11 @@ export function CompletionProgress({
   const count = completionCount(items);
 
   return (
-    <section className="dash-section" aria-labelledby="dash-progress-title">
+    <section
+      className="dash-section"
+      id="checklist"
+      aria-labelledby="dash-progress-title"
+    >
       <div className="dash-section__head">
         <div>
           <p className="dash-section__eyebrow">Panduan singkat</p>

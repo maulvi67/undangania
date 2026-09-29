@@ -6,7 +6,7 @@ import "../auth.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-const title = "Sesi berakhir — Wedding System";
+const title = "Sesi berakhir — Undangania";
 const description = "Untuk keamanan, silakan masuk kembali untuk melanjutkan.";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     url: "/sesi-berakhir",
     title,
     description,
-    siteName: "Wedding System",
+    siteName: "Undangania",
   },
 };
 

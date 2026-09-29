@@ -1,6 +1,6 @@
 ---
 name: seo-review
-description: Review discoverability and public performance. Use for Wedding System tasks that match this workflow.
+description: Review discoverability and public performance. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

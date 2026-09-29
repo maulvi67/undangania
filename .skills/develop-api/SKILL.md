@@ -1,6 +1,6 @@
 ---
 name: develop-api
-description: Design and implement a secure typed API. Use for Wedding System tasks that match this workflow.
+description: Design and implement a secure typed API. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

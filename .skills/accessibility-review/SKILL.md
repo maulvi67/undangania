@@ -1,6 +1,6 @@
 ---
 name: accessibility-review
-description: Review WCAG-oriented UI behavior. Use for Wedding System tasks that match this workflow.
+description: Review WCAG-oriented UI behavior. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

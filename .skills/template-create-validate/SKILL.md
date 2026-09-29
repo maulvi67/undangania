@@ -1,6 +1,6 @@
 ---
 name: template-create-validate
-description: Wedding System MVP workflow for template create validate.
+description: Undangania MVP workflow for template create validate.
 ---
 # Procedure
 1. Verify source/license.

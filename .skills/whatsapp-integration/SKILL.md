@@ -1,6 +1,6 @@
 ---
 name: whatsapp-integration
-description: Integrate approved WhatsApp messaging. Use for Wedding System tasks that match this workflow.
+description: Integrate approved WhatsApp messaging. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

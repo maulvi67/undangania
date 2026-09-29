@@ -1,6 +1,6 @@
 ---
 name: responsive-review
-description: Validate responsive layout and interaction. Use for Wedding System tasks that match this workflow.
+description: Validate responsive layout and interaction. Use for Undangania tasks that match this workflow.
 ---
 
 # Purpose

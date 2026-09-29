@@ -64,7 +64,7 @@ export function EditorRouteView({
         <header className="ed-header">
           <div className="ed-header__inner">
             <Link className="ed-header__brand" href="/">
-              Wedding System
+              Undangania
             </Link>
           </div>
         </header>

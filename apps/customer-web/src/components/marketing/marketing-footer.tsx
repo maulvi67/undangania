@@ -17,7 +17,7 @@ export function MarketingFooter() {
       <div className="ui-container">
         <div className="lnd-footer__top">
           <div>
-            <p className="lnd-footer__brand">Wedding System</p>
+            <p className="lnd-footer__brand">Undangania</p>
             <p className="lnd-footer__tagline">
               Undangan pernikahan digital untuk pasangan Indonesia.
             </p>
@@ -33,7 +33,7 @@ export function MarketingFooter() {
           </nav>
         </div>
         <p className="lnd-footer__legal">
-          © {new Date().getFullYear()} Wedding System. Pratinjau desain dan nama
+          © {new Date().getFullYear()} Undangania. Pratinjau desain dan nama
           pada halaman ini adalah data contoh, bukan pelanggan sebenarnya.
         </p>
       </div>
