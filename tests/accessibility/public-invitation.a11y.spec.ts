@@ -32,6 +32,17 @@ test.describe("golden public invitation accessibility", () => {
     ).toEqual([]);
   });
 
+  test("Nara has no critical or serious axe violations", async ({ page }) => {
+    await page.goto("/invite/rani-bima-nara");
+    await page.getByText("Buka undangan").click();
+    const result = await new AxeBuilder({ page }).analyze();
+    expect(
+      result.violations.filter((item) =>
+        ["critical", "serious"].includes(item.impact ?? ""),
+      ),
+    ).toEqual([]);
+  });
+
   test("has a logical keyboard path and visible focus targets", async ({
     page,
     browserName,
@@ -48,9 +59,7 @@ test.describe("golden public invitation accessibility", () => {
     } else {
       await page.keyboard.press("Tab");
     }
-    await expect(
-      page.getByRole("link", { name: "Undangania" }),
-    ).toBeFocused();
+    await expect(page.getByRole("link", { name: "Undangania" })).toBeFocused();
     if (browserName === "webkit") {
       await page.locator(".gld-opening > summary").focus();
     } else {

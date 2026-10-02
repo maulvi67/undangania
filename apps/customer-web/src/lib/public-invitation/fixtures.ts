@@ -281,15 +281,29 @@ const FIXTURE_MODELS: Record<PublicInvitationFixture, InvitationViewModel> = {
   "large-gallery": createModel({ sections: sectionsWithGalleryCount(30) }),
 };
 
-const SNAPSHOTS: readonly PublicationSnapshot[] = Object.entries(
-  FIXTURE_MODELS,
-).map(([fixture, model]) => ({
-  slug: fixture === "normal" ? "rani-bima" : `rani-bima-${fixture}`,
-  templateId: "seruni-klasik",
-  templateVersion: "1",
-  contractVersion: 1,
-  model,
-}));
+const SNAPSHOTS: readonly PublicationSnapshot[] = [
+  ...Object.entries(FIXTURE_MODELS).map(([fixture, model]) => ({
+    slug: fixture === "normal" ? "rani-bima" : `rani-bima-${fixture}`,
+    templateId: "seruni-klasik",
+    templateVersion: "1",
+    contractVersion: 1,
+    model,
+  })),
+  {
+    slug: "rani-bima-nara",
+    templateId: "nara-modern",
+    templateVersion: "1",
+    contractVersion: 1,
+    model: createModel(),
+  },
+  {
+    slug: "rani-bima-kenanga",
+    templateId: "kenanga-tradisi",
+    templateVersion: "1",
+    contractVersion: 1,
+    model: createModel(),
+  },
+];
 
 export function isPublicInvitationFixture(
   value: string | undefined,
@@ -312,10 +326,7 @@ export function getPublicInvitationSnapshot(
 ): PublicationSnapshot | undefined {
   const snapshotSlug = fixture === "normal" ? slug : `rani-bima-${fixture}`;
   const snapshot = SNAPSHOTS.find(
-    (item) =>
-      item.slug === snapshotSlug &&
-      item.templateId === "seruni-klasik" &&
-      item.templateVersion === "1",
+    (item) => item.slug === snapshotSlug && item.templateVersion === "1",
   );
   if (snapshot && fixture !== "normal" && slug === "rani-bima") {
     return { ...snapshot, slug };

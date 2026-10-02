@@ -53,7 +53,7 @@ test.describe("landing page", () => {
   }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Undangan pernikahan digital yang elegan",
+      "Hari bahagia Anda, dirangkai dalam undangan digital yang personal",
     );
     await expect(
       page.getByRole("link", { name: "Lihat koleksi desain" }).first(),

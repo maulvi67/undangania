@@ -36,6 +36,25 @@ test.describe("golden public invitation", () => {
     ).toHaveAttribute("href", /https:\/\/maps\.google\.com\//);
   });
 
+  test("renders the Nara publication with its own modern theme", async ({
+    page,
+  }) => {
+    await page.goto("/invite/rani-bima-nara");
+    await expect(page.locator(".gld-page")).toHaveClass(/gld-page--nara/);
+    await expect(page.locator(".gld-invitation--nara")).toBeVisible();
+    await page.getByText("Buka undangan").click();
+    await expect(
+      page.getByRole("heading", { name: "Rani & Bima" }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Kisah kami" })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Pertanyaan umum" }),
+    ).toHaveCount(0);
+    await expect(page.locator(".gld-signature")).toHaveCount(0);
+  });
+
   test("renders the required content fixtures", async ({ page }) => {
     await page.goto("/invite/rani-bima-long-content");
     await page.getByText("Buka undangan").click();

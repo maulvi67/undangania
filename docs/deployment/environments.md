@@ -2,6 +2,10 @@
 
 Local, test, preview, staging, and production are isolated. No production data in non-production. Provider sandbox keys are separate. Feature flags default safe. Production access is time-bound and audited.
 
+## Transactional email
+
+Production authentication email requires `EMAIL_PROVIDER=relay`, `NOTIFICATION_RELAY_URL`, `NOTIFICATION_RELAY_API_KEY`, and `APP_URL` set to the public application origin. The relay must provide the approved templates `auth.email-verification`, `auth.password-reset`, and `auth.password-changed`. Console delivery is for local development only; an unset or `console` provider fails closed in production. Keep relay credentials server-only and use synthetic recipients in non-production unless a sandbox has been approved.
+
 ## Private media storage
 
 Customer media uses a private Cloudflare R2 bucket through the S3-compatible API. Configure these variables independently per environment:

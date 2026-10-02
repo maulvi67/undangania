@@ -42,6 +42,18 @@ describe("public invitation fixtures", () => {
     expect(section(model, "events")?.visible).toBe(true);
   });
 
+  it("provides a separate Nara publication snapshot", () => {
+    const snapshot = getPublicInvitationSnapshot("rani-bima-nara");
+    expect(snapshot?.templateId).toBe("nara-modern");
+    expect(snapshot?.templateVersion).toBe("1");
+    expect(
+      snapshot?.model.sections.find((item) => item.type === "story")?.visible,
+    ).toBe(true);
+    expect(
+      snapshot?.model.sections.find((item) => item.type === "faq")?.visible,
+    ).toBe(true);
+  });
+
   it("keeps the canonical public slug while selecting development fixtures", () => {
     expect(getPublicInvitationSnapshot("rani-bima")?.templateId).toBe(
       "seruni-klasik",

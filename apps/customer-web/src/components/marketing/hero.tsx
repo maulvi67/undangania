@@ -19,7 +19,7 @@ export function Hero() {
         <div className="lnd-hero__content">
           <p className="lnd-eyebrow">Undangan pernikahan digital</p>
           <h1 className="lnd-hero__title" id="hero-title">
-            Undangan pernikahan digital yang elegan, tanpa perlu jago desain.
+            Hari bahagia Anda, dirangkai dalam undangan digital yang personal.
           </h1>
           <p className="lnd-hero__sub">
             Pilih desain, isi detail acara, dan bagikan undangan ke tamu dalam

@@ -1011,3 +1011,494 @@ summary:focus-visible {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Nara is a quiet paper-and-olive theme; Seruni keeps its original palette. */
+.gld-page--nara {
+  background: #eef0e9;
+  color: #30382f;
+  font-family: var(--font-sans);
+}
+
+.gld-page--nara .gld-header {
+  max-width: 70rem;
+  align-items: center;
+  border-bottom-color: #d7dcd2;
+}
+
+.gld-page--nara .gld-header__brand {
+  color: #30382f;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.gld-page--nara .gld-header__note {
+  color: #5d6958;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.gld-page--nara .gld-invitation--nara {
+  width: min(100% - 2rem, 56rem);
+  background: #fbfcf8;
+  border: 1px solid #e0e4dc;
+  box-shadow: 0 20px 48px rgba(48, 56, 47, 0.07);
+}
+
+.gld-page--nara .gld-opening__summary {
+  min-height: 37rem;
+  align-items: flex-start;
+  padding: clamp(3rem, 9vw, 7rem) clamp(1.5rem, 8vw, 6rem);
+  color: #30382f;
+  text-align: left;
+  background: #f7f8f3;
+}
+
+.gld-page--nara .gld-opening__summary::before,
+.gld-page--nara .gld-opening__summary::after {
+  content: none;
+}
+
+.gld-page--nara .gld-opening__eyebrow,
+.gld-page--nara .gld-kicker {
+  color: #68765f;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.gld-page--nara .gld-opening__names {
+  max-width: 38rem;
+  color: #30382f;
+  font-family: var(--font-sans);
+  font-size: clamp(2.25rem, 7vw, 4.4rem);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 1.08;
+}
+
+.gld-page--nara .gld-opening__date {
+  color: #657064;
+}
+
+.gld-page--nara .gld-opening__action {
+  border-color: #879380;
+  color: #43513f;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.gld-page--nara .gld-opening__summary:hover .gld-opening__action {
+  background: #68765f;
+  color: #fbfcf8;
+}
+
+.gld-page--nara .gld-opening[open] > .gld-opening__summary {
+  border-bottom-color: #d7dcd2;
+}
+
+.gld-page--nara .gld-opening__content {
+  background: #fbfcf8;
+}
+
+.gld-page--nara .gld-hero {
+  min-height: 23rem;
+  align-items: flex-start;
+  padding: clamp(3rem, 8vw, 6rem) clamp(1.5rem, 8vw, 6rem);
+  color: #30382f;
+  text-align: left;
+  background: #edf0e8;
+}
+
+.gld-page--nara .gld-hero::before,
+.gld-page--nara .gld-hero::after,
+.gld-page--nara .gld-hero__ornament {
+  display: none;
+}
+
+.gld-page--nara .gld-hero .gld-kicker,
+.gld-page--nara .gld-hero__date,
+.gld-page--nara .gld-countdown,
+.gld-page--nara .gld-countdown__value {
+  color: #4f5d4b;
+}
+
+.gld-page--nara .gld-hero h2 {
+  color: #30382f;
+  font-family: var(--font-sans);
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+}
+
+.gld-page--nara .gld-countdown {
+  border-top-color: #aab4a2;
+  letter-spacing: 0;
+}
+
+.gld-page--nara .gld-section,
+.gld-page--nara .gld-closing {
+  max-width: 44rem;
+  border-bottom-color: #d7dcd2;
+}
+
+.gld-page--nara .gld-section h2,
+.gld-page--nara .gld-closing h2 {
+  color: #30382f;
+  font-family: var(--font-sans);
+  font-size: clamp(1.7rem, 5vw, 2.35rem);
+  font-weight: 450;
+  letter-spacing: -0.035em;
+}
+
+.gld-page--nara .gld-copy,
+.gld-page--nara .gld-muted,
+.gld-page--nara .gld-event__date,
+.gld-page--nara .gld-event__venue,
+.gld-page--nara .gld-event__address {
+  color: #5c6859;
+}
+
+.gld-page--nara .gld-event,
+.gld-page--nara .gld-faq,
+.gld-page--nara .gld-faq details {
+  border-color: #d7dcd2;
+}
+
+.gld-page--nara .gld-event__number,
+.gld-page--nara .gld-event h3,
+.gld-page--nara .gld-event__venue {
+  color: #455341;
+  font-family: var(--font-sans);
+}
+
+.gld-page--nara .gld-link,
+.gld-page--nara .gld-gift__value {
+  color: #52644d;
+}
+
+.gld-page--nara .gld-gallery {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.gld-page--nara .gld-gallery__tile::before,
+.gld-page--nara .gld-gallery__tile::after {
+  content: none;
+}
+
+.gld-page--nara .gld-gallery__tile--1,
+.gld-page--nara .gld-gallery__tile--4 {
+  background: #cfd7c9;
+}
+
+.gld-page--nara .gld-gallery__tile--2,
+.gld-page--nara .gld-gallery__tile--5 {
+  background: #e0e5da;
+}
+
+.gld-page--nara .gld-gallery__tile--3,
+.gld-page--nara .gld-gallery__tile--6 {
+  background: #bac6b5;
+}
+
+.gld-page--nara .gld-gift,
+.gld-page--nara .gld-wish {
+  border: 0;
+  border-top: 1px solid #d7dcd2;
+  background: transparent;
+}
+
+.gld-page--nara .gld-gift__provider,
+.gld-page--nara .gld-wish__name {
+  color: #68765f;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.gld-page--nara .gld-gift__account,
+.gld-page--nara .gld-wish__text,
+.gld-page--nara .gld-closing__names {
+  color: #30382f;
+  font-family: var(--font-sans);
+}
+
+.gld-page--nara .gld-button {
+  background: #65745d;
+  border-color: #65745d;
+  color: #fbfcf8;
+}
+
+.gld-page--nara .gld-button:hover:not(:disabled) {
+  background: #4f5f49;
+}
+
+.gld-page--nara .gld-button--secondary {
+  background: transparent;
+  color: #52644d;
+}
+
+.gld-page--nara .gld-guest-experience {
+  background: #fbfcf8;
+  border-color: #d7dcd2;
+  box-shadow: 0 20px 48px rgba(48, 56, 47, 0.06);
+}
+
+.gld-page--nara .gld-guest-rsvp,
+.gld-page--nara .gld-guestbook,
+.gld-page--nara .gld-guest-rsvp h2,
+.gld-page--nara .gld-guestbook h2,
+.gld-page--nara .gld-guest-rsvp__greeting,
+.gld-page--nara .gld-guest-event legend {
+  color: #30382f;
+  font-family: var(--font-sans);
+}
+
+.gld-page--nara .gld-guest-rsvp,
+.gld-page--nara .gld-guest-event,
+.gld-page--nara .gld-choice,
+.gld-page--nara .gld-form-field textarea {
+  border-color: #d7dcd2;
+  background: #f7f8f3;
+}
+
+.gld-page--nara .gld-guest-rsvp__deadline {
+  border-left-color: #68765f;
+  color: #5c6859;
+}
+
+.gld-page--nara .gld-choice:has(input:checked) {
+  border-color: #65745d;
+  box-shadow: inset 3px 0 0 #65745d;
+}
+
+.gld-page--nara .gld-choice input {
+  accent-color: #65745d;
+}
+
+.gld-page--nara .gld-guest-experience__note {
+  border-top-color: #d7dcd2;
+  color: #687365;
+}
+
+.gld-page--nara .gld-availability {
+  background: #fbfcf8;
+  border-color: #d7dcd2;
+  box-shadow: 0 20px 48px rgba(48, 56, 47, 0.06);
+}
+
+/* Kenanga pairs a framed blush cover with restrained clay and antique gold. */
+.gld-page--kenanga {
+  background: #f3eae5;
+  color: #3d302c;
+  font-family: var(--font-sans);
+}
+
+.gld-page--kenanga .gld-header {
+  max-width: 70rem;
+  border-bottom-color: #dfc6bb;
+}
+
+.gld-page--kenanga .gld-header__brand {
+  color: #3d302c;
+}
+
+.gld-page--kenanga .gld-header__note {
+  color: #765348;
+}
+
+.gld-page--kenanga .gld-invitation--kenanga {
+  width: min(100% - 2rem, 54rem);
+  background: #fcf8f4;
+  border-color: #d6b5a8;
+  box-shadow: 0 20px 48px rgba(92, 57, 45, 0.09);
+}
+
+.gld-page--kenanga .gld-opening__summary {
+  min-height: 40rem;
+  background: #f2dfd7;
+  color: #3d302c;
+}
+
+.gld-page--kenanga .gld-opening__summary::before {
+  border-color: #9c6554;
+}
+
+.gld-page--kenanga .gld-opening__summary::after {
+  border-color: rgba(177, 143, 91, 0.72);
+}
+
+.gld-page--kenanga .gld-opening__eyebrow,
+.gld-page--kenanga .gld-kicker {
+  color: #805444;
+}
+
+.gld-page--kenanga .gld-opening__names,
+.gld-page--kenanga .gld-section h2,
+.gld-page--kenanga .gld-closing h2,
+.gld-page--kenanga .gld-guest-rsvp h2,
+.gld-page--kenanga .gld-guestbook h2 {
+  color: #3d302c;
+  font-family: var(--font-display);
+  letter-spacing: 0;
+}
+
+.gld-page--kenanga .gld-opening__action {
+  border-color: #9c6554;
+  color: #774839;
+}
+
+.gld-page--kenanga .gld-opening__summary:hover .gld-opening__action {
+  background: #9c6554;
+  color: #fcf8f4;
+}
+
+.gld-page--kenanga .gld-opening[open] > .gld-opening__summary {
+  border-bottom-color: #dfc6bb;
+}
+
+.gld-page--kenanga .gld-opening__content {
+  background: #fcf8f4;
+}
+
+.gld-page--kenanga .gld-hero {
+  background: #ead5cc;
+  color: #3d302c;
+}
+
+.gld-page--kenanga .gld-hero::before,
+.gld-page--kenanga .gld-hero::after,
+.gld-page--kenanga .gld-hero__ornament {
+  display: none;
+}
+
+.gld-page--kenanga .gld-hero .gld-kicker,
+.gld-page--kenanga .gld-hero__date,
+.gld-page--kenanga .gld-countdown,
+.gld-page--kenanga .gld-countdown__value {
+  color: #68483d;
+}
+
+.gld-page--kenanga .gld-hero h2 {
+  color: #3d302c;
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+.gld-page--kenanga .gld-countdown {
+  border-top-color: #b99b70;
+}
+
+.gld-page--kenanga .gld-section,
+.gld-page--kenanga .gld-closing {
+  border-bottom-color: #dfc6bb;
+}
+
+.gld-page--kenanga .gld-copy,
+.gld-page--kenanga .gld-muted,
+.gld-page--kenanga .gld-event__date,
+.gld-page--kenanga .gld-event__venue,
+.gld-page--kenanga .gld-event__address {
+  color: #67534d;
+}
+
+.gld-page--kenanga .gld-event {
+  border-top-color: #dfc6bb;
+}
+
+.gld-page--kenanga .gld-event__number,
+.gld-page--kenanga .gld-link,
+.gld-page--kenanga .gld-gift__value {
+  color: #895642;
+}
+
+.gld-page--kenanga .gld-gallery__tile--1,
+.gld-page--kenanga .gld-gallery__tile--4 {
+  background: #d9b8aa;
+}
+
+.gld-page--kenanga .gld-gallery__tile--2,
+.gld-page--kenanga .gld-gallery__tile--5 {
+  background: #e4d2b5;
+}
+
+.gld-page--kenanga .gld-gallery__tile--3,
+.gld-page--kenanga .gld-gallery__tile--6 {
+  background: #c89b88;
+}
+
+.gld-page--kenanga .gld-gift,
+.gld-page--kenanga .gld-wish {
+  border-color: #dec4b8;
+  background: #f7ece7;
+}
+
+.gld-page--kenanga .gld-gift__provider,
+.gld-page--kenanga .gld-wish__name {
+  color: #805444;
+}
+
+.gld-page--kenanga .gld-gift__account,
+.gld-page--kenanga .gld-wish__text,
+.gld-page--kenanga .gld-closing__names {
+  color: #3d302c;
+}
+
+.gld-page--kenanga .gld-button {
+  background: #925b48;
+  border-color: #925b48;
+  color: #fcf8f4;
+}
+
+.gld-page--kenanga .gld-button:hover:not(:disabled) {
+  background: #784735;
+}
+
+.gld-page--kenanga .gld-button--secondary {
+  background: transparent;
+  color: #895642;
+}
+
+.gld-page--kenanga .gld-guest-experience {
+  background: #fcf8f4;
+  border-color: #dec4b8;
+  box-shadow: 0 20px 48px rgba(92, 57, 45, 0.07);
+}
+
+.gld-page--kenanga .gld-guest-rsvp,
+.gld-page--kenanga .gld-guestbook {
+  border-color: #dfc6bb;
+}
+
+.gld-page--kenanga .gld-guest-event,
+.gld-page--kenanga .gld-choice,
+.gld-page--kenanga .gld-form-field textarea {
+  border-color: #dec4b8;
+  background: #f7ece7;
+}
+
+.gld-page--kenanga .gld-guest-rsvp__deadline {
+  border-left-color: #b18f5b;
+  color: #67534d;
+}
+
+.gld-page--kenanga .gld-choice:has(input:checked) {
+  border-color: #925b48;
+  box-shadow: inset 3px 0 0 #925b48;
+}
+
+.gld-page--kenanga .gld-choice input {
+  accent-color: #925b48;
+}
+
+.gld-page--kenanga .gld-guest-experience__note {
+  border-top-color: #dfc6bb;
+  color: #765348;
+}
+
+.gld-page--kenanga .gld-availability {
+  background: #fcf8f4;
+  border-color: #dec4b8;
+  box-shadow: 0 20px 48px rgba(92, 57, 45, 0.07);
+}

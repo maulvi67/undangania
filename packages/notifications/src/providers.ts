@@ -262,17 +262,22 @@ export function parseNotificationResponse(
 /**
  * Resolves the configured provider. Returns `null` when the relay is not
  * configured so callers can fail closed with `PROVIDER_UNAVAILABLE` rather than
- * silently falling back to a console transport that sends nothing.
+ * silently falling back to a console transport that sends nothing. The console
+ * transport is a local development default only; production must explicitly
+ * configure a relay.
  *
- * `EMAIL_PROVIDER=console` is the local default; anything else requires
- * `NOTIFICATION_RELAY_URL` and `NOTIFICATION_RELAY_API_KEY`.
+ * `EMAIL_PROVIDER=console` is accepted outside production. Production requires
+ * a non-console provider plus `NOTIFICATION_RELAY_URL` and
+ * `NOTIFICATION_RELAY_API_KEY`.
  */
 export function createNotificationPortFromEnv(
   env: Readonly<Record<string, string | undefined>> = process.env,
   sink?: NotificationLogSink,
 ): NotificationPort | null {
   const provider = env.EMAIL_PROVIDER?.trim().toLowerCase();
+  const isProduction = env.NODE_ENV === "production";
   if (provider === undefined || provider === "" || provider === "console") {
+    if (isProduction) return null;
     return sink === undefined
       ? new ConsoleNotificationPort()
       : new ConsoleNotificationPort(sink);

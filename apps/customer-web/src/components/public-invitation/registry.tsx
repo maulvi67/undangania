@@ -5,10 +5,15 @@ import {
   type InvitationMedia,
   type InvitationViewModel,
 } from "@wedding/template-engine";
-import { seruniRenderer } from "./seruni-template";
+import {
+  kenangaRenderer,
+  naraRenderer,
+  seruniRenderer,
+} from "./seruni-template";
 
+const renderers = [seruniRenderer, naraRenderer, kenangaRenderer] as const;
 const registry = new TemplateRegistry<ReactNode>();
-registry.register(seruniRenderer);
+for (const renderer of renderers) registry.register(renderer);
 
 export type PublicationSnapshotInput = Readonly<{
   templateId: string;
@@ -24,17 +29,16 @@ export function renderPublicationSnapshot(
   const model: InvitationViewModel = invitationViewModelSchema.parse(
     snapshot.model,
   );
-  if (snapshot.contractVersion !== seruniRenderer.manifest.contractVersion) {
+  const renderer = registry.get(snapshot.templateId, snapshot.templateVersion);
+  if (snapshot.contractVersion !== renderer.manifest.contractVersion) {
     throw new Error("Unsupported invitation contract version");
   }
-  return registry
-    .get(snapshot.templateId, snapshot.templateVersion)
-    .render(
-      model,
-      snapshot.media === undefined ? {} : { media: snapshot.media },
-    );
+  return renderer.render(
+    model,
+    snapshot.media === undefined ? {} : { media: snapshot.media },
+  );
 }
 
 export function getRegisteredTemplateIds(): readonly string[] {
-  return [seruniRenderer.manifest.id];
+  return renderers.map((renderer) => renderer.manifest.id);
 }

@@ -35,6 +35,23 @@ for (const viewport of viewports) {
   });
 }
 
+test("Nara stays within narrow and wide viewports", async ({ page }) => {
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/invite/rani-bima-nara");
+    await page.getByText("Buka undangan").click();
+    const metrics = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      invitationWidth:
+        document.querySelector(".gld-invitation")?.getBoundingClientRect()
+          .width ?? 0,
+    }));
+    expect(metrics.documentWidth).toBe(metrics.viewportWidth);
+    expect(metrics.invitationWidth).toBeLessThanOrEqual(metrics.viewportWidth);
+  }
+});
+
 test("long Indonesian content remains reachable on a narrow viewport", async ({
   page,
 }) => {

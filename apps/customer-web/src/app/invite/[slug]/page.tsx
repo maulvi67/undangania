@@ -180,11 +180,7 @@ export default async function PublicInvitationPage({
     return (
       <div className="gld-page">
         <header className="gld-header">
-          <Link
-            className="gld-header__brand"
-            href="/"
-            aria-label="Undangania"
-          >
+          <Link className="gld-header__brand" href="/" aria-label="Undangania">
             Undangania
           </Link>
           <span className="gld-header__note">Undangan digital</span>
@@ -229,16 +225,20 @@ export default async function PublicInvitationPage({
   );
 
   return (
-    <div className="gld-page">
+    <div
+      className={`gld-page${
+        snapshot.templateId === "nara-modern"
+          ? " gld-page--nara"
+          : snapshot.templateId === "kenanga-tradisi"
+            ? " gld-page--kenanga"
+            : ""
+      }`}
+    >
       <a className="ui-skip-link" href="#undangan">
         Langsung ke isi undangan
       </a>
       <header className="gld-header">
-        <Link
-          className="gld-header__brand"
-          href="/"
-          aria-label="Undangania"
-        >
+        <Link className="gld-header__brand" href="/" aria-label="Undangania">
           Undangania
         </Link>
         <span className="gld-header__note">Undangan digital</span>

@@ -56,6 +56,66 @@ export const SERUNI_MANIFEST: TemplateManifest = {
   ],
 };
 
+export const NARA_MANIFEST: TemplateManifest = {
+  id: "nara-modern",
+  version: "1",
+  contractVersion: 1,
+  name: "Nara",
+  category: "Modern",
+  supportedSections: [
+    "hero",
+    "couple",
+    "events",
+    "gallery",
+    "gift",
+    "guestbook",
+    "rsvp",
+    "closing",
+  ],
+  requiredSections: ["hero", "couple", "events", "closing"],
+  reorderableSections: ["gallery", "gift", "guestbook"],
+  sectionOrder: [
+    "hero",
+    "couple",
+    "events",
+    "gallery",
+    "gift",
+    "guestbook",
+    "rsvp",
+    "closing",
+  ],
+};
+
+export const KENANGA_MANIFEST: TemplateManifest = {
+  id: "kenanga-tradisi",
+  version: "1",
+  contractVersion: 1,
+  name: "Kenanga",
+  category: "Tradisi",
+  supportedSections: [
+    "hero",
+    "couple",
+    "events",
+    "gallery",
+    "gift",
+    "guestbook",
+    "rsvp",
+    "closing",
+  ],
+  requiredSections: ["hero", "couple", "events", "closing"],
+  reorderableSections: ["gallery", "gift", "guestbook"],
+  sectionOrder: [
+    "hero",
+    "couple",
+    "events",
+    "gallery",
+    "gift",
+    "guestbook",
+    "rsvp",
+    "closing",
+  ],
+};
+
 type InvitationSection = InvitationViewModel["sections"][number];
 type Event = InvitationViewModel["events"][number];
 type Item = Record<string, unknown>;
@@ -165,7 +225,13 @@ function TextBlock({ children }: { children: string }) {
   return <p className="gld-copy">{children}</p>;
 }
 
-function CoupleSection({ model }: { model: InvitationViewModel }) {
+function CoupleSection({
+  model,
+  showSignature,
+}: {
+  model: InvitationViewModel;
+  showSignature: boolean;
+}) {
   const section = sectionOf(model, "couple");
   if (!section?.visible) return null;
   return (
@@ -182,11 +248,13 @@ function CoupleSection({ model }: { model: InvitationViewModel }) {
           "Dengan penuh syukur, kami mengundang Anda untuk hadir di hari bahagia kami.",
         )}
       </TextBlock>
-      <div className="gld-signature" aria-hidden="true">
-        <span>R</span>
-        <span>&amp;</span>
-        <span>B</span>
-      </div>
+      {showSignature ? (
+        <div className="gld-signature" aria-hidden="true">
+          <span>R</span>
+          <span>&amp;</span>
+          <span>B</span>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -502,9 +570,11 @@ function OptionalMusicSection({ model }: { model: InvitationViewModel }) {
 function Opening({
   model,
   media,
+  showCoupleSignature,
 }: {
   model: InvitationViewModel;
   media: readonly InvitationMedia[];
+  showCoupleSignature: boolean;
 }) {
   const firstEvent = model.events[0];
   const hero = sectionOf(model, "hero");
@@ -544,7 +614,7 @@ function Opening({
           ) : null}
         </section>
         <div className="gld-content">
-          <CoupleSection model={model} />
+          <CoupleSection model={model} showSignature={showCoupleSignature} />
           <EventsSection model={model} />
           <StorySection model={model} />
           <GallerySection model={model} media={media} />
@@ -560,6 +630,43 @@ function Opening({
   );
 }
 
+function InvitationComposition({
+  model,
+  media,
+  manifest,
+  variant,
+  showCoupleSignature,
+}: {
+  model: InvitationViewModel;
+  media: readonly InvitationMedia[];
+  manifest: TemplateManifest;
+  variant: "seruni" | "nara" | "kenanga";
+  showCoupleSignature: boolean;
+}) {
+  const supportedModel: InvitationViewModel = {
+    ...model,
+    sections: model.sections.filter((section) =>
+      manifest.supportedSections.includes(section.type),
+    ),
+  };
+
+  return (
+    <article
+      className={`gld-invitation gld-invitation--${variant}`}
+      aria-label={`Undangan pernikahan ${supportedModel.couple.displayNames}`}
+    >
+      <h1 className="ui-visually-hidden">
+        Undangan pernikahan {supportedModel.couple.displayNames}
+      </h1>
+      <Opening
+        model={supportedModel}
+        media={media}
+        showCoupleSignature={showCoupleSignature}
+      />
+    </article>
+  );
+}
+
 export function SeruniInvitation({
   model,
   media = [],
@@ -568,15 +675,49 @@ export function SeruniInvitation({
   media?: readonly InvitationMedia[];
 }) {
   return (
-    <article
-      className="gld-invitation"
-      aria-label={`Undangan pernikahan ${model.couple.displayNames}`}
-    >
-      <h1 className="ui-visually-hidden">
-        Undangan pernikahan {model.couple.displayNames}
-      </h1>
-      <Opening model={model} media={media} />
-    </article>
+    <InvitationComposition
+      model={model}
+      media={media}
+      manifest={SERUNI_MANIFEST}
+      variant="seruni"
+      showCoupleSignature
+    />
+  );
+}
+
+export function NaraInvitation({
+  model,
+  media = [],
+}: {
+  model: InvitationViewModel;
+  media?: readonly InvitationMedia[];
+}) {
+  return (
+    <InvitationComposition
+      model={model}
+      media={media}
+      manifest={NARA_MANIFEST}
+      variant="nara"
+      showCoupleSignature={false}
+    />
+  );
+}
+
+export function KenangaInvitation({
+  model,
+  media = [],
+}: {
+  model: InvitationViewModel;
+  media?: readonly InvitationMedia[];
+}) {
+  return (
+    <InvitationComposition
+      model={model}
+      media={media}
+      manifest={KENANGA_MANIFEST}
+      variant="kenanga"
+      showCoupleSignature={false}
+    />
   );
 }
 
@@ -587,5 +728,25 @@ export const seruniRenderer: TemplateRenderer<ReactNode> = {
       <SeruniInvitation model={model} />
     ) : (
       <SeruniInvitation model={model} media={context.media} />
+    ),
+};
+
+export const naraRenderer: TemplateRenderer<ReactNode> = {
+  manifest: NARA_MANIFEST,
+  render: (model, context) =>
+    context?.media === undefined ? (
+      <NaraInvitation model={model} />
+    ) : (
+      <NaraInvitation model={model} media={context.media} />
+    ),
+};
+
+export const kenangaRenderer: TemplateRenderer<ReactNode> = {
+  manifest: KENANGA_MANIFEST,
+  render: (model, context) =>
+    context?.media === undefined ? (
+      <KenangaInvitation model={model} />
+    ) : (
+      <KenangaInvitation model={model} media={context.media} />
     ),
 };
