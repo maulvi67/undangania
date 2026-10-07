@@ -11,6 +11,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The container image runs the traced server bundle from `.next/standalone`.
+  output: "standalone",
   // The shared UI package ships raw TSX/CSS sources; Next must transpile it.
   transpilePackages: ["@wedding/ui"],
   async headers() {

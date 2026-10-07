@@ -1,0 +1,17 @@
+/*
+ * Halaman Masuk & Daftar — Tailwind v4.
+ *
+ * Konvensi sama dengan dashboard-app.css: impor Tailwind penuh
+ * (termasuk preflight) agar kontrol form tampil sesuai referensi desain.
+ * Token aplikasi di packages/ui/src/tokens.css tidak berada di dalam layer
+ * sehingga selalu menang atas variabel theme Tailwind yang layered.
+ */
+@import "tailwindcss";
+
+/* Utility hanya dipakai oleh komponen prototype di folder ini. */
+@source "../components/auth";
+
+/* Judul memakai serif display aplikasi (Fraunces), bukan serif bawaan. */
+@theme {
+  --font-serif: var(--font-display);
+}

@@ -1,39 +1,37 @@
-import { Skeleton } from "@wedding/ui";
-import { DashboardShell } from "../../components/dashboard/dashboard-shell";
-import "../dashboard.css";
+import "../dashboard-app.css";
 
+/**
+ * Route-level loading state. The dashboard waits on four session-scoped reads,
+ * so a first paint skeleton keeps the layout stable instead of flashing the
+ * empty shell.
+ */
 export default function DashboardLoading() {
   return (
-    <DashboardShell>
-      <div className="dash-loading" role="status" aria-live="polite">
-        <span className="ui-visually-hidden">Memuat dasbor…</span>
-        <Skeleton
-          className="dash-loading__eyebrow"
-          height="0.75rem"
-          width="9rem"
-        />
-        <Skeleton
-          className="dash-loading__title"
-          height="2.75rem"
-          width="12rem"
-        />
-        <Skeleton className="dash-loading__lead" height="1rem" width="18rem" />
-        <div className="dash-loading__band">
-          <Skeleton height="1rem" width="12rem" />
-          <Skeleton height="2rem" width="9rem" />
-        </div>
-        <div className="dash-loading__next">
-          <Skeleton height="1.5rem" width="14rem" />
-          <Skeleton height="1rem" width="28rem" />
-          <Skeleton height="2.75rem" width="11rem" />
-        </div>
-        <div className="dash-loading__grid">
-          <Skeleton height="14rem" />
-          <Skeleton height="14rem" />
-          <Skeleton height="12rem" />
-          <Skeleton height="12rem" />
-        </div>
+    <div className="prototype-app min-h-dvh">
+      <div className="prototype-main-column">
+        <main className="prototype-main">
+          <div className="prototype-main__inner">
+            <div
+              className="prototype-skeleton"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <span className="prototype-visually-hidden">
+                Memuat data undangan
+              </span>
+              <div className="prototype-skeleton__title" />
+              <div className="prototype-skeleton__lead" />
+              <div className="prototype-skeleton__grid">
+                <div className="prototype-skeleton__block prototype-skeleton__block--large" />
+                <div className="prototype-skeleton__block" />
+                <div className="prototype-skeleton__block" />
+                <div className="prototype-skeleton__block" />
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
-    </DashboardShell>
+    </div>
   );
 }

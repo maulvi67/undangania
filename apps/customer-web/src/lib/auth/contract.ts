@@ -114,6 +114,12 @@ export const INITIAL_AUTH_FORM_STATE: AuthFormState = {
   fieldErrors: {},
 };
 
+/** Form-level copy for the current state; field errors carry the specifics. */
+export function formLevelMessage(state: AuthFormState): string {
+  if (state.status !== "error" || !state.code) return "";
+  return AUTH_ERROR_MESSAGES[state.code];
+}
+
 export function normalizeEmail(value: string): string {
   // Domain rule: unique NORMALIZED email — trim, strip all internal
   // whitespace (an email address cannot contain spaces), lowercase.

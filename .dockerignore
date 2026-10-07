@@ -1,0 +1,30 @@
+# Build context hygiene for every image in this repository.
+# Anything here must never reach an image layer, including local secrets.
+
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/playwright-report
+**/test-results
+**/*.log
+
+.git
+.github
+.zed
+.claude
+.agents
+.skills
+
+# Never bake local environment files into an image.
+.env
+.env.*
+!.env.example
+
+# Local-only reports and audit artifacts.
+.ai/reports
+.ai/memory/local
+.ai/handoffs
+
+**/.DS_Store

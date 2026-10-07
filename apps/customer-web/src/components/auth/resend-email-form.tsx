@@ -4,11 +4,13 @@ import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Alert, Button } from "@wedding/ui";
 import { resendVerificationAction } from "../../lib/auth/actions";
-import { INITIAL_AUTH_FORM_STATE } from "../../lib/auth/contract";
+import {
+  INITIAL_AUTH_FORM_STATE,
+  formLevelMessage,
+} from "../../lib/auth/contract";
 import { EmailField } from "./email-field";
 import { AuthLinkRow } from "./auth-link-row";
 import { CheckEmailPanel } from "./check-email-panel";
-import { formLevelMessage } from "./sign-in-form";
 
 /**
  * Verification resend control (design plan §4.3).

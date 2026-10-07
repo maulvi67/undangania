@@ -7,10 +7,10 @@ import { resetPasswordAction } from "../../lib/auth/actions";
 import {
   INITIAL_AUTH_FORM_STATE,
   MIN_PASSWORD_LENGTH,
+  formLevelMessage,
 } from "../../lib/auth/contract";
 import { PasswordField } from "./password-field";
 import { TokenStatePanel } from "./token-state-panel";
-import { formLevelMessage } from "./sign-in-form";
 
 /**
  * `/reset-sandi` form (design plan §4.5). The page has already validated the

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { AuthShell } from "../../components/auth/auth-shell";
-import { SignInForm } from "../../components/auth/sign-in-form";
+import { SignInView } from "../../components/auth/sign-in-view";
 import { safeRedirectTarget } from "../../lib/auth/redirect";
-import "../auth.css";
+import "../auth-view.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -26,32 +25,16 @@ export const metadata: Metadata = {
 };
 
 interface MasukPageProps {
-  searchParams: Promise<{
-    next?: string | string[];
-    oauth?: string | string[];
-  }>;
+  searchParams: Promise<{ next?: string | string[]; oauth?: string | string[] }>;
 }
 
 export default async function MasukPage({ searchParams }: MasukPageProps) {
   const params = await searchParams;
   const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
-  // Server-side validation before the value ever reaches the client form;
-  // the action validates again before any redirect.
   const next = safeRedirectTarget(rawNext);
-  const rawOAuthError = Array.isArray(params.oauth)
-    ? params.oauth[0]
-    : params.oauth;
+  const rawOauth = Array.isArray(params.oauth) ? params.oauth[0] : params.oauth;
   const oauthError =
-    rawOAuthError === "failed" || rawOAuthError === "unavailable"
-      ? rawOAuthError
-      : undefined;
+    rawOauth === "failed" || rawOauth === "unavailable" ? rawOauth : undefined;
 
-  return (
-    <AuthShell>
-      <SignInForm
-        next={next}
-        {...(oauthError === undefined ? {} : { oauthError })}
-      />
-    </AuthShell>
-  );
+  return <SignInView next={next} oauthError={oauthError} />;
 }

@@ -13,17 +13,25 @@
   },
   "dependencies": {
     "@wedding/application": "*",
-    "@wedding/notifications": "*",
-    "@wedding/ui": "*",
-    "@wedding/storage": "*",
     "@wedding/database": "*",
-    "@wedding/template-engine": "*",
+    "@wedding/notifications": "*",
+    "@wedding/storage": "*",
     "@wedding/template-editor": "*",
+    "@wedding/template-engine": "*",
+    "@wedding/ui": "*",
     "jose": "^6.2.12",
+    "lucide-react": "^1.49.0",
+    "motion": "^12.42.2",
     "next": "^16.0.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^3.10.1",
     "zod": "^4.0.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.1.18"
+  }
 }

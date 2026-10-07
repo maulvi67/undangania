@@ -1,0 +1,99 @@
+/* -------------------------------------------------------------------------- */
+/* Prototype dashboard styles (Undangania sales console)                       */
+/*                                                                            */
+/* Everything here is scoped to `.undangania-proto` so the existing admin     */
+/* console, which shares this app's global stylesheets, keeps its own theme.   */
+/*                                                                            */
+/* Palette tokens are local (`--p-*`) on purpose: the shared `@wedding/ui`     */
+/* theme already owns names like `--color-blush`, and the prototype uses a     */
+/* different rose.                                                            */
+/*                                                                            */
+/* Z-index scale used by the prototype components:                            */
+/*   20 sticky top bar · 30 sidebar + bottom nav · 40 drawer backdrop         */
+/*   50 drawer panel · 60 dialog (modal / bottom sheet) · 70 toast            */
+/* -------------------------------------------------------------------------- */
+
+.undangania-proto {
+  --p-canvas: #fbf8f5;
+  --p-sidebar: #fffaf7;
+  --p-rose: #b95363;
+  --p-rose-strong: #963d4a;
+  --p-rose-soft: #f7edea;
+  --p-ink: #3b2a2e;
+  --p-ink-soft: #8a7671;
+  --p-line: #eadfda;
+
+  min-height: 100dvh;
+  background: var(--p-canvas);
+  color: var(--p-ink);
+  font-family: var(--proto-sans-face), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings inherit the surrounding card/hero colour instead of the shared
+   console ink, and keep the serif face readable at dashboard sizes. */
+.undangania-proto h1,
+.undangania-proto h2,
+.undangania-proto h3,
+.undangania-proto h4 {
+  color: inherit;
+  letter-spacing: normal;
+}
+
+.undangania-proto :focus-visible {
+  outline: 2px solid var(--p-rose);
+  outline-offset: 2px;
+}
+
+/* Serif display face for headings, greeting, and template names. */
+.proto-display {
+  font-family: var(--proto-display-face), ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+/* Aligns figures in KPI values, tables, and chart totals. */
+.proto-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Horizontal carousels (KPI strip, template strip) scroll without a visible
+   scrollbar so the mobile layout stays clean. */
+.proto-scrollbar-none {
+  scrollbar-width: none;
+}
+
+.proto-scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Loading skeletons: a soft shimmer instead of a spinner. */
+.proto-skeleton {
+  position: relative;
+  overflow: hidden;
+}
+
+.proto-skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: proto-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes proto-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-skeleton::after {
+    animation: none;
+  }
+}

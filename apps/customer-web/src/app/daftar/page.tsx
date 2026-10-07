@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { AuthShell } from "../../components/auth/auth-shell";
-import { RegisterForm } from "../../components/auth/register-form";
+import { RegisterView } from "../../components/auth/register-view";
 import { safeRedirectTarget } from "../../lib/auth/redirect";
-import "../auth.css";
+import "../auth-view.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -34,9 +33,5 @@ export default async function DaftarPage({ searchParams }: DaftarPageProps) {
   const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
   const next = safeRedirectTarget(rawNext);
 
-  return (
-    <AuthShell>
-      <RegisterForm next={next} />
-    </AuthShell>
-  );
+  return <RegisterView next={next} />;
 }
