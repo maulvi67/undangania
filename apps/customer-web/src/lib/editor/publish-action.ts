@@ -7,7 +7,7 @@ import {
   toInvitationViewModel,
   type PublicationReadiness,
 } from "./contract";
-import { getEditorTemplateId } from "./stub-transport";
+import { editorTemplateIdFromSearch } from "./template-param";
 import {
   loadEditorForSession,
   publishEditorForSession,
@@ -41,7 +41,7 @@ export async function publishInvitationAction(input: {
   templateId: string;
 }): Promise<PublishOutcome> {
   const session = await resolveEditorSession(
-    getEditorTemplateId(input.templateId),
+    editorTemplateIdFromSearch(input.templateId),
   );
   if (session.kind !== "ok") return { kind: "forbidden" };
 

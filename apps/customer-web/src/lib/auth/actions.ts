@@ -18,25 +18,19 @@ import {
 import { safeRedirectTarget } from "./redirect";
 import {
   authenticateAndCreateSession,
+  clearSession,
   registerAndProvisionAccount,
 } from "./server";
 import { getAuthEmailPorts } from "./container";
-import {
-  stubRegister,
-  stubRequestPasswordReset,
-  stubResendVerification,
-  stubResetPassword,
-  stubSignIn,
-} from "./stub-transport";
 
 /**
  * Auth server actions (MVP-UI-005). Every action:
  *   1. normalizes + Zod-validates input server-side (external input rule),
- *   2. calls the (simulated) transport,
+ *   2. calls the real session, repository, and email use-cases,
  *   3. maps the result to the safe client state machine.
  *
- * No cookies, no sessions, no credentials in logs. `next` is re-validated
- * here before any redirect — the client's copy is never trusted.
+ * No credentials in logs. `next` is re-validated here before any redirect —
+ * the client's copy is never trusted.
  */
 
 const EMAIL_FIELD_ERROR = "Masukkan alamat email yang valid.";
@@ -82,21 +76,23 @@ export async function signInAction(
   }
 
   const next = safeRedirectTarget(String(formData.get("next") ?? ""));
-  const result =
-    process.env.NODE_ENV === "production"
-      ? await authenticateAndCreateSession(parsed.data)
-      : await stubSignIn(parsed.data);
+  const result = await authenticateAndCreateSession(parsed.data);
   if (result.ok) {
     redirect(next); // throws NEXT_REDIRECT; useActionState propagates
   }
-  // VERIFICATION_REQUIRED also (re)sends the verification email server-side
-  // in the development fixture flow. Production notification delivery is a
-  // separate provider boundary and never uses fixture email behavior.
-  if (
-    process.env.NODE_ENV !== "production" &&
-    result.code === "VERIFICATION_REQUIRED"
-  ) {
-    await stubResendVerification(parsed.data);
+  // The sign-in view tells the customer a verification link was sent, so an
+  // unverified account (re)issues one here. A delivery failure must not change
+  // the response for the same anti-enumeration reason as the resend action.
+  if (result.code === "VERIFICATION_REQUIRED") {
+    try {
+      await requestEmailVerification(
+        parsed.data.email,
+        getAuthEmailPorts(),
+        new Date(),
+      );
+    } catch {
+      // Swallowed deliberately; the customer can request another link.
+    }
   }
   return { status: "error", fieldErrors: {}, code: result.code };
 }
@@ -120,30 +116,22 @@ export async function registerAction(
     );
   }
 
-  if (process.env.NODE_ENV === "production") {
-    const result = await registerAndProvisionAccount(parsed.data);
-    if (result === "unavailable") {
-      return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
-    }
-    // The account exists now, so the verification email is issued from the real
-    // token repository rather than the fixture transport. A delivery failure must
-    // not change the response: duplicate and fresh addresses already share this
-    // interstitial, and an error here would also distinguish a known address.
-    try {
-      await requestEmailVerification(
-        parsed.data.email,
-        getAuthEmailPorts(),
-        new Date(),
-      );
-    } catch {
-      // Swallowed deliberately; the customer can request another link.
-    }
-    return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
+  const result = await registerAndProvisionAccount(parsed.data);
+  if (result === "unavailable") {
+    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
   }
-
-  const result = await stubRegister(parsed.data);
-  if (!result.ok) {
-    return { status: "error", fieldErrors: {}, code: result.code };
+  // The account exists now, so the verification email is issued from the real
+  // token repository. A delivery failure must not change the response: duplicate
+  // and fresh addresses already share this interstitial, and an error here would
+  // also distinguish a known address.
+  try {
+    await requestEmailVerification(
+      parsed.data.email,
+      getAuthEmailPorts(),
+      new Date(),
+    );
+  } catch {
+    // Swallowed deliberately; the customer can request another link.
   }
   return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
 }
@@ -158,22 +146,18 @@ export async function resendVerificationAction(
   if (!parsed.success) {
     return validationState({ email: EMAIL_FIELD_ERROR });
   }
-  if (process.env.NODE_ENV === "production") {
-    // Always reports the same acceptance, whether or not the address exists and
-    // whether or not delivery succeeded (R1/R3/R4).
-    try {
-      await requestEmailVerification(
-        parsed.data.email,
-        getAuthEmailPorts(),
-        new Date(),
-      );
-    } catch {
-      // Swallowed deliberately: surfacing a delivery failure here would reveal
-      // which addresses have a pending verification.
-    }
-    return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
+  // Always reports the same acceptance, whether or not the address exists and
+  // whether or not delivery succeeded (R1/R3/R4).
+  try {
+    await requestEmailVerification(
+      parsed.data.email,
+      getAuthEmailPorts(),
+      new Date(),
+    );
+  } catch {
+    // Swallowed deliberately: surfacing a delivery failure here would reveal
+    // which addresses have a pending verification.
   }
-  await stubResendVerification(parsed.data);
   return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
 }
 
@@ -187,21 +171,15 @@ export async function requestPasswordResetAction(
   if (!parsed.success) {
     return validationState({ email: EMAIL_FIELD_ERROR });
   }
-  if (process.env.NODE_ENV === "production") {
-    try {
-      await requestPasswordReset(
-        parsed.data.email,
-        getAuthEmailPorts(),
-        new Date(),
-      );
-    } catch {
-      // Swallowed for the same anti-enumeration reason as the resend above.
-    }
-    // Always identical success state (R3) — unknown and known emails are
-    // indistinguishable in UI, timing, and result.
-    return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
+  try {
+    await requestPasswordReset(
+      parsed.data.email,
+      getAuthEmailPorts(),
+      new Date(),
+    );
+  } catch {
+    // Swallowed for the same anti-enumeration reason as the resend above.
   }
-  await stubRequestPasswordReset(parsed.data);
   // Always identical success state (R3) — unknown and known emails are
   // indistinguishable in UI, timing, and result.
   return { status: "done", fieldErrors: {}, emailSentTo: parsed.data.email };
@@ -224,37 +202,40 @@ export async function resetPasswordAction(
     return validationState({ password: PASSWORD_POLICY_ERROR });
   }
 
-  if (process.env.NODE_ENV === "production") {
-    try {
-      const outcome = await completePasswordReset(
-        { token: parsed.data.token, newPassword: parsed.data.password },
-        getAuthEmailPorts(),
-        new Date(),
-      );
-      if (outcome.kind === "reset") {
-        // No auto-login (R6): success lands on a panel that hands off to /masuk.
-        return { status: "done", fieldErrors: {} };
-      }
-      if (outcome.kind === "expired-token") {
-        return { status: "error", fieldErrors: {}, code: "TOKEN_EXPIRED" };
-      }
-      if (outcome.kind === "weak-password") {
-        return validationState({ password: PASSWORD_POLICY_ERROR });
-      }
-      return { status: "error", fieldErrors: {}, code: "TOKEN_INVALID" };
-    } catch (error) {
-      // The token was consumed for an account that no longer exists. Reporting a
-      // generic unusable link avoids confirming which it was.
-      if (error instanceof AuthRequiredError) {
-        return { status: "error", fieldErrors: {}, code: "TOKEN_INVALID" };
-      }
-      return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
+  try {
+    const outcome = await completePasswordReset(
+      { token: parsed.data.token, newPassword: parsed.data.password },
+      getAuthEmailPorts(),
+      new Date(),
+    );
+    if (outcome.kind === "reset") {
+      // No auto-login (R6): success lands on a panel that hands off to /masuk.
+      return { status: "done", fieldErrors: {} };
     }
+    if (outcome.kind === "expired-token") {
+      return { status: "error", fieldErrors: {}, code: "TOKEN_EXPIRED" };
+    }
+    if (outcome.kind === "weak-password") {
+      return validationState({ password: PASSWORD_POLICY_ERROR });
+    }
+    return { status: "error", fieldErrors: {}, code: "TOKEN_INVALID" };
+  } catch (error) {
+    // The token was consumed for an account that no longer exists. Reporting a
+    // generic unusable link avoids confirming which it was.
+    if (error instanceof AuthRequiredError) {
+      return { status: "error", fieldErrors: {}, code: "TOKEN_INVALID" };
+    }
+    return { status: "error", fieldErrors: {}, code: "PROVIDER_UNAVAILABLE" };
   }
-  const result = await stubResetPassword(parsed.data);
-  if (result.ok) {
-    // No auto-login (R6): success lands on a panel that hands off to /masuk.
-    return { status: "done", fieldErrors: {} };
-  }
-  return { status: "error", fieldErrors: {}, code: result.code };
+}
+
+/**
+ * Ends the customer session and returns to the sign-in page.
+ *
+ * Session revocation is best-effort — the cookie is always cleared, so a
+ * database outage cannot leave a usable session on the device.
+ */
+export async function signOutAction(): Promise<void> {
+  await clearSession();
+  redirect("/masuk");
 }

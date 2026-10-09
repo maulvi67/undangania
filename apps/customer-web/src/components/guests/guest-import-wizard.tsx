@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Badge, Button, StatePanel } from "@wedding/ui";
 import {
   parseGuestCsv,
   type GuestEvent,
-  type GuestFixture,
   type GuestHouseholdListItem,
   type GuestImportPreview,
   type GuestImportRow,
@@ -19,24 +18,6 @@ const CSV_TEMPLATE = [
   "nama_rumah_tangga,nama_tamu,telepon,email,maksimal_pax,akses_acara,tag",
   "Keluarga Budi Santoso,Budi Santoso,,budi@example.id,4,Akad Nikah|Resepsi,Keluarga besar",
 ].join("\n");
-
-function fixtureCsv(fixture: GuestFixture): string {
-  if (fixture === "invalid-csv")
-    return "nama_rumah_tangga,telepon\nKeluarga Tidak Lengkap,+628123456789";
-  if (fixture === "potential-duplicate")
-    return [
-      "nama_rumah_tangga,nama_tamu,telepon,email,maksimal_pax,akses_acara,tag",
-      "Keluarga Budi Santoso,Budi Santoso,,budi@example.id,4,Akad Nikah|Resepsi,Keluarga besar",
-      "Keluarga Baru,Maya Baru,,maya@example.id,2,Resepsi,Teman",
-    ].join("\n");
-  if (fixture === "partial-import")
-    return [
-      "nama_rumah_tangga,nama_tamu,telepon,email,maksimal_pax,akses_acara,tag",
-      "Keluarga Baru,Maya Baru,,maya@example.id,2,Resepsi,Teman",
-      "Baris Tidak Valid,,,+bukan-email,0,Acara Tidak Ada,",
-    ].join("\n");
-  return CSV_TEMPLATE;
-}
 
 function rowTone(status: GuestImportRow["status"]): "olive" | "gold" | "blush" {
   if (status === "valid") return "olive";
@@ -103,15 +84,13 @@ function toImportRows(
 export function GuestImportWizard({
   events,
   existingHouseholds,
-  fixture,
 }: {
   events: readonly GuestEvent[];
   existingHouseholds: readonly GuestHouseholdListItem[];
-  fixture: GuestFixture;
 }) {
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState<GuestImportPreview | null>(null);
-  const [processing, setProcessing] = useState(fixture === "import-processing");
+  const [processing, setProcessing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [outcome, setOutcome] = useState<GuestImportOutcome | null>(null);
@@ -134,34 +113,6 @@ export function GuestImportWizard({
       }, 220);
     });
     reader.readAsText(file);
-  };
-
-  useEffect(() => {
-    if (!processing || fixture !== "import-processing") return;
-    const timer = window.setTimeout(() => {
-      setPreview(
-        parseGuestCsv(
-          fixtureCsv("potential-duplicate"),
-          events,
-          existingHouseholds,
-        ),
-      );
-      setProcessing(false);
-      setFileName("daftar-tamu.csv");
-    }, 450);
-    return () => window.clearTimeout(timer);
-  }, [events, fixture, existingHouseholds, processing]);
-
-  const loadFixture = () => {
-    setFileName("contoh-tamu.csv");
-    setProcessing(true);
-    setConfirmed(false);
-    window.setTimeout(() => {
-      setPreview(
-        parseGuestCsv(fixtureCsv(fixture), events, existingHouseholds),
-      );
-      setProcessing(false);
-    }, 220);
   };
 
   const acceptedCount = useMemo(() => {
@@ -209,10 +160,7 @@ export function GuestImportWizard({
     <div className="gst-import">
       <header className="gst-page__header">
         <div>
-          <Link
-            className="gst-backlink"
-            href={fixture === "normal" ? "/tamu" : `/tamu?fixture=${fixture}`}
-          >
+          <Link className="gst-backlink" href="/tamu">
             ← Kembali ke daftar tamu
           </Link>
           <p className="gst-eyebrow">Impor daftar tamu</p>
@@ -286,11 +234,6 @@ export function GuestImportWizard({
             >
               Unduh template CSV
             </Button>
-            {fixture !== "normal" ? (
-              <Button type="button" variant="tertiary" onClick={loadFixture}>
-                Muat fixture pengujian
-              </Button>
-            ) : null}
           </div>
           {fileName ? (
             <p className="gst-import__filename">File dipilih: {fileName}</p>

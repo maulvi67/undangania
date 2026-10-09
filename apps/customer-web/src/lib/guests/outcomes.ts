@@ -1,5 +1,5 @@
 import type { MemberRole } from "@wedding/application";
-import type { GuestEvent } from "./contract";
+import type { GuestEvent, GuestHouseholdListItem } from "./contract";
 
 /**
  * Shared shapes for the guest Server Actions.
@@ -67,6 +67,10 @@ export type GuestExportOutcome =
   | Readonly<{ kind: "unavailable" }>;
 
 export type GuestFormOptionsOutcome =
-  | Readonly<{ kind: "ok"; events: readonly GuestEvent[] }>
+  | Readonly<{
+      kind: "ok";
+      events: readonly GuestEvent[];
+      households: readonly GuestHouseholdListItem[];
+    }>
   | Readonly<{ kind: "forbidden" }>
   | Readonly<{ kind: "unavailable" }>;

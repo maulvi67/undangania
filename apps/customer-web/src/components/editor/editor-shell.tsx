@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "@wedding/ui";
 import type {
   EditorDocument,
-  EditorFixture,
   EditorLoadResult,
   EditorMediaState,
   EditorSectionId,
@@ -48,11 +47,9 @@ import { listMediaAssetsAction } from "../../lib/media/actions";
 
 export function EditorRouteView({
   result,
-  fixture,
   initialSection,
 }: {
   result: EditorLoadResult;
-  fixture: EditorFixture;
   initialSection: EditorSectionId;
 }) {
   if (result.kind !== "ok") {
@@ -77,21 +74,15 @@ export function EditorRouteView({
     );
   }
   return (
-    <EditorShell
-      result={result}
-      fixture={fixture}
-      initialSection={initialSection}
-    />
+    <EditorShell result={result} initialSection={initialSection} />
   );
 }
 
 function EditorShell({
   result,
-  fixture,
   initialSection,
 }: {
   result: Extract<EditorLoadResult, { kind: "ok" }>;
-  fixture: EditorFixture;
   initialSection: EditorSectionId;
 }) {
   const [document, setDocument] = useState<EditorDocument>(result.document);
@@ -207,7 +198,7 @@ function EditorShell({
   }, []);
 
   useEffect(() => {
-    if (fixture !== "normal" || !hasPendingMedia(document.content)) return;
+    if (!hasPendingMedia(document.content)) return;
 
     let cancelled = false;
     let attempts = 0;
@@ -255,7 +246,7 @@ function EditorShell({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [document.content, fixture]);
+  }, [document.content]);
 
   const finishSave = useCallback((saved: EditorDocument) => {
     documentRef.current = saved;
@@ -278,7 +269,6 @@ function EditorShell({
       savingRef.current = true;
       setSaveState("saving");
       void saveEditorDocument({
-        fixture,
         document: snapshot,
         baseVersion: base.version,
       })
@@ -360,7 +350,7 @@ function EditorShell({
         });
     }, 650);
     return () => window.clearTimeout(timer);
-  }, [document, fixture, finishSave, saveState]);
+  }, [document, finishSave, saveState]);
 
   const retrySave = useCallback(
     () =>

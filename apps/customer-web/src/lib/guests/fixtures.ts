@@ -1,7 +1,6 @@
+import { capabilitiesByRole } from "./capabilities";
 import type {
-  GuestCapabilitySet,
   GuestEvent,
-  GuestFixture,
   GuestHouseholdDetail,
   GuestHouseholdListItem,
   GuestManagementData,
@@ -9,6 +8,21 @@ import type {
   GuestRole,
   GuestTag,
 } from "./contract";
+
+/**
+ * Fixture names exist only for the unit tests that render each state; no runtime
+ * path reads them.
+ */
+type GuestFixture =
+  | "normal"
+  | "empty"
+  | "import-processing"
+  | "invalid-csv"
+  | "partial-import"
+  | "potential-duplicate"
+  | "token-disabled"
+  | "permission-denied"
+  | "unavailable";
 
 const events: readonly GuestEvent[] = [
   { id: "akad", title: "Akad Nikah" },
@@ -22,30 +36,6 @@ const tags: readonly GuestTag[] = [
   { id: "vip", label: "VIP" },
   { id: "luar-kota", label: "Luar kota" },
 ];
-
-const capabilitiesByRole: Record<GuestRole, GuestCapabilitySet> = {
-  OWNER: {
-    canRead: true,
-    canWrite: true,
-    canManageLink: true,
-    canImport: true,
-    canExport: true,
-  },
-  EDITOR: {
-    canRead: true,
-    canWrite: true,
-    canManageLink: true,
-    canImport: true,
-    canExport: true,
-  },
-  VIEWER: {
-    canRead: true,
-    canWrite: false,
-    canManageLink: false,
-    canImport: false,
-    canExport: false,
-  },
-};
 
 function household(
   input: Omit<GuestHouseholdListItem, "updatedAt"> & { updatedAt?: string },
@@ -249,8 +239,4 @@ export function getGuestHouseholdDetail(
   }
   if (role === "VIEWER") return detail;
   return detail;
-}
-
-export function getGuestCapabilitySet(role: GuestRole): GuestCapabilitySet {
-  return capabilitiesByRole[role];
 }

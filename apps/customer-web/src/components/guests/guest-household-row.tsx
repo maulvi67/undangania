@@ -1,18 +1,13 @@
 import Link from "next/link";
 import { Badge, Checkbox } from "@wedding/ui";
-import type {
-  GuestHouseholdListItem,
-  GuestListQuery,
-} from "../../lib/guests/contract";
+import type { GuestHouseholdListItem } from "../../lib/guests/contract";
 
 export function GuestHouseholdRow({
   household,
-  query,
   selected,
   onSelectedChange,
 }: {
   household: GuestHouseholdListItem;
-  query: GuestListQuery;
   selected: boolean;
   onSelectedChange: (selected: boolean) => void;
 }) {
@@ -29,7 +24,7 @@ export function GuestHouseholdRow({
       <th scope="row">
         <Link
           className="gst-table__household"
-          href={`/tamu/${household.id}${query.fixture === "normal" ? "" : `?fixture=${query.fixture}`}`}
+          href={`/tamu/${household.id}`}
         >
           {household.displayName}
         </Link>
@@ -62,7 +57,7 @@ export function GuestHouseholdRow({
       <td>
         <Link
           className="gst-table__action"
-          href={`/tamu/${household.id}${query.fixture === "normal" ? "" : `?fixture=${query.fixture}`}`}
+          href={`/tamu/${household.id}`}
         >
           Kelola
         </Link>

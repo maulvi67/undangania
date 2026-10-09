@@ -6,7 +6,7 @@ import {
   toInvitationViewModel,
   type EditorContent,
 } from "./contract";
-import { createEditorDocument } from "./stub-transport";
+import { createEditorDocument } from "./test-document";
 
 const template = {
   id: "seruni-klasik",

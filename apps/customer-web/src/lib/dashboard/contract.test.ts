@@ -1,23 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  DASHBOARD_STATES,
   addDaysYmd,
   activePeriodRemaining,
   activeUntilDate,
   completionCount,
   completionItems,
   countdownText,
-  dashboardAggregateSchema,
   deriveDashboardState,
   formatActivePeriod,
   nextActions,
   type DashboardAggregate,
 } from "./contract";
-import {
-  getDashboardFixtureNames,
-  loadDashboard,
-  parseDashboardFixture,
-} from "./stub-transport";
 
 const TODAY = "2026-03-21";
 
@@ -218,26 +211,11 @@ describe("dashboard state and actions", () => {
   });
 });
 
-describe("completion and fixture transport", () => {
+describe("completion", () => {
   it("exposes an explainable five-item completion calculation", () => {
     const items = completionItems(published("2026-06-16"));
     expect(items).toHaveLength(5);
     expect(completionCount(items).total).toBe(5);
     expect(items.find((item) => item.id === "design")?.done).toBe(true);
-  });
-
-  it("validates all approved fixtures and defaults invalid query values", async () => {
-    expect(getDashboardFixtureNames()).toEqual(DASHBOARD_STATES);
-    expect(parseDashboardFixture("not-a-state")).toBe("baru");
-    expect(parseDashboardFixture(["aktif", "draf"])).toBe("aktif");
-    for (const fixture of DASHBOARD_STATES.filter(
-      (value) => value !== "belum-masuk" && value !== "gangguan",
-    )) {
-      const result = await loadDashboard(fixture);
-      if (result.kind === "ok")
-        expect(() => dashboardAggregateSchema.parse(result.data)).not.toThrow();
-    }
-    expect((await loadDashboard("belum-masuk")).kind).toBe("unauthenticated");
-    expect((await loadDashboard("gangguan")).kind).toBe("unavailable");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEditorDocument } from "./stub-transport";
+import { createEditorDocument } from "./test-document";
 import { keepLocalContent, mergeStaleDocument } from "./stale-merge";
 
 describe("stale editor merge", () => {

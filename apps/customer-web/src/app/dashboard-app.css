@@ -210,6 +210,11 @@
   padding: 12px;
 }
 
+.prototype-sidebar-signout {
+  width: 100%;
+  margin-top: 8px;
+}
+
 .prototype-sidebar-help {
   border: 1px solid #f0dfd7;
   border-radius: 16px;

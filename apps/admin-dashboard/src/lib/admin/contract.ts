@@ -1,21 +1,5 @@
 import { z } from "zod";
 
-export const ADMIN_FIXTURES = [
-  "healthy",
-  "attention",
-  "provider-unavailable",
-  "permission-denied",
-  "stale",
-  "session-expired",
-  "audit-unavailable",
-] as const;
-
-export type AdminFixture = (typeof ADMIN_FIXTURES)[number];
-
-export function isAdminFixture(value: string): value is AdminFixture {
-  return (ADMIN_FIXTURES as readonly string[]).includes(value);
-}
-
 export type AdminRole = "ADMIN" | "FINANCE" | "SUPPORT" | "MODERATOR";
 export type Severity = "critical" | "high" | "warning" | "info" | "healthy";
 export type SectionStatus = "ok" | "unavailable" | "permission-denied";
@@ -164,7 +148,6 @@ const auditRowSchema = z.object({
 });
 
 const sessionSchema = z.object({
-  environment: z.enum(["SIMULATION", "PRODUCTION"]),
   environmentLabel: z.string().min(1),
   role: z.enum(["ADMIN", "FINANCE", "SUPPORT", "MODERATOR"]),
   roleLabel: z.string().min(1),
@@ -185,7 +168,6 @@ const dashboardQuerySchema = z.object({
 });
 
 export const adminDashboardSchema = z.object({
-  fixture: z.enum(ADMIN_FIXTURES),
   query: dashboardQuerySchema,
   session: sessionSchema,
   freshness: freshnessSchema,
@@ -258,13 +240,4 @@ export function parseAdminQuery(params: {
         : ADMIN_QUERY_DEFAULTS.limit,
     search: search.length <= 100 ? search : search.slice(0, 100),
   };
-}
-
-export function parseAdminFixture(
-  value: string | string[] | undefined,
-): AdminFixture {
-  const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate !== undefined && isAdminFixture(candidate)
-    ? candidate
-    : "attention";
 }

@@ -298,7 +298,26 @@ export async function loadGuestFormOptions(): Promise<GuestFormOptionsOutcome> {
       tenantId: workspace.context.tenantId,
       weddingId: workspace.weddingId,
     });
-    return { kind: "ok", events: overview.events };
+    const eventNames = overview.events.map((event) => event.title);
+    return {
+      kind: "ok",
+      events: overview.events.map((event) => ({
+        id: event.id,
+        title: event.title,
+      })),
+      // The import review checks each row against the households already on file,
+      // so the wizard can flag a duplicate instead of creating one.
+      households: overview.households.map((household) => ({
+        id: household.id,
+        displayName: household.displayName,
+        memberCount: household.memberCount,
+        maximumPax: household.maximumPax,
+        eventNames,
+        tags: [],
+        linkStatus: household.linkStatus,
+        updatedAt: household.updatedAt.toISOString(),
+      })),
+    };
   } catch {
     return { kind: "unavailable" };
   }

@@ -9,10 +9,6 @@ import {
   invitationViewModelSchema,
   type InvitationViewModel,
 } from "@wedding/template-engine";
-import {
-  isPublicInvitationFixture,
-  type PublicInvitationFixture,
-} from "./fixtures";
 
 /**
  * Public invitation lookup.
@@ -26,11 +22,6 @@ import {
  * rather than rendered best-effort: a half-rendered public page would be worse
  * than a clean not-found, and it would silently publish content the contract
  * cannot describe.
- *
- * The fixture path exists for the design-in-development flow. It is consulted
- * only when no real publication exists *and* the search parameter names a known
- * fixture, so a real slug always wins and production cannot be switched to
- * fixture content from the query string.
  */
 
 export type ResolvedPublicMedia = Readonly<{
@@ -56,8 +47,6 @@ export type PublicInvitationPage =
 
 export async function resolvePublicInvitation(input: {
   slug: string;
-  /** Set only in development; ignored for a real publication. */
-  fixture?: string;
 }): Promise<PublicInvitationPage> {
   const publication = await findActivePublication(input.slug);
   if (publication !== null) {
@@ -169,17 +158,4 @@ async function findActivePublication(
     // renders the same not-found it would for an unpublished slug.
     return null;
   }
-}
-
-/**
- * True when dev fixture content may be substituted for a missing publication.
- *
- * A type predicate as well as a runtime check, so callers narrow without a cast.
- */
-export function fixtureAllowed(
-  value: string | undefined,
-): value is PublicInvitationFixture {
-  return (
-    process.env.NODE_ENV !== "production" && isPublicInvitationFixture(value)
-  );
 }

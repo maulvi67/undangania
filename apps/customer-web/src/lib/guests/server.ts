@@ -15,13 +15,13 @@ import {
   type GuestManagementData,
   type GuestRole,
 } from "./contract";
-import { getGuestCapabilitySet } from "./fixtures";
+import { getGuestCapabilitySet } from "./capabilities";
 
 /**
  * Guest-management loader.
  *
- * This replaces the development fixture transport on the `/tamu` routes. Scope is
- * resolved from the session's own workspace — the tenant and wedding never come
+ * Loader for the `/tamu` guest-management routes. Scope is resolved from the
+ * session's own workspace — the tenant and wedding never come
  * from the request — so a caller cannot address another workspace's roster.
  *
  * Two contract fields have no database backing and are reported as empty rather

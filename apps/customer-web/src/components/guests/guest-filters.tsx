@@ -22,9 +22,6 @@ export function GuestFilters({
   ).length;
   return (
     <form method="get" action="/tamu" className="gst-filters-form">
-      {query.fixture !== "normal" ? (
-        <input type="hidden" name="fixture" value={query.fixture} />
-      ) : null}
       <div className="gst-search-row">
         <Input
           id="gst-search"
@@ -95,11 +92,7 @@ export function GuestFilters({
             {activeCount > 0 || query.q ? (
               <Link
                 className="gst-filter-drawer__reset"
-                href={
-                  query.fixture === "normal"
-                    ? "/tamu"
-                    : `/tamu?fixture=${query.fixture}`
-                }
+                href="/tamu"
               >
                 Hapus semua
               </Link>
@@ -114,7 +107,7 @@ export function GuestFilters({
 export function GuestFilterTokens({ query }: { query: GuestListQuery }) {
   type FilterToken = {
     label: string;
-    patch: Partial<Omit<GuestListQuery, "fixture">>;
+    patch: Partial<GuestListQuery>;
   };
   const tokens: Array<FilterToken | null> = [
     query.q ? { label: `Cari: ${query.q}`, patch: { q: "" } } : null,
@@ -146,11 +139,7 @@ export function GuestFilterTokens({ query }: { query: GuestListQuery }) {
       ))}
       <Link
         className="gst-filter-token__clear"
-        href={
-          query.fixture === "normal"
-            ? "/tamu"
-            : `/tamu?fixture=${query.fixture}`
-        }
+        href="/tamu"
       >
         Hapus semua
       </Link>

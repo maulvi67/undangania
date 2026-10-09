@@ -11,7 +11,7 @@ import {
   type EditorSessionResolution,
 } from "../../../lib/editor/server";
 import { publishInvitationAction } from "../../../lib/editor/publish-action";
-import { getEditorTemplateId } from "../../../lib/editor/stub-transport";
+import { editorTemplateIdFromSearch } from "../../../lib/editor/template-param";
 
 /**
  * Invitation editor API.
@@ -49,7 +49,7 @@ async function sessionFor(
   // wins, so this cannot re-bind content the couple has already written. It is
   // resolved through the same validator the page uses, so a missing or unknown
   // value falls back to the default design instead of an unusable id.
-  const templateId = getEditorTemplateId(
+  const templateId = editorTemplateIdFromSearch(
     new URL(request.url).searchParams.get("template") ?? undefined,
   );
 

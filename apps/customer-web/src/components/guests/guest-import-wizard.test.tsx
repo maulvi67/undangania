@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GuestImportWizard } from "./guest-import-wizard";
+import type { GuestHouseholdListItem } from "../../lib/guests/contract";
 import { getGuestHouseholds } from "../../lib/guests/fixtures";
 
 // The wizard calls a Server Action, whose module reaches the database. Mocking it
@@ -62,14 +63,12 @@ async function uploadCsv(contents: string): Promise<void> {
 }
 
 function renderWizard(
-  fixture: "normal" | "potential-duplicate" = "normal",
-  existingHouseholds: readonly { id: string }[] = [],
+  existingHouseholds: readonly GuestHouseholdListItem[] = [],
 ) {
   render(
     <GuestImportWizard
       events={EVENTS}
-      existingHouseholds={existingHouseholds as never}
-      fixture={fixture}
+      existingHouseholds={existingHouseholds}
     />,
   );
 }
@@ -81,18 +80,17 @@ async function confirmImport(): Promise<void> {
 }
 
 describe("GuestImportWizard", () => {
-  it("requires explicit opt-in for a potential duplicate before counting it", () => {
-    vi.useFakeTimers();
-    // The fixture CSV's household name matches one already on file, which is what
+  it("requires explicit opt-in for a potential duplicate before counting it", async () => {
+    // The uploaded household name matches one already on file, which is what
     // makes the wizard ask rather than assume.
-    renderWizard("potential-duplicate", getGuestHouseholds());
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Muat fixture pengujian" }),
+    renderWizard(getGuestHouseholds());
+    await uploadCsv(
+      [
+        HEADER,
+        "Keluarga Budi Santoso,Budi Santoso,,budi@example.id,4,Akad Nikah|Resepsi,Keluarga besar",
+        "Keluarga Baru,Maya Baru,,maya@example.id,2,Resepsi,Teman",
+      ].join("\n"),
     );
-    act(() => {
-      vi.advanceTimersByTime(220);
-    });
 
     expect(screen.getAllByText("Duplikat potensial")).toHaveLength(2);
     expect(

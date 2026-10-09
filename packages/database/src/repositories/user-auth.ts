@@ -110,6 +110,16 @@ export type RegisteredUserAuth = Readonly<{
 }>;
 
 /**
+ * An admin account for the operations console: the user, a dedicated
+ * operations tenant, and the ADMIN membership the console checks. No wedding
+ * workspace is created — admin accounts never author invitations.
+ */
+export type ProvisionedAdminAuth = Readonly<{
+  user: UserAuthRecord;
+  tenantId: string;
+}>;
+
+/**
  * Display name for a workspace created before the couple has named anything.
  * Onboarding replaces it with real names; until then it must read as a truthful
  * placeholder rather than invented couple data.
@@ -134,6 +144,7 @@ export interface UserAuthRepository {
   findByEmail(email: string): Promise<UserAuthRecord | null>;
   findById(userId: string): Promise<UserAuthRecord | null>;
   register(input: RegisterUserInput): Promise<RegisteredUserAuth>;
+  provisionAdmin(input: RegisterUserInput): Promise<ProvisionedAdminAuth>;
   markEmailVerified(userId: string, verifiedAt?: Date): Promise<boolean>;
   updatePassword(userId: string, password: string): Promise<boolean>;
 }
@@ -260,6 +271,57 @@ export class PrismaUserAuthRepository implements UserAuthRepository {
           user: toUserAuthRecord(user),
           tenantId: tenant.id,
           weddingId: wedding.id,
+        };
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new UserAuthRegistrationError();
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Creates an ADMIN account for the operations console. Shares the register
+   * input shape because the fields are identical; the difference is the role
+   * and the absence of a wedding workspace. Unique-email conflicts surface as
+   * `UserAuthRegistrationError`, exactly like `register`.
+   */
+  public async provisionAdmin(
+    input: RegisterUserInput,
+  ): Promise<ProvisionedAdminAuth> {
+    const normalized = validateRegistrationInput(input);
+    const passwordHash = await hashPassword(input.password);
+
+    try {
+      return await this.client.$transaction(async (transactionClient) => {
+        const user = await transactionClient.user.create({
+          data: {
+            email: normalized.email,
+            passwordHash,
+            displayName: normalized.displayName,
+            status: "ACTIVE",
+            emailVerifiedAt: new Date(),
+            mfaEnabled: false,
+          },
+          select: userAuthSelect,
+        });
+        const tenant = await transactionClient.tenant.create({
+          data: { name: normalized.tenantName },
+          select: tenantIdSelect,
+        });
+        await transactionClient.tenantMembership.create({
+          data: {
+            tenantId: tenant.id,
+            userId: user.id,
+            role: "ADMIN" satisfies MemberRole,
+            status: "ACTIVE",
+          },
+        });
+
+        return {
+          user: toUserAuthRecord(user),
+          tenantId: tenant.id,
         };
       });
     } catch (error) {

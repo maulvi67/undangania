@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { toTenantContext } from "@wedding/application";
 import { AdminDashboardView } from "../components/admin/admin-dashboard";
-import { parseAdminFixture, parseAdminQuery } from "../lib/admin/contract";
-import { loadAdminDashboard } from "../lib/admin/fixture-transport";
+import { parseAdminQuery } from "../lib/admin/contract";
 import { loadAdminDashboardFromDatabase } from "../lib/admin/production-transport";
 import { getAdminAccess } from "../lib/admin/server-auth";
 
@@ -15,7 +14,6 @@ export const dynamic = "force-dynamic";
 
 type AdminPageProps = {
   searchParams: Promise<{
-    state?: string | string[];
     page?: string | string[];
     limit?: string | string[];
     search?: string | string[];
@@ -26,11 +24,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = await searchParams;
   const query = parseAdminQuery(params);
 
-  if (process.env.NODE_ENV !== "production") {
-    const fixture = parseAdminFixture(params.state);
-    return <AdminDashboardView result={await loadAdminDashboard(fixture)} />;
-  }
-
   const access = await getAdminAccess();
   if (access.kind === "unauthenticated" || access.kind === "forbidden") {
     return (
@@ -38,7 +31,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         result={{
           kind: "permission-denied",
           message:
-            "Masuk dengan akun admin terotorisasi dan MFA aktif untuk membuka konsol operasi.",
+            "Masuk dengan akun admin yang terotorisasi untuk membuka konsol operasi.",
         }}
       />
     );
@@ -54,8 +47,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
   }
 
-  // `getAdminAccess` already proved an ADMIN role with MFA active, so the context
-  // is built from the verified membership rather than from the request.
+  // `getAdminAccess` already verified an ACTIVE ADMIN membership, so the
+  // context is built from the verified membership rather than from the request.
   const context = toTenantContext(
     {
       actorId: access.userId,
@@ -72,7 +65,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     now: new Date(),
     role: "ADMIN",
     mfaActive: access.mfaEnabled,
-    environment: "PRODUCTION",
     environmentLabel: "Produksi",
     query,
   });

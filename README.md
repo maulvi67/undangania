@@ -34,3 +34,7 @@ No agent may deploy production, alter authentication/payment/infrastructure cont
 ## Local setup and validation
 
 See `LOCAL_SETUP_TESTING_GUIDE.md` for the complete local infrastructure, database, run, test, validation, agent, and troubleshooting workflow.
+
+## Route inventory
+
+See `docs/URL_INVENTORY.md` for the full list of customer and admin application routes, access requirements, and query parameters.

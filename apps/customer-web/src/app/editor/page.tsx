@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import { EditorRouteView } from "../../components/editor/editor-shell";
 import {
-  getEditorInvitationId,
-  getEditorTemplateId,
-  loadEditor as loadEditorFixture,
-} from "../../lib/editor/stub-transport";
-import {
   isEditorSectionId,
-  parseEditorFixture,
   type EditorLoadResult,
   type EditorSectionId,
 } from "../../lib/editor/contract";
@@ -15,6 +9,7 @@ import {
   loadEditorForSession,
   resolveEditorSession,
 } from "../../lib/editor/server";
+import { editorTemplateIdFromSearch } from "../../lib/editor/template-param";
 import { getAuthenticatedRequest } from "../../lib/auth/server";
 import "../editor.css";
 
@@ -29,8 +24,6 @@ export const dynamic = "force-dynamic";
 
 type EditorPageProps = {
   searchParams: Promise<{
-    fixture?: string | string[];
-    invitation?: string | string[];
     template?: string | string[];
     section?: string | string[];
   }>;
@@ -48,51 +41,20 @@ function parseSection(value: string | string[] | undefined): EditorSectionId {
  * `?template=` parameter is only consulted when the wedding has no invitation
  * yet, which is what lets a first visit land directly in the editor from the
  * catalog.
- *
- * The fixture transport remains available on a development server so the guided
- * states (stale draft, failed save, rejected upload) stay reachable without
- * provoking them against real data. It is unreachable in production, and it is
- * not consulted when a real invitation exists.
  */
 export default async function EditorPage({ searchParams }: EditorPageProps) {
   const params = await searchParams;
   const section = parseSection(params.section);
-  const fixture = parseEditorFixture(params.fixture);
 
   const authenticated = await getAuthenticatedRequest();
-  if (
-    authenticated === null &&
-    process.env.NODE_ENV !== "production" &&
-    params.fixture !== undefined
-  ) {
-    // Fixtures remain available without a session for development and QA. Once a
-    // real session exists, the server-authorized invitation always wins.
-    const result = await loadEditorFixture(
-      fixture,
-      getEditorInvitationId(params.invitation),
-      getEditorTemplateId(params.template),
-    );
-    return (
-      <EditorRouteView
-        result={result}
-        fixture={fixture}
-        initialSection={section}
-      />
-    );
-  }
-
   if (authenticated === null) {
     return (
-      <EditorRouteView
-        result={{ kind: "forbidden" }}
-        fixture="normal"
-        initialSection={section}
-      />
+      <EditorRouteView result={{ kind: "forbidden" }} initialSection={section} />
     );
   }
 
   const session = await resolveEditorSession(
-    getEditorTemplateId(params.template),
+    editorTemplateIdFromSearch(params.template),
   );
 
   // An unknown or retired design is reported as forbidden: the couple cannot
@@ -113,11 +75,5 @@ export default async function EditorPage({ searchParams }: EditorPageProps) {
             : { kind: "unavailable" as const },
         );
 
-  return (
-    <EditorRouteView
-      result={result}
-      fixture="normal"
-      initialSection={section}
-    />
-  );
+  return <EditorRouteView result={result} initialSection={section} />;
 }

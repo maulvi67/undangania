@@ -9,32 +9,11 @@ import {
 /**
  * Customer-web editor contract.
  *
- * This is the validated draft boundary used by the UI and the simulation
- * transport. It deliberately contains structured content, never HTML/CSS/JS
- * supplied by a customer. `toInvitationViewModel` is the only bridge to the
- * renderer-facing canonical Template Engine model.
+ * This is the validated draft boundary used by the UI and the editor API. It
+ * deliberately contains structured content, never HTML/CSS/JS supplied by a
+ * customer. `toInvitationViewModel` is the only bridge to the renderer-facing
+ * canonical Template Engine model.
  */
-
-export const EDITOR_FIXTURES = [
-  "normal",
-  "saving",
-  "save-failed",
-  "offline",
-  "stale",
-  "invalid-section",
-  "upload-processing",
-  "upload-rejected",
-  "missing-data",
-  "unavailable",
-  "entitlement",
-  "forbidden",
-] as const;
-
-export type EditorFixture = (typeof EDITOR_FIXTURES)[number];
-
-export function isEditorFixture(value: string): value is EditorFixture {
-  return (EDITOR_FIXTURES as readonly string[]).includes(value);
-}
 
 export function isEditorSectionId(value: string): value is EditorSectionId {
   return (EDITOR_SECTION_IDS as readonly string[]).includes(value);
@@ -231,7 +210,6 @@ export type EditorTemplate = Omit<
 };
 
 export const editorSaveCommandSchema = z.object({
-  fixture: z.enum(EDITOR_FIXTURES).optional(),
   document: editorDocumentSchema,
   baseVersion: z.number().int().nonnegative(),
 });
@@ -689,15 +667,6 @@ export function sectionStatus(
       ? "complete"
       : "optional";
   return "optional";
-}
-
-export function parseEditorFixture(
-  value: string | string[] | undefined,
-): EditorFixture {
-  const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate !== undefined && isEditorFixture(candidate)
-    ? candidate
-    : "normal";
 }
 
 export function statusLabel(state: EditorSaveState): string {

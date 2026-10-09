@@ -17,8 +17,8 @@ import {
 /**
  * Dashboard loader.
  *
- * Replaces the development fixture transport on `/dashboard`. Scope is the
- * session's own workspace, so the page cannot be pointed at another tenant.
+ * Loader for `/dashboard`. Scope is the session's own workspace, so the page
+ * cannot be pointed at another tenant.
  *
  * The aggregate is assembled defensively at two levels. The repository reports a
  * per-section `null` when one read fails, and this module maps that onto the

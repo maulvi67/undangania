@@ -20,9 +20,8 @@ import type {
  *
  * Everything the guest sees is derived from the household the token belongs to.
  * `tenantId` and the raw token are deliberately not carried into the returned
- * context, matching the boundary the fixture transport already respected — the
- * client component never receives an identifier it could use to address another
- * household.
+ * context — the client component never receives an identifier it could use to
+ * address another household.
  */
 
 /** The query parameter that carries the personalized link. */

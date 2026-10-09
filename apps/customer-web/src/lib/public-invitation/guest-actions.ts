@@ -48,8 +48,8 @@ function errorCodeFor(
 }
 
 /**
- * Resolves the household behind a personalized link and reports it in the same
- * shape the fixture transport used, so the client's state machine is unchanged.
+ * Resolves the household behind a personalized link and reports the outcome in
+ * the shape the client's RSVP state machine consumes.
  */
 export async function submitRsvpAction(input: {
   token: string;

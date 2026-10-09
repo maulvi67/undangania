@@ -6,6 +6,7 @@ import {
   Bell,
   CheckCheck,
   Command,
+  LogOut,
   Moon,
   Search,
   ShieldCheck,
@@ -18,6 +19,7 @@ import {
   useSyncExternalStore,
   type FormEvent,
 } from "react";
+import { adminSignOutAction } from "../../lib/admin/actions";
 import type { AdminDashboard, Severity } from "../../lib/admin/contract";
 import { formatAdminTimestamp } from "../../lib/admin/formatters";
 
@@ -340,13 +342,19 @@ export function AdminToolbar({ session, notifications }: AdminToolbarProps) {
             </div>
             <div>
               <dt>MFA</dt>
-              <dd>{session.mfaActive ? "Aktif" : "Belum aktif di fixture"}</dd>
+              <dd>{session.mfaActive ? "Aktif" : "Belum aktif"}</dd>
             </div>
             <div>
               <dt>Lingkungan</dt>
               <dd>{session.environmentLabel}</dd>
             </div>
           </dl>
+          <form action={adminSignOutAction} className="admin-toolbar__signout">
+            <button className="admin-toolbar__text-button" type="submit">
+              <LogOut className="size-4" aria-hidden="true" />
+              Keluar
+            </button>
+          </form>
         </div>
       </details>
 

@@ -293,6 +293,19 @@ Buka Prisma Studio untuk inspeksi manual:
 npx prisma studio --schema packages/database/prisma/schema.prisma
 ```
 
+### Membuat akun admin lokal
+
+Konsol admin (`apps/admin-dashboard`) memakai login email dan kata sandi. Buat akun admin pertama dengan perintah provisioning (menulis user, tenant, dan membership `ADMIN` sungguhan ke database — bukan fixture):
+
+```bash
+npm run admin:create -w @wedding/database -- --email admin@undangania.id --password "rahasia-min-8" --name "Nama Operator"
+```
+
+- `--email` dan `--password` wajib; kata sandi minimal 8 karakter.
+- Perintah menolak email yang sudah terdaftar (tidak ada reset kata sandi diam-diam).
+- `DATABASE_URL` dibaca dari `.env` root bila variabel environment belum diatur.
+- Setelah akun dibuat, masuk di `http://localhost:3001/masuk`. Mutasi admin di konsol tetap memerlukan MFA step-up pada saat eksekusi.
+
 ## 9. Menyiapkan MinIO bucket
 
 Masuk ke:
@@ -374,6 +387,8 @@ Backend API:      http://localhost:4000
 Mailpit:          http://localhost:8025
 MinIO Console:    http://localhost:9001
 ```
+
+Untuk daftar lengkap route aplikasi customer dan admin beserta query parameternya, lihat `docs/URL_INVENTORY.md`.
 
 ## 11. Quality gate dasar
 

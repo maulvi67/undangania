@@ -2,26 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { invitationViewModelSchema } from "@wedding/template-engine";
-import {
-  getPublicInvitationSnapshot,
-  getPublicInvitationSlugs,
-  type PublicInvitationFixture,
-} from "../../../lib/public-invitation/fixtures";
-import {
-  fixtureAllowed,
-  resolvePublicInvitation,
-} from "../../../lib/public-invitation/server";
+import { resolvePublicInvitation } from "../../../lib/public-invitation/server";
 import {
   GUEST_TOKEN_PARAM,
   invalidGuestContext,
   resolveGuestContext,
   unavailableGuestContext,
 } from "../../../lib/public-invitation/guest-access";
-import {
-  getGuestExperienceFixture,
-  isGuestExperienceFixture,
-  type GuestExperienceFixture,
-} from "../../../lib/public-invitation/guest-context-fixtures";
 import type { GuestContext } from "../../../lib/public-invitation/guest-context";
 import { renderPublicationSnapshot } from "../../../components/public-invitation/registry";
 import { ApprovedGuestbook } from "../../../components/public-invitation/approved-guestbook";
@@ -35,42 +22,21 @@ interface PublicInvitationPageProps {
 }
 
 /**
- * Only development fixtures are prerendered. Real invitations depend on the
- * request's slug and on whether a publication is currently active, so they are
- * rendered on demand.
+ * Real invitations depend on the request's slug and on whether a publication is
+ * currently active, so they are rendered on demand.
  */
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-export function generateStaticParams() {
-  if (process.env.NODE_ENV === "production") return [];
-  return getPublicInvitationSlugs().map((slug) => ({ slug }));
-}
-
-/**
- * The snapshot a request should render.
- *
- * A real, active publication always wins. The fixture path is consulted only in
- * development and only when the search parameter names a known fixture, so
- * production content can never be replaced from the query string.
- */
-async function snapshotFor(slug: string, fixture: PublicInvitationFixture) {
-  const resolved = await resolvePublicInvitation({ slug });
-  if (resolved.kind === "published") return resolved;
-
-  // Nothing published under this slug; fall back to a fixture only in dev.
-  return fixtureAllowed(fixture)
-    ? (getPublicInvitationSnapshot(slug, fixture) ?? null)
-    : null;
-}
 
 export async function generateMetadata({
   params,
 }: PublicInvitationPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const snapshot = await snapshotFor(slug, "normal");
-  if (!snapshot) return { title: "Undangan tidak tersedia — Undangania" };
-  if ("kind" in snapshot && snapshot.kind !== "published") {
+  const snapshot = await resolvePublicInvitation({ slug });
+  if (snapshot.kind === "missing") {
+    return { title: "Undangan tidak tersedia — Undangania" };
+  }
+  if (snapshot.kind !== "published") {
     return {
       title:
         snapshot.kind === "paused"
@@ -97,30 +63,16 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function fixtureFromSearch(value: string | undefined): PublicInvitationFixture {
-  return fixtureAllowed(value) ? value : "normal";
-}
-
-function guestFixtureFromSearch(
-  value: string | undefined,
-): GuestExperienceFixture {
-  if (fixtureAllowed(value) && isGuestExperienceFixture(value)) return value;
-  return "normal";
-}
-
 /**
  * The guest experience for this request.
  *
- * A real personalized link is resolved server-side and always wins over the
- * development fixture — the same precedence the snapshot uses. The fixture path
- * exists only so the RSVP and guestbook states can be designed without a database,
- * and it is unreachable in production.
+ * A personalized link is resolved server-side: the token is the bearer
+ * credential and the slug binds it to this page, so a household can only ever
+ * read and write its own context.
  */
 async function guestExperienceFor(input: {
   slug: string;
   token: string | undefined;
-  guestFixture: string | undefined;
-  publicFixture: PublicInvitationFixture;
 }): Promise<
   | Readonly<{
       context: GuestContext;
@@ -145,22 +97,6 @@ async function guestExperienceFor(input: {
     };
   }
 
-  // Development fixture path: only reachable when a known fixture is named and the
-  // environment is not production.
-  if (
-    process.env.NODE_ENV !== "production" &&
-    isGuestExperienceFixture(input.guestFixture)
-  ) {
-    const fixture = getGuestExperienceFixture(
-      input.publicFixture,
-      guestFixtureFromSearch(input.guestFixture),
-    );
-    return {
-      context: fixture.context,
-      token: undefined,
-    };
-  }
-
   return undefined;
 }
 
@@ -170,12 +106,11 @@ export default async function PublicInvitationPage({
 }: PublicInvitationPageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const fixture = fixtureFromSearch(first(query.fixture));
 
-  const snapshot = await snapshotFor(slug, fixture);
-  if (!snapshot) notFound();
+  const snapshot = await resolvePublicInvitation({ slug });
+  if (snapshot.kind === "missing") notFound();
 
-  if ("kind" in snapshot && snapshot.kind !== "published") {
+  if (snapshot.kind !== "published") {
     const paused = snapshot.kind === "paused";
     return (
       <div className="gld-page">
@@ -207,17 +142,13 @@ export default async function PublicInvitationPage({
   const guest = await guestExperienceFor({
     slug,
     token: first(query[GUEST_TOKEN_PARAM]),
-    guestFixture: first(query.guestFixture),
-    publicFixture: fixture,
   });
   const invitation = renderPublicationSnapshot({
     templateId: snapshot.templateId,
     templateVersion: snapshot.templateVersion,
     contractVersion: snapshot.contractVersion,
     model,
-    ...("media" in snapshot && snapshot.media !== undefined
-      ? { media: snapshot.media }
-      : {}),
+    media: snapshot.media,
   });
   const approvedGuestbook = await loadApprovedGuestbook(
     slug,

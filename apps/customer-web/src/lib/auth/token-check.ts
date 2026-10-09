@@ -2,7 +2,6 @@ import { PrismaAuthTokenRepository } from "@wedding/database";
 import { completeEmailVerification } from "@wedding/application";
 import { verifyEmailInputSchema } from "./contract";
 import { getAuthEmailPorts } from "./container";
-import { stubResetPassword, stubVerifyEmail } from "./stub-transport";
 
 /**
  * Server-side token handling for the email-link landing pages.
@@ -18,29 +17,10 @@ import { stubResetPassword, stubVerifyEmail } from "./stub-transport";
  *   - Reset only inspects. The form still has to be filled in, and a page load is
  *     not consent to spend the link. Mail clients and link scanners prefetch
  *     URLs, so consuming on GET would burn the token before the customer clicked.
- *
- * Development additionally honours the deterministic fixture tokens from
- * `stub-transport.ts`, so the documented fixture URLs keep working without a
- * database. Fixture handling is unreachable in production: the branch is gated on
- * `NODE_ENV` and the fixtures are matched by exact literal.
  */
 
 export type TokenCheck =
   { kind: "valid" } | { kind: "expired" } | { kind: "invalid" };
-
-const FIXTURE_VERIFICATION_TOKENS = new Set([
-  "verifikasi-valid-verifikasi-valid",
-  "verifikasi-kedaluwarsa-x",
-]);
-
-const FIXTURE_RESET_TOKENS = new Set([
-  "reset-valid-reset-valid",
-  "reset-kedaluwarsa-xxxx",
-]);
-
-function isFixtureToken(token: string, fixtures: ReadonlySet<string>): boolean {
-  return process.env.NODE_ENV !== "production" && fixtures.has(token);
-}
 
 /**
  * Consumes an email-verification token.
@@ -54,14 +34,6 @@ export async function consumeVerificationToken(
 ): Promise<TokenCheck> {
   const parsed = verifyEmailInputSchema.safeParse({ token });
   if (!parsed.success) return { kind: "invalid" };
-
-  if (isFixtureToken(parsed.data.token, FIXTURE_VERIFICATION_TOKENS)) {
-    const fixture = await stubVerifyEmail(parsed.data);
-    if (fixture.ok) return { kind: "valid" };
-    return fixture.code === "TOKEN_EXPIRED"
-      ? { kind: "expired" }
-      : { kind: "invalid" };
-  }
 
   try {
     const outcome = await completeEmailVerification(
@@ -88,19 +60,6 @@ export async function consumeVerificationToken(
 export async function checkResetToken(token: string): Promise<TokenCheck> {
   const parsed = verifyEmailInputSchema.safeParse({ token });
   if (!parsed.success) return { kind: "invalid" };
-
-  if (isFixtureToken(parsed.data.token, FIXTURE_RESET_TOKENS)) {
-    // Probes with a throwaway policy-passing password; the stub rejects on token
-    // validity before any password logic runs.
-    const fixture = await stubResetPassword({
-      token: parsed.data.token,
-      password: "x".repeat(8),
-    });
-    if (fixture.ok) return { kind: "valid" };
-    return fixture.code === "TOKEN_EXPIRED"
-      ? { kind: "expired" }
-      : { kind: "invalid" };
-  }
 
   try {
     const tokens = new PrismaAuthTokenRepository();

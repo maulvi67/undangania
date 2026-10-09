@@ -111,7 +111,6 @@ export async function loadAdminDashboardFromDatabase(input: {
   now: Date;
   role: ConsoleRole;
   mfaActive: boolean;
-  environment: "SIMULATION" | "PRODUCTION";
   environmentLabel: string;
   query?: AdminQuery;
 }): Promise<AdminLoad> {
@@ -204,10 +203,8 @@ export async function loadAdminDashboardFromDatabase(input: {
   return {
     kind: "ok",
     data: {
-      fixture: "healthy",
       query,
       session: {
-        environment: input.environment,
         environmentLabel: input.environmentLabel,
         role: input.role,
         roleLabel: roleLabel(input.role),

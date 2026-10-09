@@ -64,11 +64,7 @@ export function GuestManagementView({
           {data.capabilities.canImport ? (
             <Link
               className="ui-button ui-button--secondary ui-button--md"
-              href={
-                query.fixture === "normal"
-                  ? "/tamu/impor"
-                  : `/tamu/impor?fixture=${query.fixture}`
-              }
+              href="/tamu/impor"
             >
               Impor CSV
             </Link>
@@ -76,11 +72,7 @@ export function GuestManagementView({
           {data.capabilities.canWrite ? (
             <Link
               className="ui-button ui-button--primary ui-button--md"
-              href={
-                query.fixture === "normal"
-                  ? "/tamu/baru"
-                  : `/tamu/baru?fixture=${query.fixture}`
-              }
+              href="/tamu/baru"
             >
               Tambah rumah tangga
             </Link>
@@ -172,7 +164,6 @@ export function GuestManagementView({
                   <GuestHouseholdRow
                     key={household.id}
                     household={household}
-                    query={query}
                     selected={selectedIds.has(household.id)}
                     onSelectedChange={(selected) =>
                       toggleSelected(household.id, selected)

@@ -6,12 +6,6 @@ import { loadOwnedPaymentStatus } from "../../../lib/checkout/server";
 import { MarketingFooter } from "../../../components/marketing/marketing-footer";
 import { MarketingHeader } from "../../../components/marketing/marketing-header";
 import { PaymentStatusView } from "../../../components/checkout/payment-status-view";
-import { parsePaymentStatusState } from "../../../lib/checkout/contract";
-import {
-  loadCheckoutFixture,
-  loadDefaultCheckoutFixture,
-  safeOrderReference,
-} from "../../../lib/checkout/stub-transport";
 import "../../templates.css";
 import "../checkout.css";
 
@@ -30,7 +24,7 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function ProductionPaymentStatusUnavailable({
+function PaymentStatusUnavailable({
   title = "Status pembayaran belum tersedia",
   description = "Pembayaran hanya dianggap berhasil setelah konfirmasi server yang terverifikasi.",
 }: {
@@ -52,7 +46,7 @@ function ProductionPaymentStatusUnavailable({
                 Status pembayaran sedang diverifikasi
               </h1>
               <p className="ck-lede">
-                Status pembayaran belum dapat ditampilkan dari layanan produksi.
+                Status pembayaran belum dapat ditampilkan.
               </p>
             </header>
             <div className="ck-status-card">
@@ -77,67 +71,41 @@ function ProductionPaymentStatusUnavailable({
   );
 }
 
+/**
+ * Payment status for the session's own order.
+ *
+ * The order number is only a lookup key: it is scoped to the authenticated
+ * workspace server-side, and the state comes from the stored payment row that a
+ * verified server-to-server notification updates. A redirect parameter never
+ * decides the result.
+ */
 export default async function PaymentStatusPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  if (process.env.NODE_ENV === "production") {
-    const authenticated = await getAuthenticatedRequest();
-    if (authenticated === null) {
-      return (
-        <ProductionPaymentStatusUnavailable
-          title="Masuk untuk melihat status pembayaran"
-          description="Nomor pesanan hanya dapat diperiksa oleh akun dan workspace pemilik pesanan."
-        />
-      );
-    }
-
-    const params = await searchParams;
-    const orderNumber = first(params.order);
-    if (orderNumber === undefined) {
-      return <ProductionPaymentStatusUnavailable />;
-    }
-    const status = await loadOwnedPaymentStatus(
-      authenticated.membership.tenantId,
-      authenticated.user.id,
-      orderNumber,
-    );
-    if (status === null) return <ProductionPaymentStatusUnavailable />;
+  const authenticated = await getAuthenticatedRequest();
+  if (authenticated === null) {
     return (
-      <div className="ui-shell">
-        <a className="ui-skip-link" href="#konten-utama">
-          Langsung ke konten utama
-        </a>
-        <MarketingHeader />
-        <main id="konten-utama" tabIndex={-1} className="ck-page">
-          <div className="ui-container">
-            <PaymentStatusView
-              order={status.order}
-              template={{ name: status.templateName }}
-              state={status.state}
-            />
-          </div>
-        </main>
-        <MarketingFooter />
-      </div>
+      <PaymentStatusUnavailable
+        title="Masuk untuk melihat status pembayaran"
+        description="Nomor pesanan hanya dapat diperiksa oleh akun dan workspace pemilik pesanan."
+      />
     );
   }
 
   const params = await searchParams;
-  const templateId = first(params.template);
-  const fixture = templateId
-    ? loadCheckoutFixture(templateId)
-    : loadDefaultCheckoutFixture();
-  if (!fixture) {
-    return null;
+  const orderNumber = first(params.order);
+  if (orderNumber === undefined) {
+    return <PaymentStatusUnavailable />;
   }
 
-  const orderNumber = safeOrderReference(
-    first(params.order) ?? fixture.order.orderNumber,
+  const status = await loadOwnedPaymentStatus(
+    authenticated.membership.tenantId,
+    authenticated.user.id,
+    orderNumber,
   );
-  const order = { ...fixture.order, orderNumber };
-  const state = parsePaymentStatusState(first(params.state));
+  if (status === null) return <PaymentStatusUnavailable />;
 
   return (
     <div className="ui-shell">
@@ -148,9 +116,9 @@ export default async function PaymentStatusPage({
       <main id="konten-utama" tabIndex={-1} className="ck-page">
         <div className="ui-container">
           <PaymentStatusView
-            order={order}
-            template={fixture.template}
-            state={state}
+            order={status.order}
+            template={{ name: status.templateName }}
+            state={status.state}
           />
         </div>
       </main>

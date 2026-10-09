@@ -138,7 +138,7 @@ function AccessPosture({ data }: { data: AdminDashboard }) {
           <div className="flex items-center justify-between gap-4">
             <dt className="text-[var(--color-ink-soft)]">MFA</dt>
             <dd className="m-0 font-bold text-[var(--color-ink)]">
-              {data.session.mfaActive ? "Aktif" : "Belum aktif di fixture"}
+              {data.session.mfaActive ? "Aktif" : "Belum aktif"}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
@@ -192,13 +192,6 @@ function DashboardContent({ data }: { data: AdminDashboard }) {
         </header>
 
         <div className="grid gap-3">
-          {data.session.environment === "SIMULATION" ? (
-            <Alert variant="info" title="Data simulasi — bukan data produksi">
-              Fixture lokal memvalidasi masking, permission, dan state UI. Tidak
-              ada pembayaran, retry, perubahan template, atau data pelanggan
-              yang dimutasi.
-            </Alert>
-          ) : null}
           {data.freshness.status === "stale" ? (
             <Alert variant="warning" title="Data perlu diperbarui">
               {data.freshness.message}

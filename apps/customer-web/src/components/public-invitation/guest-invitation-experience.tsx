@@ -24,8 +24,8 @@ type GuestInvitationExperienceProps = Readonly<{
  * The token is the bearer credential and the invitation slug binds it to the
  * page being rendered. Both values are handed to a Server Action rather than to a
  * public API, so the household is resolved server-side and the client cannot name
- * one. The returned shapes match the contract the fixture transports already
- * produced, which is why the RSVP and guestbook components needed no changes.
+ * one. The returned shapes match the contract the RSVP and guestbook
+ * components already consume, so those components needed no changes.
  */
 function createRsvpTransport(
   token: string | undefined,

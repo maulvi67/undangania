@@ -6,8 +6,8 @@ import { z } from "zod";
  * This module is the handoff artifact to the wedding-domain owner: it defines
  * the step schemas, error semantics, and flow-state machine the real
  * `/weddings` API must implement (tenant-provisioned, authorized per step).
- * The UI currently talks to a deterministic simulation (stub-transport.ts)
- * plus a client-side localStorage draft that owns resume.
+ * The UI talks to the server actions in `actions.ts` plus a client-side
+ * localStorage draft that owns resume.
  *
  * Rules encoded here (see design plan §5–§8):
  * - The server action is the single validator; clients render `noValidate`.

@@ -65,7 +65,7 @@ export function GuestHouseholdCard({
       <div className="gst-card__actions">
         <Link
           className="ui-button ui-button--secondary ui-button--md"
-          href={`/tamu/${household.id}${query.fixture === "normal" ? "" : `?fixture=${query.fixture}`}`}
+          href={`/tamu/${household.id}`}
         >
           Kelola
         </Link>

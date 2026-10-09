@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ApplicationShell, StatePanel } from "@wedding/ui";
 import { GuestImportWizard } from "../../../components/guests/guest-import-wizard";
 import { GuestPermissionDenied } from "../../../components/guests/guest-state-panels";
-import { parseGuestFixture } from "../../../lib/guests/contract";
 import { loadGuestFormOptions } from "../../../lib/guests/actions";
 import { guestRequestScope } from "../../../lib/guests/request";
 import "../../guests.css";
@@ -22,8 +21,6 @@ const NAV = [
   { href: "/buku-tamu", label: "Buku tamu" },
 ] as const;
 
-type Props = { searchParams: Promise<{ fixture?: string | string[] }> };
-
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <ApplicationShell
@@ -35,7 +32,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default async function GuestImportPage({ searchParams }: Props) {
+export default async function GuestImportPage() {
   const { request } = await guestRequestScope();
   if (request === null) {
     return (
@@ -87,16 +84,11 @@ export default async function GuestImportPage({ searchParams }: Props) {
     );
   }
 
-  const params = await searchParams;
-  const fixture = parseGuestFixture(params.fixture);
   return (
     <Shell>
       <GuestImportWizard
         events={options.events}
-        existingHouseholds={[]}
-        // The fixture CSV is a development aid; production must import the couple's
-        // own file.
-        fixture={process.env.NODE_ENV === "production" ? "normal" : fixture}
+        existingHouseholds={options.households}
       />
     </Shell>
   );

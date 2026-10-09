@@ -2,25 +2,19 @@ import {
   editorActionResultSchema,
   type EditorActionResult,
   type EditorDocument,
-  type EditorFixture,
 } from "./contract";
 
 /**
  * Client transport for the authenticated editor.
  *
- * Normal editor saves always use the session-authorized API. The fixture branch
- * remains available only for the development states rendered by the fixture page.
+ * Every save goes through the session-authorized API: the invitation is derived
+ * from the authenticated workspace server-side, so the body can only supply
+ * draft content and the version it was based on.
  */
 export async function saveEditorDocument(command: {
-  fixture: EditorFixture;
   document: EditorDocument;
   baseVersion: number;
 }): Promise<EditorActionResult> {
-  if (command.fixture !== "normal") {
-    const { saveEditor: saveEditorFixture } = await import("./stub-transport");
-    return saveEditorFixture(command);
-  }
-
   const response = await fetch("/api/editor", {
     method: "POST",
     headers: { "content-type": "application/json" },

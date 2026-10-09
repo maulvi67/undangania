@@ -1,18 +1,5 @@
 import { z } from "zod";
 
-export const GUEST_FIXTURES = [
-  "normal",
-  "empty",
-  "import-processing",
-  "invalid-csv",
-  "partial-import",
-  "potential-duplicate",
-  "token-disabled",
-  "permission-denied",
-  "unavailable",
-] as const;
-
-export type GuestFixture = (typeof GUEST_FIXTURES)[number];
 export type GuestRole = "OWNER" | "EDITOR" | "VIEWER";
 export type GuestLinkStatus = "ACTIVE" | "DISABLED";
 export type GuestMemberCategory = "ADULT" | "CHILD" | "OTHER";
@@ -115,9 +102,8 @@ export type GuestHouseholdListItem = Readonly<{
 }>;
 
 /**
- * Detail-only data. `personalizedLink` is present only in the development
- * fixture and represents the one-time response that a real API would return
- * after creation or rotation. It is never part of list results.
+ * Detail-only data. `personalizedLink` is the one-time response returned after
+ * a link is created or rotated. It is never part of list results.
  */
 export type GuestHouseholdDetail = GuestHouseholdListItem &
   Readonly<{
@@ -169,7 +155,6 @@ export type GuestDetailLoadResult =
   | Readonly<{ kind: "unavailable" }>;
 
 export type GuestListQuery = Readonly<{
-  fixture: GuestFixture;
   q: string;
   tag: string;
   event: string;
@@ -208,7 +193,6 @@ export const guestDetailSchema = guestListItemSchema
   .strict();
 
 export const guestListQuerySchema = z.object({
-  fixture: z.enum(GUEST_FIXTURES).default("normal"),
   q: z.string().trim().max(100).default(""),
   tag: z.string().trim().max(80).default(""),
   event: z.string().trim().max(80).default(""),
@@ -258,21 +242,7 @@ const sortValues: readonly GuestSort[] = [
   "pax-asc",
 ];
 
-export function isGuestFixture(
-  value: string | undefined,
-): value is GuestFixture {
-  return value !== undefined && GUEST_FIXTURES.includes(value as GuestFixture);
-}
-
-export function parseGuestFixture(
-  value: string | string[] | undefined,
-): GuestFixture {
-  const candidate = Array.isArray(value) ? value[0] : value;
-  return isGuestFixture(candidate) ? candidate : "normal";
-}
-
 export function parseGuestQuery(input: {
-  fixture?: string | string[];
   q?: string | string[];
   tag?: string | string[];
   event?: string | string[];
@@ -282,7 +252,6 @@ export function parseGuestQuery(input: {
   const first = (value: string | string[] | undefined): string =>
     Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
   const parsed = guestListQuerySchema.parse({
-    fixture: first(input.fixture) || "normal",
     q: first(input.q),
     tag: first(input.tag),
     event: first(input.event),
@@ -294,11 +263,10 @@ export function parseGuestQuery(input: {
 
 export function guestQueryHref(
   query: GuestListQuery,
-  patch: Partial<Omit<GuestListQuery, "fixture">> = {},
+  patch: Partial<GuestListQuery> = {},
 ): string {
   const next = { ...query, ...patch };
   const params = new URLSearchParams();
-  if (next.fixture !== "normal") params.set("fixture", next.fixture);
   if (next.q) params.set("q", next.q);
   if (next.tag) params.set("tag", next.tag);
   if (next.event) params.set("event", next.event);

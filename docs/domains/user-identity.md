@@ -12,7 +12,7 @@ User, Account, Session, TenantMembership, OAuthAccount.
 ## Business rules
 
 - Email is unique after normalization; sessions are revocable.
-- Privileged roles require MFA.
+- Privileged mutations require an MFA step-up; console access requires an authenticated session with an active privileged membership.
 - Google OAuth accepts verified identities and never grants roles.
 - New Google users receive the standard customer workspace and provider binding
   in one transaction.

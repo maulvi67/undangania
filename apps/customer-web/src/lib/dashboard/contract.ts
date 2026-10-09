@@ -4,9 +4,9 @@ import { todayYmd } from "../onboarding/contract";
 /**
  * Customer dashboard aggregate contract (MVP-UI-007).
  *
- * This is the handoff boundary for the real tenant-scoped dashboard API. The
- * current page uses stub-transport.ts only; it does not represent production
- * authentication, authorization, persistence, or provider reconciliation.
+ * This is the contract between the `/dashboard` page and its loader in
+ * `server.ts`. Scope comes from the session's own workspace and the aggregate
+ * is read through database repositories.
  */
 
 export const DASHBOARD_STATES = [

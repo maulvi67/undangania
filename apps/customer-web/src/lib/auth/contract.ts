@@ -5,9 +5,9 @@ import { z } from "zod";
  *
  * This module is the handoff artifact to the identity owner: it defines the
  * request/response shapes and error semantics the real `/auth` backend must
- * implement. The UI currently talks to a deterministic simulation
- * (stub-transport.ts) that satisfies this contract without storing
- * credentials or creating sessions.
+ * implement. The server actions in `actions.ts` satisfy it against the real
+ * identity use-cases (session creation, registration, email verification, and
+ * password reset) backed by the database.
  *
  * Backend requirements encoded here (see design plan §9):
  * - R1 identical response shape/timing for unknown email vs wrong password.

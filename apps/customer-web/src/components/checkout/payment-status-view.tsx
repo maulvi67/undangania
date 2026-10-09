@@ -1,12 +1,10 @@
 import { Alert } from "@wedding/ui";
-import type {
-  CheckoutOrder,
-  PaymentStatusState,
-} from "../../lib/checkout/contract";
 import {
   safeOrderReference,
   statusCopy,
-} from "../../lib/checkout/stub-transport";
+  type CheckoutOrder,
+  type PaymentStatusState,
+} from "../../lib/checkout/contract";
 import { LinkButton } from "../marketing/link-button";
 import type { TemplateRecord } from "../templates/template-contract";
 import { OrderReference } from "./order-reference";

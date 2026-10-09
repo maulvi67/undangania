@@ -33,6 +33,7 @@ import {
   Image as ImageIcon,
   LayoutGrid,
   Link2,
+  LogOut,
   Menu,
   MessageCircle,
   Music2,
@@ -49,6 +50,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { signOutAction } from "../../lib/auth/actions";
 import { signInHref } from "../../lib/auth/redirect";
 import { moderateGuestbookAction } from "../../lib/oversight/actions";
 import type {
@@ -764,6 +766,16 @@ export function DashboardApp({
             Pusat bantuan <ArrowRight size={14} />
           </Link>
         </div>
+        {view !== null ? (
+          <button
+            type="button"
+            className="prototype-sidebar-link prototype-sidebar-signout"
+            onClick={() => void signOutAction()}
+          >
+            <LogOut size={17} strokeWidth={1.8} />
+            <span>Keluar</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -1236,6 +1248,15 @@ export function DashboardApp({
                       <Link href="/#faq" onClick={() => setProfileOpen(false)}>
                         <HelpCircle size={16} /> Bantuan &amp; pertanyaan umum
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileOpen(false);
+                          void signOutAction();
+                        }}
+                      >
+                        <LogOut size={16} /> Keluar
+                      </button>
                     </motion.div>
                   ) : null}
                 </AnimatePresence>

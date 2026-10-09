@@ -236,7 +236,7 @@ export function toAuditRow(dto: AdminAuditRowDto): AuditRow {
  */
 export type AdminSections = Omit<
   AdminDashboard,
-  "fixture" | "session" | "freshness"
+  "session" | "freshness"
 >;
 
 /**
