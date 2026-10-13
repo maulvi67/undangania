@@ -95,6 +95,7 @@ export type MediaAssetClient = Readonly<{
     findMany(args: {
       where: Prisma.MediaAssetWhereInput;
       orderBy: Prisma.MediaAssetOrderByWithRelationInput;
+      take?: number;
       select: typeof mediaAssetSelect;
     }): Promise<MediaAssetRow[]>;
     create(args: {
@@ -687,6 +688,7 @@ export interface MediaAssetRepository {
     scope: MediaAssetReadScope,
     ids: readonly string[],
   ): Promise<readonly MediaAssetDto[]>;
+  listPendingProcessing(limit: number): Promise<readonly MediaAssetDto[]>;
 }
 
 export class PrismaMediaAssetRepository implements MediaAssetRepository {
@@ -817,6 +819,31 @@ export class PrismaMediaAssetRepository implements MediaAssetRepository {
         state: "READY",
       },
       orderBy: { createdAt: "asc" },
+      select: mediaAssetSelect,
+    });
+    return rows.map(toDto);
+  }
+
+  /**
+   * Oldest assets that still need the worker, across every tenant.
+   *
+   * This is a system read, not a request read: the worker iterates all tenants
+   * the same way the outbox consumer does. `UPLOADED`, `SCANNING`, and
+   * `PROCESSING` are all listed because the pipeline is resumable — a retryable
+   * inspector/scanner/derivative failure leaves the asset mid-pipeline, and
+   * `processMediaAsset` resumes it from the state it finds. The claim is the
+   * compare-and-swap inside `markScanning`/`markProcessing`/`markReady`, so
+   * listing a row two workers both see is harmless. `limit` is clamped.
+   */
+  public async listPendingProcessing(
+    limit: number,
+  ): Promise<readonly MediaAssetDto[]> {
+    const take =
+      Number.isSafeInteger(limit) && limit > 0 ? Math.min(limit, 200) : 50;
+    const rows = await this.client.mediaAsset.findMany({
+      where: { state: { in: ["UPLOADED", "SCANNING", "PROCESSING"] } },
+      orderBy: { createdAt: "asc" },
+      take,
       select: mediaAssetSelect,
     });
     return rows.map(toDto);

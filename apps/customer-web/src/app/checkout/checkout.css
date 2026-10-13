@@ -517,6 +517,11 @@
   width: 100%;
 }
 
+/* The reconcile form only carries hidden fields; let its button be the flex item. */
+.ck-status__actions form {
+  display: contents;
+}
+
 .ck-loading {
   display: flex;
   flex-direction: column;

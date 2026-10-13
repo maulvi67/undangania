@@ -1,4 +1,5 @@
 import type { AdminDashboard } from "../../lib/admin/contract";
+import { nextTemplateStatus } from "@wedding/application";
 import { formatAdminDate } from "../../lib/admin/formatters";
 import { OperationsTable } from "./operations-table";
 import { SectionState } from "./section-state";
@@ -85,19 +86,32 @@ export function TemplateStatus({
             {
               key: "action",
               label: "Tindakan",
-              render: (row) => (
-                <div className="admin-cell-action">
-                  <AdminMutationAction
-                    action="moderate_template"
-                    targetId={row.templateId}
-                    templateVersion={row.version}
-                    fromStatus={row.status}
-                    toStatus={row.status === "DRAFT" ? "REVIEW" : "ACTIVE"}
-                    label="Moderasi dengan audit"
-                  />
-                  <span className="ui-visually-hidden"> untuk {row.name}</span>
-                </div>
-              ),
+              render: (row) => {
+                // The console must only offer the one transition the platform
+                // accepts (DRAFT→REVIEW→APPROVED→ACTIVE→RETIRED); anything else
+                // is rejected server-side with a 400.
+                const toStatus = nextTemplateStatus(row.status);
+                if (toStatus === null) {
+                  return (
+                    <span className="text-xs text-[var(--color-ink-soft)]">
+                      Status akhir — tidak ada transisi lanjutan
+                    </span>
+                  );
+                }
+                return (
+                  <div className="admin-cell-action">
+                    <AdminMutationAction
+                      action="moderate_template"
+                      targetId={row.templateId}
+                      templateVersion={row.version}
+                      fromStatus={row.status}
+                      toStatus={toStatus}
+                      label={`Moderasi ke ${toStatus}`}
+                    />
+                    <span className="ui-visually-hidden"> untuk {row.name}</span>
+                  </div>
+                );
+              },
             },
           ]}
         />

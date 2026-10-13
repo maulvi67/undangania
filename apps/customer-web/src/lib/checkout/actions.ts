@@ -1,8 +1,13 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createCheckoutForSession } from "./container";
+import { PrismaQrisNotificationTransaction } from "@wedding/database";
+import { reconcileQrisPayment } from "@wedding/payments";
+import { resolveSessionWorkspaceOrNull } from "../workspace/session-workspace";
+import { checkoutProvider, createCheckoutForSession } from "./container";
 import type { CheckoutActionOutcome } from "./outcomes";
+import { loadOwnedPaymentProviderTransactionId } from "./server";
 
 /**
  * Checkout creation action.
@@ -65,4 +70,47 @@ export async function startCheckoutAction(
     case "unavailable":
       return { kind: "unavailable" };
   }
+}
+
+/**
+ * Reconciles the session's own order against the provider status API.
+ *
+ * Delayed or missed notifications leave a payment stuck at `PENDING` even though
+ * the provider has since settled it. This asks the provider for the authoritative
+ * status of the transaction the application already recorded and applies it
+ * through the same guarded path a webhook uses. The order number is only a lookup
+ * key scoped to the session; it never decides the transaction or the outcome.
+ */
+export async function reconcilePaymentAction(formData: FormData): Promise<void> {
+  const orderNumber = String(formData.get("order") ?? "").trim();
+  const templateId = String(formData.get("template") ?? "").trim();
+  const backHref = `/checkout/status?order=${encodeURIComponent(
+    orderNumber,
+  )}&template=${encodeURIComponent(templateId)}`;
+
+  const workspace = await resolveSessionWorkspaceOrNull();
+  if (workspace === null) redirect("/masuk");
+
+  const provider = checkoutProvider();
+  const providerTransactionId = await loadOwnedPaymentProviderTransactionId(
+    workspace.request.membership.tenantId,
+    workspace.request.user.id,
+    orderNumber,
+  );
+  if (provider === null || providerTransactionId === null) redirect(backHref);
+
+  try {
+    await reconcileQrisPayment(
+      { providerTransactionId },
+      {
+        notifications: new PrismaQrisNotificationTransaction(),
+        provider,
+      },
+    );
+  } catch {
+    // A provider or database failure leaves the stored status untouched, so the
+    // page simply renders the unchanged state instead of an error.
+  }
+
+  redirect(backHref);
 }

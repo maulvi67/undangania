@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import type {
   PaymentStatus,
+  QrisAuditAction,
   QrisAuditRepository,
   QrisEntitlementRepository,
   QrisNotificationRepositories,
@@ -355,10 +356,7 @@ class PrismaQrisAuditRepository implements QrisAuditRepository {
   public async append(input: {
     tenantId: string;
     actorType: "PROVIDER";
-    action:
-      | "PAYMENT_NOTIFICATION_APPLIED"
-      | "PAYMENT_NOTIFICATION_DUPLICATE"
-      | "PAYMENT_NOTIFICATION_OUT_OF_ORDER";
+    action: QrisAuditAction;
     targetType: "Payment";
     targetId: string;
     reason: string;

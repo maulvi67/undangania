@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",

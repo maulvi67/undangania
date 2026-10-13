@@ -5,13 +5,23 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/worker.ts",
+    "start": "tsx src/worker.ts",
+    "outbox": "tsx src/outbox.ts",
+    "outbox:once": "tsx src/outbox.ts --once",
+    "media": "tsx src/media.ts",
+    "media:once": "tsx src/media.ts --once",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@wedding/application": "*",
-    "@wedding/contracts": "*"
+    "@wedding/contracts": "*",
+    "@wedding/database": "*",
+    "@wedding/notifications": "*",
+    "@wedding/storage": "*",
+    "tsx": "^4.20.0"
   },
   "devDependencies": {}
 }

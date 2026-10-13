@@ -91,6 +91,32 @@ export async function loadOwnedPaymentStatus(
 }
 
 /**
+ * The provider transaction the session's own order can be reconciled against.
+ *
+ * Reconciliation asks the provider for the authoritative status of a transaction
+ * the application already recorded, so the only value it needs is the provider
+ * transaction id. It is read from the owned order row — never from the request —
+ * so a caller cannot reconcile someone else's payment.
+ */
+export async function loadOwnedPaymentProviderTransactionId(
+  tenantId: string,
+  userId: string,
+  orderNumber: string,
+): Promise<string | null> {
+  if (!/^WS-[A-Z0-9-]{8,32}$/.test(orderNumber)) return null;
+  const order = await new PrismaOrderPaymentRepository().findOwned({
+    tenantId,
+    userId,
+    orderNumber,
+  });
+  const payment = order?.payments[0];
+  if (order === null || payment === undefined) return null;
+  if (payment.provider !== "midtrans") return null;
+  const transactionId = payment.providerTransactionId.trim();
+  return transactionId.length === 0 ? null : transactionId;
+}
+
+/**
  * The price a template is actually sold at.
  *
  * Read from the catalog tables rather than from the UI fixture, because this is the

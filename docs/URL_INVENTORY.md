@@ -48,7 +48,7 @@ Semua route memakai data asli dari database; tidak ada data dummy. Halaman yang 
 | `/buku-tamu` | Moderasi buku tamu | — |
 | `/pesanan` | Riwayat pesanan | — |
 | `/checkout` | Checkout pembelian template | `template={id}` (wajib), `state=` state desain (mis. `provider-unavailable`, `offline`) |
-| `/checkout/status` | Status pembayaran pesanan | `order={nomorPesanan}` |
+| `/checkout/status` | Status pembayaran pesanan; tombol “Periksa kembali status” merekonsiliasi status terbaru dari penyedia QRIS | `order={nomorPesanan}` |
 
 ### API
 
@@ -87,4 +87,5 @@ Section di dalam konsol (anchor pada `/`):
 - Dua aplikasi Next.js memakai port `3000` secara default; jalankan dengan `--port` eksplisit bila dijalankan bersamaan.
 - Konsol admin memakai login email + password di `/masuk`. Buat akun admin lokal dengan `npm run admin:create -w @wedding/database -- --email <email> --password <min-8-karakter>` (lihat `LOCAL_SETUP_TESTING_GUIDE.md` §8). Akses konsol hanya memerlukan sesi `ADMIN`; mutasi tetap memerlukan MFA step-up saat eksekusi. Pembuatan akun admin termasuk perubahan berisiko tinggi dan memerlukan persetujuan manusia.
 - `?state=` pada `/checkout` hanya memilih state desain untuk keperluan tampilan; ia tidak pernah memilih state pembayaran berbayar.
+- Tombol “Periksa kembali status” pada `/checkout/status` memanggil server action `reconcilePaymentAction`. Aksi ini membaca transaksi milik sesi dari database, meminta status terbaru ke penyedia QRIS, lalu menerapkannya lewat jalur terverifikasi yang sama seperti webhook (idempoten: duplikat dan urutan terbalik diabaikan). Ia tidak mempercayai parameter URL sebagai kebenaran pembayaran.
 - Keluar (logout) tidak memakai route tersendiri. Customer memakai server action `signOutAction` (menu akun di top bar dan tombol di dasar sidebar) yang merevoke sesi lalu mengarahkan ke `/masuk`; admin memakai `adminSignOutAction` (popover konteks akses di toolbar) dengan perilaku sama menuju `/masuk`. Revocation bersifat best-effort — cookie sesi selalu dihapus meski database sedang tidak tersedia.

@@ -29,6 +29,7 @@ duplicate/out-of-order webhook, late payment.
 
 ## Domain events
 PaymentConfirmed, PaymentFailed, RefundCompleted.
+`PaymentConfirmed` is written to the transactional outbox and drained by `services/background-worker` (`src/outbox.ts`), which delivers a customer notification and dead-letters rows the provider permanently rejects.
 
 ## Dependencies
 order, entitlement, notification.

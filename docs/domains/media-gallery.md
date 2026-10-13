@@ -25,7 +25,7 @@ MediaAsset, Gallery, GalleryItem.
 Upload, verify, list, caption, remove, public read resolution.
 
 ## Validation
-MIME allowlist, size limits, server-observed object metadata, tenant/wedding scope, and safe server-generated object keys are enforced before processing. The application now provides a bounded content inspector contract: a storage adapter reads at most 64 KiB from a tenant-scoped object range, verifies the declared magic signature, and extracts JPEG/PNG/WebP dimensions without loading the original into the application. The provider-neutral worker contract still requires malware scanning and derivative generation before `READY`; those provider adapters remain deployment-specific and are not activated by this repository change.
+MIME allowlist, size limits, server-observed object metadata, tenant/wedding scope, and safe server-generated object keys are enforced before processing. The application provides a bounded content inspector contract: a storage adapter reads at most 64 KiB from a tenant-scoped object range, verifies the declared magic signature, and extracts JPEG/PNG/WebP dimensions without loading the original into the application. The provider-neutral worker contract still requires malware scanning and derivative generation before `READY`; the shipped runner activates the pipeline with named stand-in providers (`passthrough` scanner, `none` derivative writer) that a deployment replaces with real vendors.
 
 ## Edge cases
 Orphaned pending rows, failed signed uploads, provider metadata mismatch, missing/deleted assets, signed URL failure, and cross-tenant/cross-wedding asset IDs.
@@ -46,7 +46,16 @@ STORAGE_ENDPOINT=
 STORAGE_BUCKET=
 STORAGE_ACCESS_KEY_ID=
 STORAGE_SECRET_ACCESS_KEY=
+MEDIA_MALWARE_SCANNER=passthrough
+MEDIA_DERIVATIVE_WRITER=none
 ```
+
+`MEDIA_MALWARE_SCANNER` and `MEDIA_DERIVATIVE_WRITER` name the worker's provider
+stand-ins. `passthrough` relies on the magic-byte and dimension inspection the
+pipeline already performs but supplies no antivirus verdict; `none` generates no
+resized variants. Any other value fails the runner closed so a typo cannot
+advance an unchecked asset to `READY`. Replace these values when a real scanner
+and derivative writer are deployed.
 
 Keep the R2 bucket private. Configure bucket CORS to allow browser `PUT` requests only from the deployed customer-web origins, with `Content-Type` and `Content-Length` as needed. Do not commit credentials.
 
@@ -54,7 +63,7 @@ Keep the R2 bucket private. Configure bucket CORS to allow browser `PUT` request
 - Run an orphan cleanup job for stale `PENDING_UPLOAD`/`UPLOADED` rows and their objects.
 - Keep upload URLs around 15 minutes or less and public read URLs around 5 minutes.
 - Alert on repeated `ProviderUnavailable` outcomes and outbox events stuck in `PENDING`.
-- A worker consumes the versioned media-processing job through application ports. The application exports a bounded content inspector that can be backed by `R2StorageAdapter.readPrefix`; provider configuration must still supply malware scanner and derivative writer adapters. Range requests must return `206 Partial Content`; failures are retried without marking the asset `READY`.
+- A worker consumes the versioned media-processing job through application ports. `@wedding/background-worker` runs it: `npm run media -w @wedding/background-worker` polls, `npm run media:once -w @wedding/background-worker` drains one batch for cron, and the service's `dev`/`start` run this loop alongside the payment-outbox loop. The runner lists the oldest `UPLOADED`/`SCANNING`/`PROCESSING` assets across tenants, binds `R2StorageAdapter.readPrefix` as the content inspector, and advances each asset through `SCANNING → PROCESSING → READY` (or `REJECTED`). The claim is the compare-and-swap inside the state transitions, so two workers racing on one row is a no-op for the loser. Range requests must return `206 Partial Content`; failures are retried without marking the asset `READY`. A retryable failure leaves the asset mid-pipeline and the next poll resumes it. Because `MediaAsset` carries no attempt counter, an asset whose object is permanently unreadable is retried on every poll; alerting on repeated retries is the operational guard until a bounded attempt budget is added.
 - The editor reconciles persisted lifecycle states with a bounded three-second polling loop while an asset is `PENDING_UPLOAD`, `UPLOADED`, `SCANNING`, or `PROCESSING`. The loop stops at `READY`, `REJECTED`, `DELETED`, after 20 attempts, or when the editor unmounts.
 - Cleanup currently exposes a bounded dry-run candidate interface only. Destructive object/row cleanup requires data-retention and database-owner approval plus a scheduled, audited implementation.
 

@@ -20,6 +20,7 @@ export const NOTIFICATION_TEMPLATES = {
   EMAIL_VERIFICATION: "auth.email-verification",
   PASSWORD_RESET: "auth.password-reset",
   PASSWORD_CHANGED: "auth.password-changed",
+  PAYMENT_CONFIRMED: "payment.payment-confirmed",
 } as const;
 
 export type NotificationTemplateCode =

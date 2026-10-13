@@ -2,7 +2,7 @@
 
 ## Status
 
-Design-only implementation boundary. No schema migration or worker activation is included in this change because lease columns and production queue behavior require Database/Operations approval.
+Design boundary plus a schema-free consumer. The full lease contract below (`lockedBy`, `lockedUntil`, `PROCESSING`/`RETRY`/`DEAD_LETTER`) still requires a Database/Operations-approved migration and is not implemented. What *is* implemented is the `PENDING`/`FAILED`/`PROCESSED` variant described in "Schema-free lease consumer" — see `packages/database/src/repositories/outbox-consumer.ts` and `services/background-worker/src/outbox-runner.ts`. Production activation (multi-worker staging evidence, metrics, kill switch) remains gated.
 
 ## Problem
 
@@ -60,9 +60,44 @@ The worker must verify `lockedBy` and an expected claim token before acknowledgi
 
 Disable the new consumer before rollback. Preserve rows and provider event IDs. Do not run a destructive down migration. If a claimed row is left in `PROCESSING`, wait for lease expiry or use the approved administrative reclaim operation; do not manually mark payment or entitlement events as complete.
 
+## Schema-free lease consumer
+
+The payment outbox must be drained before the lease columns exist, without a
+migration and without introducing a `PROCESSING` status the admin console does
+not understand. `outbox-consumer.ts` therefore claims with a lease expressed in
+columns the model already has:
+
+1. `findMany` selects due rows (`status = PENDING`, `availableAt <= now`,
+   `attemptCount < maxAttempts`), oldest first, bounded by `batchSize`.
+2. For each candidate, `updateMany` wins it only if `attemptCount` is unchanged
+   (`WHERE id AND status = PENDING AND attemptCount = <read> AND availableAt <= now`),
+   then increments `attemptCount`, sets `lastAttemptAt`, and pushes
+   `availableAt = now + leaseMs`.
+3. The losing writer of a concurrent claim observes `count = 0` and skips the
+   row, so a row is processed by one worker at a time.
+
+Completion mirrors the contract's intent with the existing vocabulary:
+
+- success or nothing-to-do: `status = PROCESSED`, `processedAt = now`,
+  `lastError = null`;
+- retryable failure: leave `status = PENDING` and let the lease lapse, so the row
+  is re-claimed after `availableAt`;
+- permanent failure (`PROVIDER_REJECTED`/`PROVIDER_INVALID_RESPONSE` or
+  `attemptCount >= maxAttempts`): `status = FAILED` with a bounded `lastError` —
+  the dead-letter state the admin console already lists and can retry, which
+  resets the row to `PENDING`.
+
+Consumers stay idempotent through the event id: the notification idempotency key
+is `payment:PaymentConfirmed:<eventId>`, so a re-claim after a crash collapses
+onto the same provider message.
+
+Not covered by this variant, and still required before the full contract ships:
+lease renewal, `SKIP LOCKED`-based concurrent claiming at scale, per-status
+metrics, and the staging multi-worker evidence below.
+
 ## Required evidence
 
-- concurrent claim test with `SKIP LOCKED`;
+- concurrent claim test with `SKIP LOCKED` (or the CAS claim above);
 - worker crash and lease reclaim;
 - lease renewal near expiry;
 - retry backoff and dead-letter threshold;

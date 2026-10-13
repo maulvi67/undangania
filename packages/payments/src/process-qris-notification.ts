@@ -105,14 +105,18 @@ export interface QrisOutboxRepository {
   }): Promise<void>;
 }
 
+/** The audit actions the payment slice may record. */
+export type QrisAuditAction =
+  | "PAYMENT_NOTIFICATION_APPLIED"
+  | "PAYMENT_NOTIFICATION_DUPLICATE"
+  | "PAYMENT_NOTIFICATION_OUT_OF_ORDER"
+  | "PAYMENT_STATUS_RECONCILED";
+
 export interface QrisAuditRepository {
   append(input: {
     tenantId: string;
     actorType: "PROVIDER";
-    action:
-      | "PAYMENT_NOTIFICATION_APPLIED"
-      | "PAYMENT_NOTIFICATION_DUPLICATE"
-      | "PAYMENT_NOTIFICATION_OUT_OF_ORDER";
+    action: QrisAuditAction;
     targetType: "Payment";
     targetId: string;
     reason: string;
@@ -273,7 +277,7 @@ function assertOrderCanBePaid(order: QrisOrderRecord): void {
 
 function auditMetadata(input: {
   eventId: string;
-  notification: MidtransNotification;
+  providerTransactionId: string;
   receivedStatus: PaymentStatus;
 }): {
   provider: "midtrans";
@@ -284,7 +288,7 @@ function auditMetadata(input: {
   return {
     provider: "midtrans",
     providerEventId: input.eventId,
-    providerTransactionId: input.notification.transaction_id,
+    providerTransactionId: input.providerTransactionId,
     receivedStatus: input.receivedStatus,
   };
 }
@@ -294,11 +298,8 @@ async function appendAudit(
   input: {
     payment: QrisPaymentRecord;
     eventId: string;
-    notification: MidtransNotification;
-    action:
-      | "PAYMENT_NOTIFICATION_APPLIED"
-      | "PAYMENT_NOTIFICATION_DUPLICATE"
-      | "PAYMENT_NOTIFICATION_OUT_OF_ORDER";
+    providerTransactionId: string;
+    action: QrisAuditAction;
     reason: string;
     receivedStatus: PaymentStatus;
   },
@@ -312,13 +313,243 @@ async function appendAudit(
     reason: input.reason,
     metadata: auditMetadata({
       eventId: input.eventId,
-      notification: input.notification,
+      providerTransactionId: input.providerTransactionId,
       receivedStatus: input.receivedStatus,
     }),
     correlationId: input.eventId,
   });
 }
 
+/** Which server-to-server path observed the verified status. */
+export type QrisVerifiedStatusSource = "WEBHOOK" | "RECONCILIATION";
+
+export interface ApplyVerifiedPaymentStatusInput {
+  readonly providerTransactionId: string;
+  readonly receivedStatus: PaymentStatus;
+  readonly eventId: string;
+  readonly now: Date;
+  readonly source: QrisVerifiedStatusSource;
+  /**
+   * Present only on the webhook path. When supplied, the signed notification is
+   * re-checked against the stored order and amount inside the transaction.
+   */
+  readonly notification?: MidtransNotification;
+}
+
+function auditActionFor(
+  source: QrisVerifiedStatusSource,
+  outcome: "APPLIED" | "DUPLICATE" | "OUT_OF_ORDER",
+): QrisAuditAction {
+  if (source === "RECONCILIATION") return "PAYMENT_STATUS_RECONCILED";
+  switch (outcome) {
+    case "DUPLICATE":
+      return "PAYMENT_NOTIFICATION_DUPLICATE";
+    case "OUT_OF_ORDER":
+      return "PAYMENT_NOTIFICATION_OUT_OF_ORDER";
+    case "APPLIED":
+      return "PAYMENT_NOTIFICATION_APPLIED";
+  }
+}
+
+/**
+ * Applies a provider-verified status to the payment, order, entitlement, outbox,
+ * and audit records inside one transaction.
+ *
+ * Both the signed webhook and the provider status reconciliation call this, so a
+ * status is applied at most once whichever server-to-server path observed it
+ * first. The `source` only changes which audit action is recorded; the
+ * money-moving behaviour is identical. The row lock taken by the payment lookup
+ * and the `providerEventId` uniqueness constraint keep concurrent writers from
+ * double-applying.
+ */
+export async function applyVerifiedPaymentStatus(
+  repositories: QrisNotificationRepositories,
+  input: ApplyVerifiedPaymentStatusInput,
+): Promise<QrisNotificationProcessingResult> {
+  const { eventId, providerTransactionId, receivedStatus, now, source } = input;
+
+  const duplicate = await repositories.payments.findByProviderEventId({
+    provider: "midtrans",
+    providerEventId: eventId,
+  });
+  if (duplicate) {
+    await appendAudit(repositories, {
+      payment: duplicate,
+      eventId,
+      providerTransactionId,
+      action: auditActionFor(source, "DUPLICATE"),
+      reason: "Verified provider event was already processed",
+      receivedStatus,
+    });
+    return {
+      kind: "DUPLICATE",
+      eventId,
+      paymentId: duplicate.id,
+      orderId: duplicate.orderId,
+      status: duplicate.status,
+    };
+  }
+
+  const payment = await repositories.payments.findByProviderTransactionId({
+    provider: "midtrans",
+    providerTransactionId,
+  });
+  if (!payment) {
+    throw new QrisProcessingError(
+      "PAYMENT_NOT_FOUND",
+      "Payment was not found",
+    );
+  }
+
+  if (payment.providerEventId === eventId) {
+    await appendAudit(repositories, {
+      payment,
+      eventId,
+      providerTransactionId,
+      action: auditActionFor(source, "DUPLICATE"),
+      reason: "Verified provider event was already processed",
+      receivedStatus,
+    });
+    return {
+      kind: "DUPLICATE",
+      eventId,
+      paymentId: payment.id,
+      orderId: payment.orderId,
+      status: payment.status,
+    };
+  }
+
+  const order = await repositories.orders.findById({
+    tenantId: payment.tenantId,
+    orderId: payment.orderId,
+  });
+  if (!order) {
+    throw new QrisProcessingError("ORDER_NOT_FOUND", "Order was not found");
+  }
+
+  assertPaymentMatchesOrder(payment, order);
+  if (input.notification !== undefined) {
+    assertQrisNotification({
+      notification: input.notification,
+      expectedOrderId: order.orderNumber,
+      expectedAmountMinor: payment.amountMinor,
+    });
+  }
+
+  if (!canApplyStatus(payment.status, receivedStatus)) {
+    await appendAudit(repositories, {
+      payment,
+      eventId,
+      providerTransactionId,
+      action: auditActionFor(source, "OUT_OF_ORDER"),
+      reason: `Ignored ${receivedStatus} after ${payment.status}`,
+      receivedStatus,
+    });
+    return {
+      kind: "IGNORED_OUT_OF_ORDER",
+      eventId,
+      paymentId: payment.id,
+      orderId: payment.orderId,
+      currentStatus: payment.status,
+      receivedStatus,
+    };
+  }
+
+  if (receivedStatus === payment.status) {
+    await repositories.payments.updateStatus({
+      tenantId: payment.tenantId,
+      paymentId: payment.id,
+      status: payment.status,
+      providerEventId: eventId,
+      paidAt: null,
+    });
+    await appendAudit(repositories, {
+      payment,
+      eventId,
+      providerTransactionId,
+      action: auditActionFor(source, "APPLIED"),
+      reason: `Verified ${receivedStatus} event recorded`,
+      receivedStatus,
+    });
+    return {
+      kind: "APPLIED",
+      eventId,
+      paymentId: payment.id,
+      orderId: payment.orderId,
+      status: payment.status,
+    };
+  }
+
+  if (receivedStatus === "PAID") {
+    assertOrderCanBePaid(order);
+  }
+
+  const paidAt = receivedStatus === "PAID" ? now : null;
+  await repositories.payments.updateStatus({
+    tenantId: payment.tenantId,
+    paymentId: payment.id,
+    status: receivedStatus,
+    providerEventId: eventId,
+    paidAt,
+  });
+
+  if (receivedStatus === "PAID") {
+    if (!isPaidOrderStatus(order.status)) {
+      await repositories.orders.updateStatus({
+        tenantId: payment.tenantId,
+        orderId: payment.orderId,
+        status: "PAID",
+      });
+    }
+    await repositories.entitlements.grantForPaidOrder({
+      tenantId: payment.tenantId,
+      orderId: payment.orderId,
+      startsAt: now,
+    });
+    await repositories.outbox.append({
+      idempotencyKey: eventId,
+      tenantId: payment.tenantId,
+      eventType: "PaymentConfirmed",
+      aggregateType: "Payment",
+      aggregateId: payment.id,
+      payload: {
+        paymentId: payment.id,
+        orderId: payment.orderId,
+        provider: "midtrans",
+        providerTransactionId: payment.providerTransactionId,
+        providerEventId: eventId,
+        status: "PAID",
+        occurredAt: now.toISOString(),
+      },
+      payloadVersion: 1,
+    });
+  }
+
+  await appendAudit(repositories, {
+    payment,
+    eventId,
+    providerTransactionId,
+    action: auditActionFor(source, "APPLIED"),
+    reason: `Verified ${receivedStatus} event applied`,
+    receivedStatus,
+  });
+
+  return {
+    kind: "APPLIED",
+    eventId,
+    paymentId: payment.id,
+    orderId: payment.orderId,
+    status: receivedStatus,
+  };
+}
+
+/**
+ * Applies a signed Midtrans notification.
+ *
+ * The body is verified against the server key before anything is read or
+ * written, so an unauthenticated caller cannot move a payment. The verified
+ * fields are then applied through {@link applyVerifiedPaymentStatus}.
+ */
 export async function processQrisNotification(
   input: ProcessQrisNotificationInput,
   ports: QrisNotificationTransactionPort,
@@ -339,177 +570,83 @@ export async function processQrisNotification(
 
   const now = input.now ?? new Date();
 
-  return ports.transaction(async (repositories) => {
-    const duplicate = await repositories.payments.findByProviderEventId({
-      provider: "midtrans",
-      providerEventId: eventId,
-    });
-    if (duplicate) {
-      await appendAudit(repositories, {
-        payment: duplicate,
-        eventId,
-        notification,
-        action: "PAYMENT_NOTIFICATION_DUPLICATE",
-        reason: "Verified provider event was already processed",
-        receivedStatus,
-      });
-      return {
-        kind: "DUPLICATE",
-        eventId,
-        paymentId: duplicate.id,
-        orderId: duplicate.orderId,
-        status: duplicate.status,
-      };
-    }
-
-    const payment = await repositories.payments.findByProviderTransactionId({
-      provider: "midtrans",
+  return ports.transaction((repositories) =>
+    applyVerifiedPaymentStatus(repositories, {
       providerTransactionId: notification.transaction_id,
-    });
-    if (!payment) {
-      throw new QrisProcessingError(
-        "PAYMENT_NOT_FOUND",
-        "Payment was not found",
-      );
-    }
-
-    if (payment.providerEventId === eventId) {
-      await appendAudit(repositories, {
-        payment,
-        eventId,
-        notification,
-        action: "PAYMENT_NOTIFICATION_DUPLICATE",
-        reason: "Verified provider event was already processed",
-        receivedStatus,
-      });
-      return {
-        kind: "DUPLICATE",
-        eventId,
-        paymentId: payment.id,
-        orderId: payment.orderId,
-        status: payment.status,
-      };
-    }
-
-    const order = await repositories.orders.findById({
-      tenantId: payment.tenantId,
-      orderId: payment.orderId,
-    });
-    if (!order) {
-      throw new QrisProcessingError("ORDER_NOT_FOUND", "Order was not found");
-    }
-
-    assertPaymentMatchesOrder(payment, order);
-    assertQrisNotification({
-      notification,
-      expectedOrderId: order.orderNumber,
-      expectedAmountMinor: payment.amountMinor,
-    });
-
-    if (!canApplyStatus(payment.status, receivedStatus)) {
-      await appendAudit(repositories, {
-        payment,
-        eventId,
-        notification,
-        action: "PAYMENT_NOTIFICATION_OUT_OF_ORDER",
-        reason: `Ignored ${receivedStatus} after ${payment.status}`,
-        receivedStatus,
-      });
-      return {
-        kind: "IGNORED_OUT_OF_ORDER",
-        eventId,
-        paymentId: payment.id,
-        orderId: payment.orderId,
-        currentStatus: payment.status,
-        receivedStatus,
-      };
-    }
-
-    if (receivedStatus === payment.status) {
-      await repositories.payments.updateStatus({
-        tenantId: payment.tenantId,
-        paymentId: payment.id,
-        status: payment.status,
-        providerEventId: eventId,
-        paidAt: null,
-      });
-      await appendAudit(repositories, {
-        payment,
-        eventId,
-        notification,
-        action: "PAYMENT_NOTIFICATION_APPLIED",
-        reason: `Verified ${receivedStatus} event recorded`,
-        receivedStatus,
-      });
-      return {
-        kind: "APPLIED",
-        eventId,
-        paymentId: payment.id,
-        orderId: payment.orderId,
-        status: payment.status,
-      };
-    }
-
-    if (receivedStatus === "PAID") {
-      assertOrderCanBePaid(order);
-    }
-
-    const paidAt = receivedStatus === "PAID" ? now : null;
-    await repositories.payments.updateStatus({
-      tenantId: payment.tenantId,
-      paymentId: payment.id,
-      status: receivedStatus,
-      providerEventId: eventId,
-      paidAt,
-    });
-
-    if (receivedStatus === "PAID") {
-      if (!isPaidOrderStatus(order.status)) {
-        await repositories.orders.updateStatus({
-          tenantId: payment.tenantId,
-          orderId: payment.orderId,
-          status: "PAID",
-        });
-      }
-      await repositories.entitlements.grantForPaidOrder({
-        tenantId: payment.tenantId,
-        orderId: payment.orderId,
-        startsAt: now,
-      });
-      await repositories.outbox.append({
-        idempotencyKey: eventId,
-        tenantId: payment.tenantId,
-        eventType: "PaymentConfirmed",
-        aggregateType: "Payment",
-        aggregateId: payment.id,
-        payload: {
-          paymentId: payment.id,
-          orderId: payment.orderId,
-          provider: "midtrans",
-          providerTransactionId: payment.providerTransactionId,
-          providerEventId: eventId,
-          status: "PAID",
-          occurredAt: now.toISOString(),
-        },
-        payloadVersion: 1,
-      });
-    }
-
-    await appendAudit(repositories, {
-      payment,
-      eventId,
-      notification,
-      action: "PAYMENT_NOTIFICATION_APPLIED",
-      reason: `Verified ${receivedStatus} event applied`,
       receivedStatus,
-    });
-
-    return {
-      kind: "APPLIED",
       eventId,
-      paymentId: payment.id,
-      orderId: payment.orderId,
-      status: receivedStatus,
-    };
-  });
+      now,
+      source: "WEBHOOK",
+      notification,
+    }),
+  );
+}
+
+/** The subset of the provider port that reconciliation needs. */
+export interface QrisProviderStatusPort {
+  getStatus(transactionId: string): Promise<PaymentStatus>;
+}
+
+export interface ReconcileQrisPaymentInput {
+  readonly providerTransactionId: string;
+  readonly now?: Date;
+}
+
+/**
+ * Deterministic id for a reconciled status.
+ *
+ * Reconciliation has no signed notification, so the event id is derived from the
+ * transaction and the observed status. Repeating the same reconciliation yields
+ * the same id, which the duplicate guard and the outbox key both treat as a no-op.
+ */
+function reconciliationEventId(
+  providerTransactionId: string,
+  status: PaymentStatus,
+): string {
+  return `reconcile:${providerTransactionId}:${status}`;
+}
+
+/**
+ * Reconciles a payment against the provider's status API.
+ *
+ * Used for delayed or missed notifications: the provider is asked for the
+ * authoritative status of a transaction the application already recorded, and the
+ * answer is applied through the same guarded path as a webhook. A payment that is
+ * already terminal is left untouched by the duplicate/out-of-order guards, so a
+ * repeat call cannot grant entitlements twice.
+ */
+export async function reconcileQrisPayment(
+  input: ReconcileQrisPaymentInput,
+  ports: {
+    readonly notifications: QrisNotificationTransactionPort;
+    readonly provider: QrisProviderStatusPort;
+  },
+): Promise<QrisNotificationProcessingResult> {
+  const providerTransactionId = input.providerTransactionId.trim();
+  if (providerTransactionId.length === 0) {
+    throw new QrisProcessingError(
+      "PAYMENT_NOT_FOUND",
+      "A provider transaction id is required",
+    );
+  }
+
+  const receivedStatus = await ports.provider.getStatus(providerTransactionId);
+  if (!isSupportedQrisStatus(receivedStatus)) {
+    throw new QrisProcessingError(
+      "UNSUPPORTED_STATUS",
+      "Provider status is not supported by the QRIS processing slice",
+    );
+  }
+
+  const now = input.now ?? new Date();
+
+  return ports.notifications.transaction((repositories) =>
+    applyVerifiedPaymentStatus(repositories, {
+      providerTransactionId,
+      receivedStatus,
+      eventId: reconciliationEventId(providerTransactionId, receivedStatus),
+      now,
+      source: "RECONCILIATION",
+    }),
+  );
 }

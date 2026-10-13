@@ -1,4 +1,5 @@
 import { Alert } from "@wedding/ui";
+import { reconcilePaymentAction } from "../../lib/checkout/actions";
 import {
   safeOrderReference,
   statusCopy,
@@ -10,12 +11,34 @@ import type { TemplateRecord } from "../templates/template-contract";
 import { OrderReference } from "./order-reference";
 import { SupportLink } from "./support-link";
 
-function statusHref(
-  orderNumber: string,
-  templateId: string,
-  state: PaymentStatusState,
-): string {
-  return `/checkout/status?order=${encodeURIComponent(orderNumber)}&template=${encodeURIComponent(templateId)}&state=${state.toLowerCase()}`;
+/**
+ * Submits the session's order for provider-status reconciliation.
+ *
+ * The order number travels as a form field because it is the lookup key the
+ * server action scopes to the session; the action reads the provider transaction
+ * from the stored order, never from the form.
+ */
+function ReconcileButton({
+  order,
+  label,
+  variant = "primary",
+}: {
+  order: CheckoutOrder;
+  label: string;
+  variant?: "primary" | "secondary";
+}) {
+  return (
+    <form action={reconcilePaymentAction}>
+      <input type="hidden" name="order" value={order.orderNumber} />
+      <input type="hidden" name="template" value={order.templateId} />
+      <button
+        type="submit"
+        className={`ui-button ui-button--${variant} ui-button--md`}
+      >
+        {label}
+      </button>
+    </form>
+  );
 }
 
 function QrisPlaceholder({ state }: { state: PaymentStatusState }) {
@@ -69,12 +92,11 @@ function ActionGroup({
           >
             Buat pembayaran baru
           </LinkButton>
-          <LinkButton
-            href={statusHref(order.orderNumber, order.templateId, "VERIFYING")}
+          <ReconcileButton
+            order={order}
+            label="Periksa status pesanan"
             variant="secondary"
-          >
-            Periksa status pesanan
-          </LinkButton>
+          />
         </div>
       );
     case "PENDING":
@@ -82,11 +104,7 @@ function ActionGroup({
     case "VERIFYING":
       return (
         <div className="ck-status__actions">
-          <LinkButton
-            href={statusHref(order.orderNumber, order.templateId, "VERIFYING")}
-          >
-            Periksa kembali status
-          </LinkButton>
+          <ReconcileButton order={order} label="Periksa kembali status" />
           <LinkButton
             href={`/checkout?template=${encodeURIComponent(order.templateId)}`}
             variant="secondary"
@@ -98,11 +116,7 @@ function ActionGroup({
     case "ENTITLEMENT_PENDING":
       return (
         <div className="ck-status__actions">
-          <LinkButton
-            href={statusHref(order.orderNumber, order.templateId, "VERIFYING")}
-          >
-            Periksa kembali
-          </LinkButton>
+          <ReconcileButton order={order} label="Periksa kembali" />
         </div>
       );
     case "AMOUNT_MISMATCH":

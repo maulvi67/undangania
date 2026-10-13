@@ -36,8 +36,11 @@ export {
 } from "./midtrans-qris-port";
 export {
   processQrisNotification,
+  reconcileQrisPayment,
   QrisProcessingError,
+  type ApplyVerifiedPaymentStatusInput,
   type ProcessQrisNotificationInput,
+  type QrisAuditAction,
   type QrisAuditRepository,
   type QrisEntitlementRepository,
   type QrisNotificationProcessingResult,
@@ -50,4 +53,7 @@ export {
   type QrisPaymentRecord,
   type QrisPaymentRepository,
   type QrisProcessingErrorCode,
+  type QrisProviderStatusPort,
+  type QrisVerifiedStatusSource,
+  type ReconcileQrisPaymentInput,
 } from "./process-qris-notification";

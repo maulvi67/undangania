@@ -483,12 +483,27 @@ export type ExecuteAdminMutationOptions = Readonly<{
   correlationId: string;
 }>;
 
-const TEMPLATE_STATUS_TRANSITIONS: Readonly<Record<string, string>> = {
+/**
+ * Ordered template lifecycle. `RETIRED` is terminal, so it has no successor.
+ * This is the single source of truth for the moderation transition: the admin
+ * console reads it to pick a valid target, and `validateAdminMutationInput`
+ * rejects anything that does not match it.
+ */
+export const TEMPLATE_STATUS_TRANSITIONS: Readonly<Record<string, string>> = {
   DRAFT: "REVIEW",
   REVIEW: "APPROVED",
   APPROVED: "ACTIVE",
   ACTIVE: "RETIRED",
 };
+
+/**
+ * The status a template advances to from `fromStatus`, or `null` when the
+ * status is unknown or terminal. Callers that need a target must treat `null`
+ * as "no transition available" rather than guessing one.
+ */
+export function nextTemplateStatus(fromStatus: string): string | null {
+  return TEMPLATE_STATUS_TRANSITIONS[fromStatus] ?? null;
+}
 
 const TENANT_BOUND_MUTATIONS: readonly AdminMutationAction[] = [
   "retry_failed_job",

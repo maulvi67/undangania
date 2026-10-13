@@ -9,7 +9,7 @@ This gate tracks the production blockers for identity/session, payment, notifica
 | Capability | Code foundation | Production activation | Required decision |
 | --- | --- | --- | --- |
 | Identity and sessions | Database-backed password authentication, revocable sessions, tenant membership lookup, email verification and password-reset use cases | **Blocked** | Identity/Security approval and staging evidence |
-| QRIS payment | Midtrans adapter, signature verification, amount/currency/order checks, atomic notification processing, idempotent entitlement/outbox path | **Blocked** | Payment/Security approval, provider sandbox evidence, reconciliation approval |
+| QRIS payment | Midtrans adapter, signature verification, amount/currency/order checks, atomic notification processing, idempotent entitlement/outbox path, provider status reconciliation for delayed/missed notifications | **Blocked** | Payment/Security approval, provider sandbox evidence, reconciliation approval |
 | Transactional notifications | Console transport for local/CI and fail-closed HTTP relay transport | **Blocked** | Notification/Security/Operations approval and delivery evidence |
 | Custom domains | Domain policy/documentation exists; no production DNS/certificate provider activation | **Blocked** | Domain/Infrastructure/Security design and approval |
 | Production infrastructure | Environment, rollback, monitoring, and migration runbooks exist; provider-specific IaC is intentionally not enabled | **Blocked** | DevOps/Security/Database approval |
@@ -46,6 +46,7 @@ The following evidence is available from the current codebase and must be rerun 
 - `packages/payments`: Midtrans QRIS charge contract, allowlisted provider URLs, signature verification, status mapping, and fail-closed refund behavior.
 - `packages/payments/src/process-qris-notification.ts`: tenant-scoped payment/order checks, duplicate and out-of-order handling, atomic entitlement and outbox calls, and audit calls through injected transaction repositories.
 - `apps/backend-api/src/server.ts`: strict webhook body limits, untouched raw-body verification boundary, correlation IDs, and safe error mapping.
+- `packages/database/src/repositories/outbox-consumer.ts` and `services/background-worker/src/outbox-runner.ts`: CAS-based `PaymentConfirmed` claim, retry and dead-letter transitions, tenant-scoped order lookup, and idempotent notification delivery.
 - `apps/customer-web/src/lib/auth/server.ts`: hashed-token session lookup, active-user/membership checks, revocation path, and secure production cookie attributes.
 - `apps/customer-web/src/lib/auth/container.ts`: real token/account repositories and fail-closed notification provider binding.
 - `packages/notifications`: redacted logging, idempotency-key forwarding, timeout handling, strict relay response parsing, and fail-closed provider construction.
