@@ -1,0 +1,20 @@
+{
+  "name": "@wedding/notification-relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@wedding/notifications": "*",
+    "nodemailer": "^10.1.7",
+    "tsx": "^4.20.0"
+  },
+  "devDependencies": {}
+}

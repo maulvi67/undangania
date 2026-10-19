@@ -34,7 +34,9 @@ NotificationDelivered, NotificationFailed.
 email, WhatsApp, queue.
 
 ## Security considerations
-PII minimization and opt-out.
+PII minimization and opt-out. The customer `/notifikasi` page reads
+tenant-scoped delivery status without recipient references, provider message ids,
+idempotency keys, or raw provider errors.
 
 ## Owning module
 `notification` owns the invariant and write model. Other modules integrate through application ports or versioned events.

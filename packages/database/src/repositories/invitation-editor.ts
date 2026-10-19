@@ -209,6 +209,12 @@ export type EditorPublishResult =
   | Readonly<{ kind: "template-unavailable" }>
   | Readonly<{ kind: "invalid" }>;
 
+export type EditorLifecycleResult =
+  | Readonly<{ kind: "paused" }>
+  | Readonly<{ kind: "resumed" }>
+  | Readonly<{ kind: "not-found" }>
+  | Readonly<{ kind: "invalid" }>;
+
 export type EditorSaveInput = Readonly<{
   /** Editor document body. Opaque to this layer by design. */
   content: Prisma.InputJsonValue;
@@ -270,6 +276,10 @@ export interface EditorRepository {
     scope: EditorScope,
     input: EditorPublishInput,
   ): Promise<EditorPublishResult>;
+  setActive(
+    scope: EditorScope,
+    input: Readonly<{ active: boolean }>,
+  ): Promise<EditorLifecycleResult>;
 }
 
 export type EditorRepositories = Readonly<{ editor: EditorRepository }>;
@@ -524,6 +534,71 @@ export class PrismaEditorRepository implements EditorRepository {
       publicationId: created.id,
       publicationVersion: created.publicationVersion,
     };
+  }
+
+  public async setActive(
+    scope: EditorScope,
+    input: Readonly<{ active: boolean }>,
+  ): Promise<EditorLifecycleResult> {
+    const invitation = await this.client.invitation.findFirst({
+      where: invitationScope(scope),
+      select: editorInvitationSelect,
+    });
+    if (invitation === null) return { kind: "not-found" };
+
+    if (input.active) {
+      if (invitation.status === "PUBLISHED") return { kind: "resumed" };
+      if (invitation.status !== "PAUSED") return { kind: "invalid" };
+
+      const latest = await this.client.invitationPublication.findFirst({
+        where: {
+          tenantId: scope.tenantId,
+          invitationId: invitation.id,
+        },
+        orderBy: { publicationVersion: "desc" },
+        select: publicationVersionSelect,
+      });
+      if (latest === null) return { kind: "invalid" };
+
+      // Promote the snapshot first. The public reader still checks the invitation
+      // status, so a failure before the status update leaves the page hidden
+      // rather than exposing it with a paused state.
+      await this.client.invitationPublication.updateMany({
+        where: { tenantId: scope.tenantId, invitationId: invitation.id },
+        data: { active: false },
+      });
+      await this.client.invitationPublication.updateMany({
+        where: {
+          tenantId: scope.tenantId,
+          invitationId: invitation.id,
+          id: latest.id,
+        },
+        data: { active: true },
+      });
+
+      const updated = await this.client.invitation.updateMany({
+        where: { ...invitationScope(scope), status: "PAUSED" },
+        data: { status: "PUBLISHED" },
+      });
+      return updated.count === 1 ? { kind: "resumed" } : { kind: "invalid" };
+    }
+
+    if (invitation.status === "PAUSED") return { kind: "paused" };
+    if (invitation.status !== "PUBLISHED") return { kind: "invalid" };
+
+    // Taking the page down is the first write, so a later failure cannot leave an
+    // active publication reachable through a published invitation.
+    const updated = await this.client.invitation.updateMany({
+      where: { ...invitationScope(scope), status: "PUBLISHED" },
+      data: { status: "PAUSED" },
+    });
+    if (updated.count !== 1) return { kind: "invalid" };
+
+    await this.client.invitationPublication.updateMany({
+      where: { tenantId: scope.tenantId, invitationId: invitation.id },
+      data: { active: false },
+    });
+    return { kind: "paused" };
   }
 }
 

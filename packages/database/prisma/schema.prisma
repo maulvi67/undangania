@@ -138,13 +138,13 @@ model User {
 }
 
 model OAuthAccount {
-  id                String       @id @default(uuid())
+  id                String        @id @default(uuid())
   userId            String
   provider          OAuthProvider
-  providerAccountId String       @db.VarChar(255)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerAccountId String        @db.VarChar(255)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -181,14 +181,13 @@ model AuthToken {
  * MFA enrolment. `secretEncrypted` holds the TOTP secret and must never be
  * returned to a client or written to a log; only `confirmedAt` distinguishes a
  * pending enrolment from an active second factor.
- *
  * `User.mfaEnabled` remains the fast read used by request authorization, and is
  * only ever set true once a credential has been confirmed.
  */
 model MfaCredential {
   id              String    @id @default(uuid())
   userId          String
-  type            String    @db.VarChar(32) @default("TOTP")
+  type            String    @default("TOTP") @db.VarChar(32)
   secretEncrypted String    @db.VarChar(512)
   confirmedAt     DateTime?
   lastUsedAt      DateTime?
@@ -204,11 +203,11 @@ model MfaCredential {
  * yield anything a person could sign in with.
  */
 model MfaRecoveryCode {
-  id           String    @id @default(uuid())
-  userId       String
-  codeHash     String    @unique @db.VarChar(128)
-  usedAt       DateTime?
-  createdAt    DateTime  @default(now())
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String    @unique @db.VarChar(128)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId, usedAt])
 }
@@ -227,48 +226,49 @@ model TenantMembership {
 }
 
 model Wedding {
-  id                     String           @id @default(uuid())
-  tenantId               String
-  displayName            String           @db.VarChar(150)
-  partner1Name           String?          @db.VarChar(100)
-  partner2Name           String?          @db.VarChar(100)
-  weddingDate            DateTime?        @db.Date
-  weddingDateUndecided   Boolean          @default(false)
-  city                   String?          @db.VarChar(100)
-  timezone               String           @default("Asia/Jakarta")
-  locale                 String           @default("id-ID")
-  currency               String           @default("IDR")
-  status                 String           @default("DRAFT")
-  version                Int              @default(1)
-  onboardingCompletedAt  DateTime?
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
-  tenant                 Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  events                 WeddingEvent[]
-  invitation             Invitation?
-  households             GuestHousehold[]
-  media                  MediaAsset[]
-  orders                 Order[]
-  printingOrders         PrintingOrder[]
+  id                    String           @id @default(uuid())
+  tenantId              String
+  displayName           String           @db.VarChar(150)
+  partner1Name          String?          @db.VarChar(100)
+  partner2Name          String?          @db.VarChar(100)
+  weddingDate           DateTime?        @db.Date
+  weddingDateUndecided  Boolean          @default(false)
+  city                  String?          @db.VarChar(100)
+  timezone              String           @default("Asia/Jakarta")
+  locale                String           @default("id-ID")
+  currency              String           @default("IDR")
+  status                String           @default("DRAFT")
+  version               Int              @default(1)
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  tenant                Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  events                WeddingEvent[]
+  invitation            Invitation?
+  households            GuestHousehold[]
+  media                 MediaAsset[]
+  orders                Order[]
+  printingOrders        PrintingOrder[]
 
   @@index([tenantId, status])
 }
 
 model WeddingEvent {
-  id              String    @id @default(uuid())
+  id              String             @id @default(uuid())
   tenantId        String
   weddingId       String
-  title           String    @db.VarChar(150)
-  eventType       String    @db.VarChar(64)
+  title           String             @db.VarChar(150)
+  eventType       String             @db.VarChar(64)
   startsAt        DateTime
   endsAt          DateTime?
   timezone        String
   venueName       String?
   addressSnapshot String?
   mapUrl          String?
-  displayOrder    Int       @default(0)
-  wedding         Wedding   @relation(fields: [weddingId], references: [id], onDelete: Restrict)
+  displayOrder    Int                @default(0)
+  wedding         Wedding            @relation(fields: [weddingId], references: [id], onDelete: Restrict)
   rsvps           Rsvp[]
+  guestAccess     GuestEventAccess[]
 
   @@unique([weddingId, displayOrder])
   @@index([tenantId, weddingId, startsAt])
@@ -341,16 +341,29 @@ model GuestHousehold {
   tokenHash         String             @unique
   tokenVersion      Int                @default(1)
   status            String             @default("ACTIVE")
+  tags              String[]           @default([])
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   wedding           Wedding            @relation(fields: [weddingId], references: [id], onDelete: Restrict)
   guests            Guest[]
   rsvps             Rsvp[]
   guestbookMessages GuestbookMessage[]
+  eventAccess       GuestEventAccess[]
 
   @@index([tenantId, weddingId, status])
   @@index([weddingId, phoneHash])
   @@index([weddingId, emailHash])
+}
+
+model GuestEventAccess {
+  tenantId    String
+  householdId String
+  eventId     String
+  household   GuestHousehold @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  event       WeddingEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([householdId, eventId])
+  @@index([tenantId, eventId])
 }
 
 model Guest {
@@ -494,25 +507,32 @@ model PromotionRedemption {
 }
 
 model Order {
-  id            String      @id @default(uuid())
-  tenantId      String
-  userId        String
-  weddingId     String?
-  orderNumber   String      @unique
-  currency      String
-  subtotalMinor BigInt
-  discountMinor BigInt
-  taxMinor      BigInt
-  totalMinor    BigInt
-  status        OrderStatus @default(DRAFT)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  user          User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  wedding       Wedding?    @relation(fields: [weddingId], references: [id], onDelete: Restrict)
-  items         OrderItem[]
-  payments      Payment[]
+  id                     String      @id @default(uuid())
+  tenantId               String
+  userId                 String
+  weddingId              String?
+  orderNumber            String      @unique
+  currency               String
+  subtotalMinor          BigInt
+  discountMinor          BigInt
+  taxMinor               BigInt
+  totalMinor             BigInt
+  status                 OrderStatus @default(DRAFT)
+  /**
+   * Client attempt token for checkout creation. A unique per-tenant value turns
+   * a retried or concurrent request into one order instead of two charges.
+   * Nullable so orders created before this field or outside checkout still work.
+   */
+  checkoutIdempotencyKey String?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  tenant                 Tenant      @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user                   User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  wedding                Wedding?    @relation(fields: [weddingId], references: [id], onDelete: Restrict)
+  items                  OrderItem[]
+  payments               Payment[]
 
+  @@unique([tenantId, checkoutIdempotencyKey])
   @@index([tenantId, status, createdAt])
 }
 
@@ -546,6 +566,10 @@ model Payment {
   status                PaymentStatus @default(CREATED)
   paidAt                DateTime?
   expiresAt             DateTime?
+  /**
+   * Provider-hosted payment page captured at charge time, replayed on retry.
+   */
+  redirectUrl           String?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   order                 Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)

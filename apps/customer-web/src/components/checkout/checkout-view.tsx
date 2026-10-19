@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Alert, Button } from "@wedding/ui";
 import { useRouter } from "next/navigation";
 import {
@@ -99,6 +99,8 @@ function stateFor(outcome: CheckoutActionOutcome): CheckoutState {
       return "READY";
     case "invalid":
       return "COUPON_INVALID";
+    case "duplicate":
+      return "DUPLICATE_ACTION";
     case "not-found":
     case "provider-unavailable":
     case "unavailable":
@@ -120,6 +122,8 @@ function messageFor(outcome: CheckoutActionOutcome): string | null {
       return "Masuk ke akun Undangania untuk melanjutkan pembayaran.";
     case "provider-unavailable":
       return "Pembayaran belum dapat dimulai. Tidak ada pembayaran yang berjalan.";
+    case "duplicate":
+      return "Permintaan pembayaran sudah diterima. Periksa status pesanan sebelum mencoba lagi.";
     case "unavailable":
       return "Layanan pesanan sedang tidak tersedia. Silakan coba lagi nanti.";
   }
@@ -149,6 +153,11 @@ export function CheckoutView({
   const [orderNumber, setOrderNumber] = useState(order.orderNumber);
   const [message, setMessage] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  // Stable for one checkout attempt. A retried or concurrent submit reuses the
+  // same token, so the server resolves the existing order instead of charging
+  // twice. It is rotated only after the provider definitively rejected a charge,
+  // when no payment exists to collide with.
+  const checkoutKeyRef = useRef<string | null>(null);
 
   const appliedCouponDiscount =
     coupon?.status === "VALID" ? coupon.discountMinor : "0";
@@ -181,6 +190,13 @@ export function CheckoutView({
     });
   }
 
+  function paymentAttemptKey(): string {
+    if (checkoutKeyRef.current === null) {
+      checkoutKeyRef.current = crypto.randomUUID();
+    }
+    return checkoutKeyRef.current;
+  }
+
   async function startPayment() {
     if (isBlocked) return;
     setState("PAYMENT_CREATING");
@@ -190,10 +206,16 @@ export function CheckoutView({
       const outcome = await startCheckoutAction({
         templateId: order.templateId,
         quantity: 1,
+        idempotencyKey: paymentAttemptKey(),
         ...(couponCode.trim() === ""
           ? {}
           : { promotionCode: couponCode.trim() }),
       });
+      if (outcome.kind === "provider-unavailable") {
+        // No charge reached the provider, so the next click may safely start a
+        // fresh attempt with a new token.
+        checkoutKeyRef.current = null;
+      }
       const next = stateFor(outcome);
       setState(next);
       setMessage(messageFor(outcome));

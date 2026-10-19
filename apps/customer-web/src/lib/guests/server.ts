@@ -57,18 +57,23 @@ function toListItem(
     displayName: string;
     maximumPax: number;
     memberCount: number;
+    tags: readonly string[];
+    eventIds: readonly string[];
     linkStatus: "ACTIVE" | "DISABLED";
     updatedAt: Date;
   }>,
-  eventNames: readonly string[],
+  eventTitleById: ReadonlyMap<string, string>,
 ): GuestHouseholdListItem {
+  const eventNames = household.eventIds
+    .map((eventId) => eventTitleById.get(eventId))
+    .filter((title): title is string => title !== undefined);
   return {
     id: household.id,
     displayName: household.displayName,
     memberCount: household.memberCount,
     maximumPax: household.maximumPax,
     eventNames,
-    tags: [],
+    tags: household.tags,
     linkStatus: household.linkStatus,
     updatedAt: household.updatedAt.toISOString(),
   };
@@ -94,7 +99,14 @@ function managementData(
   role: GuestRole,
   labels: Readonly<{ workspaceName: string; coupleNames: string }>,
 ): GuestManagementData {
-  const eventNames = overview.events.map((event) => event.title);
+  const eventTitleById = new Map(
+    overview.events.map((event) => [event.id, event.title] as const),
+  );
+  // Tags are free-form labels stored on the household. The filter list is the
+  // distinct set actually in use, so it never offers a label no row carries.
+  const tags = [...new Set(overview.households.flatMap((row) => row.tags))]
+    .sort((left, right) => left.localeCompare(right, "id-ID"))
+    .map((label) => ({ id: label, label }));
   return {
     workspaceName: labels.workspaceName,
     coupleNames: labels.coupleNames,
@@ -102,10 +114,9 @@ function managementData(
       id: event.id,
       title: event.title,
     })),
-    // No tag table exists, so the filter is a no-op rather than a fiction.
-    tags: [],
+    tags,
     households: overview.households.map((household) =>
-      guestListItemSchema.parse(toListItem(household, eventNames)),
+      guestListItemSchema.parse(toListItem(household, eventTitleById)),
     ),
     totalGuests: overview.totalGuests,
     role,
@@ -176,9 +187,11 @@ export async function loadGuestHouseholdDetail(
     if (household === null) return { kind: "not-found" };
 
     const role = guestRole(scope.context);
-    const eventNames = overview.events.map((event) => event.title);
+    const eventTitleById = new Map(
+      overview.events.map((event) => [event.id, event.title] as const),
+    );
     const detail: GuestHouseholdDetail = {
-      ...guestListItemSchema.parse(toListItem(household, eventNames)),
+      ...guestListItemSchema.parse(toListItem(household, eventTitleById)),
       members: household.members.map((member) => ({
         id: member.id,
         displayName: member.displayName,
@@ -189,7 +202,7 @@ export async function loadGuestHouseholdDetail(
               ? "OTHER"
               : "ADULT",
       })),
-      eventIds: overview.events.map((event) => event.id),
+      eventIds: household.eventIds,
       // Contacts are stored encrypted and are never decrypted for display, so the
       // UI reports presence rather than a masked value it cannot actually derive.
       phoneMasked: household.hasPhone ? "Tersimpan" : null,

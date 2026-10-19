@@ -427,3 +427,83 @@ describe("PrismaEditorRepository.publish", () => {
     expect(create).not.toHaveBeenCalled();
   });
 });
+
+describe("PrismaEditorRepository.setActive", () => {
+  it("pauses a published invitation and deactivates its snapshot", async () => {
+    const invitationUpdate = vi.fn().mockResolvedValue({ count: 1 });
+    const publicationUpdate = vi.fn().mockResolvedValue({ count: 1 });
+    const repository = new PrismaEditorRepository(
+      createClient({
+        invitation: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ ...invitationRow, status: "PUBLISHED" }),
+          updateMany: invitationUpdate,
+        },
+        invitationPublication: { updateMany: publicationUpdate },
+      }),
+    );
+
+    await expect(
+      repository.setActive(SCOPE, { active: false }),
+    ).resolves.toEqual({ kind: "paused" });
+    expect(invitationUpdate).toHaveBeenCalledWith({
+      where: { ...scopedInvitationWhere(), status: "PUBLISHED" },
+      data: { status: "PAUSED" },
+    });
+    expect(publicationUpdate).toHaveBeenCalledWith({
+      where: { tenantId: "tenant-1", invitationId: "invitation-1" },
+      data: { active: false },
+    });
+  });
+
+  it("promotes the latest snapshot when reactivating", async () => {
+    const invitationUpdate = vi.fn().mockResolvedValue({ count: 1 });
+    const publicationUpdate = vi.fn().mockResolvedValue({ count: 1 });
+    const repository = new PrismaEditorRepository(
+      createClient({
+        invitation: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ ...invitationRow, status: "PAUSED" }),
+          updateMany: invitationUpdate,
+        },
+        invitationPublication: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ id: "publication-2", publicationVersion: 2 }),
+          updateMany: publicationUpdate,
+        },
+      }),
+    );
+
+    await expect(
+      repository.setActive(SCOPE, { active: true }),
+    ).resolves.toEqual({ kind: "resumed" });
+    expect(publicationUpdate).toHaveBeenLastCalledWith({
+      where: {
+        tenantId: "tenant-1",
+        invitationId: "invitation-1",
+        id: "publication-2",
+      },
+      data: { active: true },
+    });
+  });
+
+  it("refuses to pause a draft that was never public", async () => {
+    const invitationUpdate = vi.fn();
+    const repository = new PrismaEditorRepository(
+      createClient({
+        invitation: {
+          findFirst: vi.fn().mockResolvedValue(invitationRow),
+          updateMany: invitationUpdate,
+        },
+      }),
+    );
+
+    await expect(
+      repository.setActive(SCOPE, { active: false }),
+    ).resolves.toEqual({ kind: "invalid" });
+    expect(invitationUpdate).not.toHaveBeenCalled();
+  });
+});

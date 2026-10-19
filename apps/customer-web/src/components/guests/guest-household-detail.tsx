@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Badge, Button, StatePanel } from "@wedding/ui";
+import { Alert, Badge, Button, StatePanel } from "@wedding/ui";
 import type {
   GuestHouseholdDetail,
   GuestManagementData,
 } from "../../lib/guests/contract";
 import { GuestHouseholdForm } from "./guest-household-form";
 import { GuestLinkPanel } from "./guest-link-panel";
+import { deleteGuestHouseholdAction } from "../../lib/guests/actions";
+import { useRouter } from "next/navigation";
 
 export function GuestHouseholdDetailView({
   household,
@@ -20,7 +22,32 @@ export function GuestHouseholdDetailView({
   /** Null until the couple has published; the link has nowhere to point yet. */
   invitationSlug: string | null;
 }) {
+  const router = useRouter();
   const [edit, setEdit] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [deletePending, setDeletePending] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const remove = async () => {
+    setDeletePending(true);
+    setDeleteError(null);
+    try {
+      const outcome = await deleteGuestHouseholdAction(household.id);
+      if (outcome.kind !== "ok") {
+        setDeleteError(
+          outcome.kind === "forbidden"
+            ? "Anda tidak memiliki izin untuk menghapus rumah tangga ini."
+            : outcome.kind === "not-found"
+              ? "Rumah tangga ini sudah tidak tersedia."
+              : "Rumah tangga belum dapat dihapus. Coba lagi.",
+        );
+        return;
+      }
+      router.push("/tamu");
+      router.refresh();
+    } finally {
+      setDeletePending(false);
+    }
+  };
   if (edit) {
     return (
       <div className="gst-page gst-page--detail">
@@ -73,15 +100,56 @@ export function GuestHouseholdDetailView({
           </p>
         </div>
         {management.capabilities.canWrite ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setEdit(true)}
-          >
-            Edit rumah tangga
-          </Button>
+          <div className="gst-detail__actions">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEdit(true)}
+            >
+              Edit rumah tangga
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => setConfirmDelete(true)}
+            >
+              Hapus rumah tangga
+            </Button>
+          </div>
         ) : null}
       </header>
+
+      {confirmDelete ? (
+        <div className="gst-notice">
+          <Alert variant="warning" title="Hapus rumah tangga ini?">
+            Tautan personal tidak akan dapat digunakan lagi. Riwayat RSVP dan
+            buku tamu tetap tersimpan.{" "}
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              loading={deletePending}
+              onClick={() => void remove()}
+            >
+              Ya, hapus
+            </Button>{" "}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={deletePending}
+              onClick={() => setConfirmDelete(false)}
+            >
+              Batal
+            </Button>
+          </Alert>
+          {deleteError ? (
+            <p className="gst-muted" role="alert">
+              {deleteError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="gst-detail-grid">
         <section

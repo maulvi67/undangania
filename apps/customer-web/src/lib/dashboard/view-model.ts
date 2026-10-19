@@ -265,7 +265,7 @@ export function buildDashboardViewModel(
 /* -------------------------------------------------------------------------- */
 
 export type GuestbookModerationStatus =
-  "PENDING" | "APPROVED" | "REJECTED" | "HIDDEN";
+  "PENDING" | "APPROVED" | "REJECTED" | "HIDDEN" | "DELETED";
 
 export type GuestbookMessageView = Readonly<{
   id: string;

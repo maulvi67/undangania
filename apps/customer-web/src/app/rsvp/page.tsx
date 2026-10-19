@@ -19,6 +19,7 @@ const NAV = [
   { href: "/tamu", label: "Tamu" },
   { href: "/rsvp", label: "RSVP", current: true },
   { href: "/buku-tamu", label: "Buku tamu" },
+  { href: "/notifikasi", label: "Notifikasi" },
 ] as const;
 
 export default async function RsvpPage() {

@@ -13,10 +13,12 @@ GuestbookMessage.
 safe text; moderation policy.
 
 ## Status and transitions
-PENDING → APPROVED/REJECTED/HIDDEN.
+PENDING → APPROVED/REJECTED/HIDDEN → DELETED. `DELETED` hides the message from the
+public invitation while keeping the moderation record for support review.
 
 ## Use cases
-submit, approve, hide, delete.
+submit, approve, hide, delete. Delete is a moderation status transition, not a
+hard row delete.
 
 ## Validation
 length, profanity/abuse, token scope.

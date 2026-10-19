@@ -8,13 +8,18 @@ import {
   generateOrderNumber,
   parsePromotionRule,
   prisma,
+  type CheckoutOrderDto,
+  type CheckoutPaymentDto,
 } from "@wedding/database";
 import {
+  ConflictError,
   InvalidInputError,
   NotFoundError,
   ProviderUnavailableError,
   UnavailableError,
   createCheckout,
+  type CheckoutOrder,
+  type CheckoutPayment,
   type CheckoutPorts,
 } from "@wedding/application";
 import {
@@ -55,47 +60,44 @@ function checkoutPorts(provider: CheckoutProviderPortLike): CheckoutPorts {
 
   return {
     transactions: {
-      createOrder: (input) => {
-        const created = orders.createOrder({
-          scope: input.scope,
-          orderNumber: input.orderNumber,
-          currency: input.currency,
-          subtotalMinor: input.subtotalMinor,
-          discountMinor: input.discountMinor,
-          taxMinor: input.taxMinor,
-          totalMinor: input.totalMinor,
-          item: {
-            productType: input.item.productType,
-            productCode: input.item.productCode,
-            descriptionSnapshot: input.item.descriptionSnapshot,
-            unitPriceMinor: input.item.unitPriceMinor,
-            quantity: input.item.quantity,
-            totalMinor: input.item.totalMinor,
-            // The application hands this over as `unknown`; storage needs a JSON
-            // value, and the use-case already narrowed it to a plain object.
-            configurationSnapshot: input.item.configurationSnapshot as never,
-          },
-        });
-        return created.then((order) => ({
-          id: order.id,
-          tenantId: order.tenantId,
-          userId: order.userId,
-          orderNumber: order.orderNumber,
-          currency: order.currency,
-          subtotalMinor: order.subtotalMinor,
-          discountMinor: order.discountMinor,
-          taxMinor: order.taxMinor,
-          totalMinor: order.totalMinor,
-          status: order.status,
-          items: order.items.map((item) => ({
-            id: item.id,
-            productCode: item.productCode,
-            descriptionSnapshot: item.descriptionSnapshot,
-            unitPriceMinor: item.unitPriceMinor,
-            quantity: item.quantity,
-            totalMinor: item.totalMinor,
-          })),
-        }));
+      createOrder: async (input) => {
+        let created: CheckoutOrderDto;
+        try {
+          created = await orders.createOrder({
+            scope: input.scope,
+            orderNumber: input.orderNumber,
+            currency: input.currency,
+            subtotalMinor: input.subtotalMinor,
+            discountMinor: input.discountMinor,
+            taxMinor: input.taxMinor,
+            totalMinor: input.totalMinor,
+            ...(input.idempotencyKey === undefined
+              ? {}
+              : { idempotencyKey: input.idempotencyKey }),
+            item: {
+              productType: input.item.productType,
+              productCode: input.item.productCode,
+              descriptionSnapshot: input.item.descriptionSnapshot,
+              unitPriceMinor: input.item.unitPriceMinor,
+              quantity: input.item.quantity,
+              totalMinor: input.item.totalMinor,
+              // The application hands this over as `unknown`; storage needs a JSON
+              // value, and the use-case already narrowed it to a plain object.
+              configurationSnapshot: input.item.configurationSnapshot as never,
+            },
+          });
+        } catch (error) {
+          // The unique `[tenantId, checkoutIdempotencyKey]` index is what stops
+          // two concurrent retries from charging twice. The loser of the race
+          // reports "in progress" instead of minting another order.
+          if (isUniqueConstraintError(error)) {
+            throw new ConflictError(
+              "Pembayaran sedang diproses. Periksa status pesanan sebelum mencoba lagi.",
+            );
+          }
+          throw error;
+        }
+        return toCheckoutOrder(created);
       },
       attachPayment: async (input) => {
         const payment = await payments.attachPayment({
@@ -112,35 +114,23 @@ function checkoutPorts(provider: CheckoutProviderPortLike): CheckoutPorts {
           ...(input.promotionId === undefined
             ? {}
             : { promotionId: input.promotionId }),
+          ...(input.redirectUrl === undefined
+            ? {}
+            : { redirectUrl: input.redirectUrl }),
         });
-        if (payment === null) return null;
-        return {
-          id: payment.id,
-          tenantId: payment.tenantId,
-          orderId: payment.orderId,
-          provider: payment.provider,
-          providerTransactionId: payment.providerTransactionId,
-          amountMinor: payment.amountMinor,
-          currency: payment.currency,
-          method: payment.method ?? "QRIS",
-          status: payment.status,
-          expiresAt: payment.expiresAt,
-        };
+        return payment === null ? null : toCheckoutPayment(payment);
       },
       findByOrderId: async (scope, orderId) => {
         const payment = await payments.findByOrderId(scope, orderId);
-        if (payment === null) return null;
+        return payment === null ? null : toCheckoutPayment(payment);
+      },
+      findByIdempotencyKey: async (scope, idempotencyKey) => {
+        const order = await orders.findByIdempotencyKey(scope, idempotencyKey);
+        if (order === null) return null;
+        const payment = await payments.findByOrderId(scope, order.id);
         return {
-          id: payment.id,
-          tenantId: payment.tenantId,
-          orderId: payment.orderId,
-          provider: payment.provider,
-          providerTransactionId: payment.providerTransactionId,
-          amountMinor: payment.amountMinor,
-          currency: payment.currency,
-          method: payment.method ?? "QRIS",
-          status: payment.status,
-          expiresAt: payment.expiresAt,
+          order: toCheckoutOrder(order),
+          payment: payment === null ? null : toCheckoutPayment(payment),
         };
       },
     },
@@ -170,6 +160,54 @@ function checkoutPorts(provider: CheckoutProviderPortLike): CheckoutPorts {
 /** The subset of `CheckoutProviderPort` this module actually needs. */
 type CheckoutProviderPortLike = CheckoutPorts["provider"];
 
+function toCheckoutOrder(order: CheckoutOrderDto): CheckoutOrder {
+  return {
+    id: order.id,
+    tenantId: order.tenantId,
+    userId: order.userId,
+    orderNumber: order.orderNumber,
+    currency: order.currency,
+    subtotalMinor: order.subtotalMinor,
+    discountMinor: order.discountMinor,
+    taxMinor: order.taxMinor,
+    totalMinor: order.totalMinor,
+    status: order.status,
+    items: order.items.map((item) => ({
+      id: item.id,
+      productCode: item.productCode,
+      descriptionSnapshot: item.descriptionSnapshot,
+      unitPriceMinor: item.unitPriceMinor,
+      quantity: item.quantity,
+      totalMinor: item.totalMinor,
+      promotionCode: item.promotionCode,
+    })),
+  };
+}
+
+function toCheckoutPayment(payment: CheckoutPaymentDto): CheckoutPayment {
+  return {
+    id: payment.id,
+    tenantId: payment.tenantId,
+    orderId: payment.orderId,
+    provider: payment.provider,
+    providerTransactionId: payment.providerTransactionId,
+    amountMinor: payment.amountMinor,
+    currency: payment.currency,
+    method: payment.method ?? "QRIS",
+    status: payment.status,
+    expiresAt: payment.expiresAt,
+    redirectUrl: payment.redirectUrl,
+  };
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as Readonly<{ code?: unknown }>).code === "P2002"
+  );
+}
+
 export type CheckoutCreationOutcome =
   | Readonly<{
       kind: "created";
@@ -182,6 +220,7 @@ export type CheckoutCreationOutcome =
   | Readonly<{ kind: "not-found" }>
   | Readonly<{ kind: "invalid"; message: string }>
   | Readonly<{ kind: "provider-unavailable"; orderNumber: string | null }>
+  | Readonly<{ kind: "duplicate" }>
   | Readonly<{ kind: "unavailable" }>;
 
 /** Resolves the QRIS port, or null when this deployment is not configured for it. */
@@ -193,6 +232,7 @@ export async function createCheckoutForSession(input: {
   productCode: string;
   quantity: number;
   promotionCode?: string;
+  idempotencyKey: string;
 }): Promise<CheckoutCreationOutcome> {
   const workspace = await resolveSessionWorkspaceOrNull();
   if (workspace === null) return { kind: "unauthenticated" };
@@ -211,6 +251,7 @@ export async function createCheckoutForSession(input: {
         productCode: input.productCode,
         quantity: input.quantity,
         currency: "IDR",
+        idempotencyKey: input.idempotencyKey,
         ...(input.promotionCode === undefined
           ? {}
           : { promotionCode: input.promotionCode }),
@@ -236,6 +277,7 @@ export async function createCheckoutForSession(input: {
       return { kind: "provider-unavailable", orderNumber: null };
     }
     if (error instanceof UnavailableError) return { kind: "unavailable" };
+    if (error instanceof ConflictError) return { kind: "duplicate" };
     if (error instanceof CheckoutValidationError) {
       return { kind: "not-found" };
     }

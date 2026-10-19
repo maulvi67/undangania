@@ -87,6 +87,8 @@ export async function createGuestHouseholdAction(
       {
         displayName: parsed.data.displayName,
         maximumPax: parsed.data.maximumPax,
+        eventIds: parsed.data.eventIds,
+        tags: parsed.data.tags,
         members: parsed.data.members.map((member) => ({
           displayName: member.displayName,
           category: member.category,
@@ -126,6 +128,8 @@ export async function updateGuestHouseholdAction(
       {
         displayName: parsed.data.displayName,
         maximumPax: parsed.data.maximumPax,
+        eventIds: parsed.data.eventIds,
+        tags: parsed.data.tags,
         members: parsed.data.members.map((member) => ({
           displayName: member.displayName,
           category: member.category,
@@ -190,6 +194,27 @@ export async function setGuestLinkStatusAction(
       status,
     );
     return updated ? { kind: "ok", householdId } : { kind: "not-found" };
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
+
+export async function deleteGuestHouseholdAction(
+  householdId: string,
+): Promise<GuestMutationOutcome> {
+  if (typeof householdId !== "string" || householdId.trim() === "") {
+    return { kind: "not-found" };
+  }
+
+  const scope = await rosterScope();
+  if (scope.kind !== "ok") return { kind: "forbidden" };
+
+  try {
+    const deleted = await new PrismaGuestRosterRepository().delete(
+      { tenantId: scope.tenantId, weddingId: scope.weddingId },
+      householdId,
+    );
+    return deleted ? { kind: "ok", householdId } : { kind: "not-found" };
   } catch {
     return { kind: "unavailable" };
   }
@@ -265,9 +290,26 @@ export async function importGuestHouseholdsAction(
   if (scope.kind !== "ok") return { kind: "forbidden" };
 
   try {
-    const result = await new PrismaGuestRosterRepository().createMany(
-      { tenantId: scope.tenantId, weddingId: scope.weddingId },
-      parsed.data,
+    const repository = new PrismaGuestRosterRepository();
+    const rosterScope = {
+      tenantId: scope.tenantId,
+      weddingId: scope.weddingId,
+    };
+    const overview = await repository.loadOverview(rosterScope);
+    const eventIdByName = new Map(
+      overview.events.map((event) => [event.title, event.id] as const),
+    );
+    const result = await repository.createMany(
+      rosterScope,
+      parsed.data.map((row) => ({
+        householdName: row.householdName,
+        memberNames: row.memberNames,
+        maximumPax: row.maximumPax,
+        eventIds: row.eventNames
+          .map((name) => eventIdByName.get(name))
+          .filter((id): id is string => id !== undefined),
+        tags: row.tag === "" ? [] : [row.tag],
+      })),
     );
     if (result === null) return { kind: "unavailable" };
     return {
@@ -298,7 +340,9 @@ export async function loadGuestFormOptions(): Promise<GuestFormOptionsOutcome> {
       tenantId: workspace.context.tenantId,
       weddingId: workspace.weddingId,
     });
-    const eventNames = overview.events.map((event) => event.title);
+    const eventTitleById = new Map(
+      overview.events.map((event) => [event.id, event.title] as const),
+    );
     return {
       kind: "ok",
       events: overview.events.map((event) => ({
@@ -312,8 +356,10 @@ export async function loadGuestFormOptions(): Promise<GuestFormOptionsOutcome> {
         displayName: household.displayName,
         memberCount: household.memberCount,
         maximumPax: household.maximumPax,
-        eventNames,
-        tags: [],
+        eventNames: household.eventIds
+          .map((eventId) => eventTitleById.get(eventId))
+          .filter((title): title is string => title !== undefined),
+        tags: household.tags,
         linkStatus: household.linkStatus,
         updatedAt: household.updatedAt.toISOString(),
       })),

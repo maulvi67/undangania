@@ -4,7 +4,22 @@ Local, test, preview, staging, and production are isolated. No production data i
 
 ## Transactional email
 
-Production authentication email requires `EMAIL_PROVIDER=relay`, `NOTIFICATION_RELAY_URL`, `NOTIFICATION_RELAY_API_KEY`, and `APP_URL` set to the public application origin. The relay must provide the approved templates `auth.email-verification`, `auth.password-reset`, and `auth.password-changed`. Console delivery is for local development only; an unset or `console` provider fails closed in production. Keep relay credentials server-only and use synthetic recipients in non-production unless a sandbox has been approved.
+Production authentication and payment email requires `EMAIL_PROVIDER=relay`, `NOTIFICATION_RELAY_URL`, `NOTIFICATION_RELAY_API_KEY`, and `APP_URL` set to the public application origin. The relay must provide the approved templates `auth.email-verification`, `auth.password-reset`, `auth.password-changed`, and `payment.payment-confirmed`. Console delivery is for local development only; an unset or `console` provider fails closed in production. Keep relay credentials server-only and use synthetic recipients in non-production unless a sandbox has been approved.
+
+The relay service (`services/notification-relay`) reads its own SMTP configuration and must run where the calling services can reach it over HTTPS or the private network:
+
+```text
+NOTIFICATION_RELAY_API_KEY=   # >= 32 characters, same value the callers use
+EMAIL_FROM=                   # e.g. Undangania <no-reply@example.com>
+SMTP_URL=                     # full SMTP URL, or use the split values below
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_SECURE=false
+```
+
+`SMTP_USER` and `SMTP_PASS` must be set together. The relay sends `EMAIL` only; `WHATSAPP` returns `422 UNSUPPORTED_CHANNEL` until a WhatsApp provider is approved. It never logs recipient addresses or template variables, because auth templates carry single-use links.
 
 ## Private media storage
 
@@ -19,9 +34,18 @@ STORAGE_SECRET_ACCESS_KEY=
 
 The application fails closed when any value is absent or invalid. Access and secret keys are server-only; they must never be exposed through a client bundle, signed upload response, publication snapshot, or telemetry.
 
+The background worker also reads the media provider selection:
+
+```text
+MEDIA_MALWARE_SCANNER=passthrough
+MEDIA_DERIVATIVE_WRITER=none
+```
+
+Those are stand-ins: `passthrough` supplies no antivirus verdict and `none` generates no resized variants. Production refuses both unless `MEDIA_ALLOW_UNSCANNED_UPLOADS=true` and `MEDIA_ALLOW_MISSING_DERIVATIVES=true` are set deliberately, because advancing an upload to `READY` without a scanner is indistinguishable from a clean verdict. Keep the overrides unset in production until a real scanner and derivative writer are approved; a deployment that cannot process media should fail its worker instead of serving unchecked uploads.
+
 Configure R2 CORS for the exact customer-web origins that may upload. Allow browser `PUT` with `Content-Type` and `Content-Length`; do not make the bucket public. Signed upload URLs are short-lived, and public invitation read URLs are generated at render time with a shorter lifetime.
 
-No production credentials or provider deployment changes belong in this repository. The `MediaAsset` schema already exists, so enabling the adapter requires no migration. The approved worker deployment may back `createMediaContentInspector` with the storage adapter's tenant-scoped `readPrefix` operation; it must keep the 64 KiB cap and require `206 Partial Content`. Malware scanning and derivative writing remain separate provider approvals.
+No production credentials or provider deployment changes belong in this repository. The `MediaAsset` schema already exists, so enabling the adapter requires no migration. The approved worker deployment may back `createMediaContentInspector` with the storage adapter's tenant-scoped `readPrefix` operation; it must keep the 64 KiB cap and require `206 Partial Content`. Malware scanning and derivative writing remain separate provider approvals; the worker image (`docker/background-worker.Dockerfile`) runs the pipeline and fails closed when those providers are missing.
 
 ## Cache and distributed rate limiting
 

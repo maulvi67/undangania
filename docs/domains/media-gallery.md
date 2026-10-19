@@ -54,8 +54,11 @@ MEDIA_DERIVATIVE_WRITER=none
 stand-ins. `passthrough` relies on the magic-byte and dimension inspection the
 pipeline already performs but supplies no antivirus verdict; `none` generates no
 resized variants. Any other value fails the runner closed so a typo cannot
-advance an unchecked asset to `READY`. Replace these values when a real scanner
-and derivative writer are deployed.
+advance an unchecked asset to `READY`. In production both stand-ins are refused
+unless `MEDIA_ALLOW_UNSCANNED_UPLOADS=true` and
+`MEDIA_ALLOW_MISSING_DERIVATIVES=true` are set deliberately; otherwise the worker
+stops instead of marking uploads `READY` unchecked. Replace these values when a
+real scanner and derivative writer are deployed.
 
 Keep the R2 bucket private. Configure bucket CORS to allow browser `PUT` requests only from the deployed customer-web origins, with `Content-Type` and `Content-Length` as needed. Do not commit credentials.
 

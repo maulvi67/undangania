@@ -28,12 +28,14 @@ const householdSelect = {
   maximumPax: true,
   tokenVersion: true,
   status: true,
+  tags: true,
   updatedAt: true,
   _count: { select: { guests: true } },
   guests: {
     select: { id: true, displayName: true, category: true },
     orderBy: [{ displayName: "asc" }, { id: "asc" }],
   },
+  eventAccess: { select: { eventId: true } },
 } as const satisfies Prisma.GuestHouseholdSelect;
 
 type HouseholdRow = Prisma.GuestHouseholdGetPayload<{
@@ -131,6 +133,14 @@ type GuestRosterClient = Readonly<{
       where: Prisma.GuestWhereInput;
     }): Promise<{ count: number }>;
   };
+  guestEventAccess: {
+    createMany(args: {
+      data: Prisma.GuestEventAccessCreateManyInput[];
+    }): Promise<{ count: number }>;
+    deleteMany(args: {
+      where: Prisma.GuestEventAccessWhereInput;
+    }): Promise<{ count: number }>;
+  };
   auditEvent: {
     create(args: {
       data: Prisma.AuditEventUncheckedCreateInput;
@@ -141,7 +151,12 @@ type GuestRosterClient = Readonly<{
 export function adaptGuestRosterClient(
   client: Pick<
     PrismaClient,
-    "wedding" | "weddingEvent" | "guestHousehold" | "guest" | "auditEvent"
+    | "wedding"
+    | "weddingEvent"
+    | "guestHousehold"
+    | "guest"
+    | "guestEventAccess"
+    | "auditEvent"
   >,
 ): GuestRosterClient {
   return {
@@ -161,6 +176,10 @@ export function adaptGuestRosterClient(
     guest: {
       createMany: (args) => client.guest.createMany(args),
       deleteMany: (args) => client.guest.deleteMany(args),
+    },
+    guestEventAccess: {
+      createMany: (args) => client.guestEventAccess.createMany(args),
+      deleteMany: (args) => client.guestEventAccess.deleteMany(args),
     },
     auditEvent: {
       create: (args) => client.auditEvent.create(args),
@@ -187,6 +206,8 @@ export type RosterHouseholdDto = Readonly<{
   displayName: string;
   maximumPax: number;
   memberCount: number;
+  tags: readonly string[];
+  eventIds: readonly string[];
   linkStatus: RosterLinkStatus;
   updatedAt: Date;
 }>;
@@ -226,6 +247,9 @@ export type RosterCreateInput = Readonly<{
   displayName: string;
   maximumPax: number;
   members: readonly RosterMemberInput[];
+  /** Absent or empty means "every event of this wedding", the legacy default. */
+  eventIds?: readonly string[];
+  tags?: readonly string[];
   /**
    * Already normalized and encrypted by the caller. `phoneHash`/`emailHash` are
    * deliberately not accepted: a caller that could set the hash without the
@@ -240,6 +264,10 @@ export type RosterUpdateInput = Readonly<{
   maximumPax?: number;
   /** Present means "replace the member list"; absent means "leave it alone". */
   members?: readonly RosterMemberInput[];
+  /** Present means "replace event access"; absent means "leave it alone". */
+  eventIds?: readonly string[];
+  /** Present means "replace the tag list"; absent means "leave it alone". */
+  tags?: readonly string[];
 }>;
 
 export type RosterExportRowDto = Readonly<{
@@ -270,6 +298,9 @@ export type RosterImportRow = Readonly<{
   householdName: string;
   memberNames: readonly string[];
   maximumPax: number;
+  /** Empty or absent means every event of this wedding. */
+  eventIds?: readonly string[];
+  tags?: readonly string[];
 }>;
 
 export type RosterImportResult = Readonly<{
@@ -322,6 +353,8 @@ export interface GuestRosterRepository {
     householdId: string,
     status: RosterLinkStatus,
   ): Promise<boolean>;
+  /** Soft-deletes the household; RSVP and guestbook history remain intact. */
+  delete(scope: RosterScope, householdId: string): Promise<boolean>;
   /** Reads an authorized roster and records the successful export. */
   exportRoster(
     scope: RosterScope,
@@ -354,12 +387,23 @@ function toLinkStatus(status: string): RosterLinkStatus {
   return status === "ACTIVE" ? "ACTIVE" : "DISABLED";
 }
 
-function toHouseholdDto(row: HouseholdRow): RosterHouseholdDto {
+function toHouseholdDto(
+  row: HouseholdRow,
+  fallbackEventIds: readonly string[] = [],
+): RosterHouseholdDto {
   return {
     id: row.id,
     displayName: row.displayName,
     maximumPax: row.maximumPax,
     memberCount: row._count.guests,
+    tags: row.tags,
+    // Rows created before event access existed have no access rows. Treating
+    // that absence as "every event" preserves the previous behaviour instead of
+    // silently hiding every event from an existing household.
+    eventIds:
+      row.eventAccess.length > 0
+        ? row.eventAccess.map((access) => access.eventId)
+        : fallbackEventIds,
     linkStatus: toLinkStatus(row.status),
     updatedAt: row.updatedAt,
   };
@@ -368,9 +412,10 @@ function toHouseholdDto(row: HouseholdRow): RosterHouseholdDto {
 function toDetailDto(
   row: HouseholdRow,
   contact: Readonly<{ hasPhone: boolean; hasEmail: boolean }>,
+  fallbackEventIds: readonly string[] = [],
 ): RosterHouseholdDetailDto {
   return {
-    ...toHouseholdDto(row),
+    ...toHouseholdDto(row, fallbackEventIds),
     members: row.guests.map((member) => ({
       id: member.id,
       displayName: member.displayName,
@@ -391,6 +436,9 @@ function householdScope(
     ...(householdId === undefined ? {} : { id: householdId }),
     tenantId: scope.tenantId,
     weddingId: scope.weddingId,
+    // A deleted household must disappear from every read, including a direct id
+    // lookup, while its historical RSVP and guestbook rows stay intact.
+    status: { not: "DELETED" },
     // Redundant with the two columns above, but it is what makes a stale
     // denormalized `weddingId` fail as "not found" instead of matching a row the
     // tenant does not own.
@@ -422,6 +470,59 @@ async function replaceMembers(
       status: "ACTIVE",
     })),
   });
+}
+
+async function weddingEventIds(
+  client: GuestRosterClient,
+  scope: RosterScope,
+): Promise<readonly string[]> {
+  const events = await client.weddingEvent.findMany({
+    where: { tenantId: scope.tenantId, weddingId: scope.weddingId },
+    orderBy: [{ displayOrder: "asc" }, { id: "asc" }],
+    select: eventSelect,
+  });
+  return events.map((event) => event.id);
+}
+
+/**
+ * Replaces event access after proving every id belongs to this wedding. A
+ * foreign event id would otherwise satisfy the database foreign key while
+ * granting access to another wedding's event; the scope check happens before
+ * any write.
+ */
+async function replaceEventAccess(
+  client: GuestRosterClient,
+  scope: RosterScope,
+  householdId: string,
+  eventIds: readonly string[],
+): Promise<boolean> {
+  const unique = [...new Set(eventIds)];
+  if (unique.length > 0) {
+    const events = await client.weddingEvent.findMany({
+      where: {
+        id: { in: unique },
+        tenantId: scope.tenantId,
+        weddingId: scope.weddingId,
+      },
+      orderBy: [{ displayOrder: "asc" }, { id: "asc" }],
+      select: eventSelect,
+    });
+    if (events.length !== unique.length) return false;
+  }
+
+  await client.guestEventAccess.deleteMany({
+    where: { tenantId: scope.tenantId, householdId },
+  });
+  if (unique.length === 0) return true;
+
+  await client.guestEventAccess.createMany({
+    data: unique.map((eventId) => ({
+      tenantId: scope.tenantId,
+      householdId,
+      eventId,
+    })),
+  });
+  return true;
 }
 
 export class PrismaGuestRosterRepository implements GuestRosterRepository {
@@ -457,7 +558,8 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
       select: householdSelect,
     });
 
-    const households = rows.map(toHouseholdDto);
+    const eventIds = events.map((event) => event.id);
+    const households = rows.map((row) => toHouseholdDto(row, eventIds));
     return {
       events: events.map((event) => ({ id: event.id, title: event.title })),
       households,
@@ -479,16 +581,28 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
     if (row === null) return null;
 
     // Presence is a second, narrower query so the ciphertext columns never travel
-    // with the household row the UI renders.
-    const contact = await this.client.guestHousehold.findFirstContact({
-      where: householdScope(scope, householdId),
-      select: contactSelect,
-    });
+    // with the household row the UI renders. Events supply the legacy fallback for
+    // households created before event access was stored.
+    const [contact, events] = await Promise.all([
+      this.client.guestHousehold.findFirstContact({
+        where: householdScope(scope, householdId),
+        select: contactSelect,
+      }),
+      this.client.weddingEvent.findMany({
+        where: { tenantId: scope.tenantId, weddingId: scope.weddingId },
+        orderBy: [{ displayOrder: "asc" }, { id: "asc" }],
+        select: eventSelect,
+      }),
+    ]);
 
-    return toDetailDto(row, {
-      hasPhone: (contact?.phoneHash ?? null) !== null,
-      hasEmail: (contact?.emailHash ?? null) !== null,
-    });
+    return toDetailDto(
+      row,
+      {
+        hasPhone: (contact?.phoneHash ?? null) !== null,
+        hasEmail: (contact?.emailHash ?? null) !== null,
+      },
+      events.map((event) => event.id),
+    );
   }
 
   public async create(
@@ -507,6 +621,16 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
     // be created without a usable link. The plaintext exists only in this frame and
     // is not returned: only the hash is persisted, and the link is issued through
     // `rotateLink`, which is the one place that hands a token back.
+    const allEvents = await weddingEventIds(this.client, scope);
+    const eventIds = input.eventIds ?? allEvents;
+    if (
+      input.eventIds !== undefined &&
+      (eventIds.length === 0 ||
+        eventIds.some((eventId) => !allEvents.includes(eventId)))
+    ) {
+      return null;
+    }
+
     const token = generateOpaqueToken();
     const row = await this.client.guestHousehold.create({
       data: {
@@ -514,6 +638,7 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
         weddingId: scope.weddingId,
         displayName: input.displayName,
         maximumPax: input.maximumPax,
+        tags: [...new Set(input.tags ?? [])],
         tokenHash: token.hash,
         tokenVersion: 1,
         status: "ACTIVE",
@@ -528,6 +653,7 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
     });
 
     await replaceMembers(this.client, scope.tenantId, row.id, input.members);
+    await replaceEventAccess(this.client, scope, row.id, eventIds);
     return this.findById(scope, row.id);
   }
 
@@ -546,20 +672,36 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
     // Every household gets its own token here. The plaintext is discarded: the
     // import has no way to deliver a link, and a caller that needs one rotates it
     // from the detail page.
+    const allEvents = await weddingEventIds(this.client, scope);
     let createdGuests = 0;
     for (const row of rows) {
+      const rowEventIds =
+        row.eventIds === undefined || row.eventIds.length === 0
+          ? allEvents
+          : row.eventIds.filter((eventId) => allEvents.includes(eventId));
       const row_ = await this.client.guestHousehold.create({
         data: {
           tenantId: scope.tenantId,
           weddingId: scope.weddingId,
           displayName: row.householdName,
           maximumPax: row.maximumPax,
+          tags: [...new Set(row.tags ?? [])],
           tokenHash: generateOpaqueToken().hash,
           tokenVersion: 1,
           status: "ACTIVE",
         },
         select: householdSelect,
       });
+
+      if (rowEventIds.length > 0) {
+        await this.client.guestEventAccess.createMany({
+          data: rowEventIds.map((eventId) => ({
+            tenantId: scope.tenantId,
+            householdId: row_.id,
+            eventId,
+          })),
+        });
+      }
 
       await replaceMembers(
         this.client,
@@ -589,7 +731,21 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
     });
     if (existing === null) return null;
 
-    if (input.displayName !== undefined || input.maximumPax !== undefined) {
+    if (input.eventIds !== undefined) {
+      const allEvents = await weddingEventIds(this.client, scope);
+      if (
+        input.eventIds.length === 0 ||
+        input.eventIds.some((eventId) => !allEvents.includes(eventId))
+      ) {
+        return null;
+      }
+    }
+
+    if (
+      input.displayName !== undefined ||
+      input.maximumPax !== undefined ||
+      input.tags !== undefined
+    ) {
       await this.client.guestHousehold.updateMany({
         where: householdScope(scope, householdId),
         data: {
@@ -599,8 +755,15 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
           ...(input.maximumPax === undefined
             ? {}
             : { maximumPax: input.maximumPax }),
+          ...(input.tags === undefined
+            ? {}
+            : { tags: [...new Set(input.tags)] }),
         },
       });
+    }
+
+    if (input.eventIds !== undefined) {
+      await replaceEventAccess(this.client, scope, householdId, input.eventIds);
     }
 
     if (input.members !== undefined) {
@@ -654,6 +817,17 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
     return result.count === 1;
   }
 
+  public async delete(
+    scope: RosterScope,
+    householdId: string,
+  ): Promise<boolean> {
+    const result = await this.client.guestHousehold.updateMany({
+      where: householdScope(scope, householdId),
+      data: { status: "DELETED" },
+    });
+    return result.count === 1;
+  }
+
   public async exportRoster(
     scope: RosterScope,
     options: RosterExportOptions,
@@ -698,8 +872,17 @@ export class PrismaGuestRosterRepository implements GuestRosterRepository {
       return null;
     }
 
-    const eventNames = events.map((event) => event.title);
+    const eventNameById = new Map(
+      events.map((event) => [event.id, event.title] as const),
+    );
+    const allEventNames = [...eventNameById.values()];
     const exportRows = rows.flatMap((row) => {
+      const eventNames =
+        row.eventAccess.length === 0
+          ? allEventNames
+          : row.eventAccess
+              .map((access) => eventNameById.get(access.eventId))
+              .filter((name): name is string => name !== undefined);
       // A malformed legacy household should still be visible in the export rather
       // than disappearing silently. The blank guest name is non-sensitive and makes
       // the missing member data explicit to the authorized operator.

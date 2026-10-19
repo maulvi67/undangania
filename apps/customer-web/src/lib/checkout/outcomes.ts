@@ -16,4 +16,5 @@ export type CheckoutActionOutcome =
   | Readonly<{ kind: "not-found" }>
   | Readonly<{ kind: "invalid"; message: string }>
   | Readonly<{ kind: "provider-unavailable" }>
+  | Readonly<{ kind: "duplicate" }>
   | Readonly<{ kind: "unavailable" }>;

@@ -1,5 +1,6 @@
 import type { TenantContext } from "@wedding/domain";
 import {
+  EntitlementRequiredError,
   InvalidInputError,
   NotFoundError,
   StaleVersionError,
@@ -81,9 +82,36 @@ export type EditorLoadPort = Readonly<{
     | Readonly<{ kind: "template-unavailable" }>
     | Readonly<{ kind: "invalid" }>
   >;
+  setActive(
+    scope: EditorScope,
+    input: Readonly<{ active: boolean }>,
+  ): Promise<
+    | Readonly<{ kind: "paused" }>
+    | Readonly<{ kind: "resumed" }>
+    | Readonly<{ kind: "not-found" }>
+    | Readonly<{ kind: "invalid" }>
+  >;
 }>;
 
-export type EditorPorts = Readonly<{ editor: EditorLoadPort }>;
+export type EditorEntitlementPort = Readonly<{
+  /**
+   * Reports whether this workspace holds a currently active entitlement for the
+   * product behind the invitation. Drafting stays free; publishing is the paid
+   * action, so the check belongs at this seam rather than on every autosave.
+   */
+  hasPublishEntitlement(
+    input: Readonly<{
+      tenantId: string;
+      invitationId: string;
+      at: Date;
+    }>,
+  ): Promise<boolean>;
+}>;
+
+export type EditorPorts = Readonly<{
+  editor: EditorLoadPort;
+  entitlements: EditorEntitlementPort;
+}>;
 
 export async function loadEditorDocument(
   context: TenantContext | null | undefined,
@@ -160,6 +188,10 @@ export type PublishResult = Readonly<{
   publicationVersion: number;
 }>;
 
+export type InvitationLifecycleResult = Readonly<{
+  kind: "paused" | "resumed";
+}>;
+
 /**
  * Publishes a draft.
  *
@@ -184,6 +216,20 @@ export async function publishInvitation(
   }
   if (!Number.isInteger(input.baseVersion) || input.baseVersion < 0) {
     throw new InvalidInputError("Versi dokumen tidak valid.");
+  }
+
+  // A draft is free to author, but making it public is the licensed action.
+  // Checking here means a client cannot bypass the paywall by calling the
+  // publish port directly.
+  const entitled = await ports.entitlements.hasPublishEntitlement({
+    tenantId: tenant.tenantId,
+    invitationId: input.invitationId,
+    at: new Date(),
+  });
+  if (!entitled) {
+    throw new EntitlementRequiredError(
+      "Aktifkan paket undangan sebelum menerbitkan.",
+    );
   }
 
   const result = await ports.editor.publish(
@@ -215,5 +261,63 @@ export async function publishInvitation(
       throw new InvalidInputError("Undangan belum siap diterbitkan.");
     default:
       throw new UnavailableError("Undangan tidak dapat diterbitkan.");
+  }
+}
+
+/**
+ * Pauses or reactivates the public invitation without discarding its snapshot.
+ *
+ * Reactivating is a paid action for the same reason publishing is: it puts the
+ * invitation back in front of guests. Pausing stays available even when the
+ * entitlement has lapsed, because taking a page down must never depend on a
+ * billing state.
+ */
+export async function setInvitationActive(
+  context: TenantContext | null | undefined,
+  input: Readonly<{ invitationId: string; active: boolean }>,
+  ports: EditorPorts,
+): Promise<InvitationLifecycleResult> {
+  const tenant = requireTenantContext(context);
+  assertAnyRole(tenant, EDITOR_ROLES);
+  if (input.invitationId.trim().length === 0) {
+    throw new InvalidInputError("Undangan tidak dikenali.");
+  }
+
+  if (input.active) {
+    const entitled = await ports.entitlements.hasPublishEntitlement({
+      tenantId: tenant.tenantId,
+      invitationId: input.invitationId,
+      at: new Date(),
+    });
+    if (!entitled) {
+      throw new EntitlementRequiredError(
+        "Aktifkan paket undangan sebelum menampilkan undangan kembali.",
+      );
+    }
+  }
+
+  const result = await ports.editor.setActive(
+    {
+      tenantId: tenant.tenantId,
+      invitationId: input.invitationId,
+      actorId: tenant.actorId,
+    },
+    { active: input.active },
+  );
+
+  switch (result.kind) {
+    case "paused":
+    case "resumed":
+      return { kind: result.kind };
+    case "not-found":
+      throw new NotFoundError("Undangan tidak ditemukan.");
+    case "invalid":
+      throw new InvalidInputError(
+        input.active
+          ? "Undangan ini belum dapat ditampilkan kembali."
+          : "Undangan ini belum dapat dijeda.",
+      );
+    default:
+      throw new UnavailableError("Status undangan tidak dapat diubah.");
   }
 }

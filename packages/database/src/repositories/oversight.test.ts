@@ -18,7 +18,7 @@ function rsvpRow(overrides: Record<string, unknown> = {}) {
     pax: 2,
     optimisticVersion: 1,
     respondedAt: NOW,
-    household: { displayName: "Keluarga Rahman" },
+    household: { displayName: "Keluarga Rahman", maximumPax: 4 },
     event: { title: "Akad Nikah", startsAt: NOW },
     ...overrides,
   };
@@ -40,7 +40,17 @@ function client(overrides: Record<string, unknown> = {}): OversightClient {
     },
     rsvp: {
       findMany: vi.fn().mockResolvedValue([]),
+      findFirst: vi.fn().mockResolvedValue(null),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       ...((overrides.rsvp as object) ?? {}),
+    },
+    rsvpHistory: {
+      create: vi.fn().mockResolvedValue({ id: "history-1" }),
+      ...((overrides.rsvpHistory as object) ?? {}),
+    },
+    auditEvent: {
+      create: vi.fn().mockResolvedValue({ id: "audit-1" }),
+      ...((overrides.auditEvent as object) ?? {}),
     },
     guestbookMessage: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -67,6 +77,7 @@ describe("toModerationStatus", () => {
     expect(toModerationStatus("APPROVED")).toBe("APPROVED");
     expect(toModerationStatus("REJECTED")).toBe("REJECTED");
     expect(toModerationStatus("HIDDEN")).toBe("HIDDEN");
+    expect(toModerationStatus("DELETED")).toBe("DELETED");
     expect(toModerationStatus("READY")).toBe("PENDING");
     expect(toModerationStatus("")).toBe("PENDING");
   });
@@ -217,5 +228,103 @@ describe("PrismaOversightRepository.moderate", () => {
     await expect(
       new PrismaOversightRepository(c).moderate(SCOPE, "m-other", "APPROVED"),
     ).resolves.toBe(false);
+  });
+});
+
+describe("PrismaOversightRepository.overrideRsvp", () => {
+  it("records the previous answer, history, and audit", async () => {
+    const update = vi.fn().mockResolvedValue({ count: 1 });
+    const historyCreate = vi.fn().mockResolvedValue({ id: "history-1" });
+    const auditCreate = vi.fn().mockResolvedValue({ id: "audit-1" });
+    const c = client({
+      rsvp: {
+        findFirst: vi.fn().mockResolvedValue(rsvpRow()),
+        updateMany: update,
+      },
+      rsvpHistory: { create: historyCreate },
+      auditEvent: { create: auditCreate },
+    });
+
+    await expect(
+      new PrismaOversightRepository(c).overrideRsvp(SCOPE, {
+        rsvpId: "r-1",
+        response: "DECLINED",
+        pax: 2,
+        actorId: "user-1",
+        correlationId: "corr-1",
+      }),
+    ).resolves.toEqual({ kind: "ok" });
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "r-1", tenantId: "t-1", optimisticVersion: 1 },
+      data: {
+        response: "DECLINED",
+        pax: 0,
+        optimisticVersion: { increment: 1 },
+      },
+    });
+    expect(historyCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        previousResponse: "ATTENDING",
+        newResponse: "DECLINED",
+        previousPax: 2,
+        newPax: 0,
+      }),
+    });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "RSVP_OVERRIDDEN",
+        targetId: "r-1",
+      }),
+    });
+  });
+
+  it("refuses a head-count above the household allowance", async () => {
+    const update = vi.fn();
+    const c = client({
+      rsvp: {
+        findFirst: vi.fn().mockResolvedValue(rsvpRow()),
+        updateMany: update,
+      },
+    });
+
+    await expect(
+      new PrismaOversightRepository(c).overrideRsvp(SCOPE, {
+        rsvpId: "r-1",
+        response: "ATTENDING",
+        pax: 9,
+        actorId: "user-1",
+        correlationId: "corr-1",
+      }),
+    ).resolves.toEqual({ kind: "invalid" });
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe("PrismaOversightRepository.exportRsvp", () => {
+  it("returns the tenant's answers and records the export", async () => {
+    const auditCreate = vi.fn().mockResolvedValue({ id: "audit-1" });
+    const c = client({
+      rsvp: { findMany: vi.fn().mockResolvedValue([rsvpRow()]) },
+      auditEvent: { create: auditCreate },
+    });
+
+    const rows = await new PrismaOversightRepository(c).exportRsvp(SCOPE, {
+      actorId: "user-1",
+      correlationId: "corr-1",
+    });
+
+    expect(rows).toEqual([
+      {
+        householdName: "Keluarga Rahman",
+        eventTitle: "Akad Nikah",
+        response: "ATTENDING",
+        pax: 2,
+        respondedAt: NOW,
+      },
+    ]);
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "RSVP_EXPORTED" }),
+    });
   });
 });

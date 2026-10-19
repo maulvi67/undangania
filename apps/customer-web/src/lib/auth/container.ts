@@ -18,6 +18,7 @@ import {
   createNotificationPortFromEnv,
 } from "@wedding/notifications";
 import { isAdequatePassword } from "./contract";
+import { resolveAuthAppUrl } from "./app-url";
 
 /**
  * Composition root for the verification and password-reset use-cases.
@@ -32,13 +33,7 @@ import { isAdequatePassword } from "./contract";
 
 /** Resolves the public base URL that action links are built from. */
 function appUrl(): string {
-  const configured = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
-  if (configured !== undefined && configured.trim().length > 0) {
-    return configured;
-  }
-  // Local development fallback only. Production must set APP_URL: a wrong origin
-  // here produces a verification link that silently lands on the wrong host.
-  return "http://localhost:3000";
+  return resolveAuthAppUrl();
 }
 
 /**

@@ -49,7 +49,10 @@ export default async function EditorPage({ searchParams }: EditorPageProps) {
   const authenticated = await getAuthenticatedRequest();
   if (authenticated === null) {
     return (
-      <EditorRouteView result={{ kind: "forbidden" }} initialSection={section} />
+      <EditorRouteView
+        result={{ kind: "forbidden" }}
+        initialSection={section}
+      />
     );
   }
 
@@ -69,6 +72,7 @@ export default async function EditorPage({ searchParams }: EditorPageProps) {
                 kind: "ok" as const,
                 document: loaded.document,
                 template: loaded.template,
+                invitationStatus: loaded.status,
                 initialSaveState: "saved" as const,
                 initialUploadState: null,
               }

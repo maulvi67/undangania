@@ -29,6 +29,7 @@ import {
   loadEditorDocument,
   publishInvitation,
   saveEditorDocument,
+  setInvitationActive,
   type EditorLoadPort,
 } from "./editor";
 import { isPlatformSection, loadAdminSection, type AdminPorts } from "./admin";
@@ -94,6 +95,7 @@ function checkoutPorts(overrides: Partial<CheckoutPorts> = {}): CheckoutPorts {
     method: "QRIS",
     status: "PENDING",
     expiresAt: null,
+    redirectUrl: "https://app.midtrans.com/qris/b1e9d0f2",
   };
 
   return {
@@ -101,6 +103,7 @@ function checkoutPorts(overrides: Partial<CheckoutPorts> = {}): CheckoutPorts {
       createOrder: vi.fn().mockResolvedValue(order),
       attachPayment: vi.fn().mockResolvedValue(payment),
       findByOrderId: vi.fn().mockResolvedValue(payment),
+      findByIdempotencyKey: vi.fn().mockResolvedValue(null),
     },
     pricing: { findPackagePrice: vi.fn().mockResolvedValue(250_000n) },
     promotions: { findRedeemable: vi.fn().mockResolvedValue(null) },
@@ -353,6 +356,221 @@ describe("createCheckout", () => {
     expect(ports.transactions.createOrder).toHaveBeenCalled();
     expect(ports.transactions.attachPayment).not.toHaveBeenCalled();
   });
+
+  it("replays the order and payment for a repeated attempt token", async () => {
+    const replayOrder: CheckoutOrder = {
+      id: "order-existing",
+      tenantId: "tenant-1",
+      userId: "user-1",
+      orderNumber: "WS-9F2K7QZ4AB",
+      currency: "IDR",
+      subtotalMinor: 250_000n,
+      discountMinor: 0n,
+      taxMinor: 0n,
+      totalMinor: 250_000n,
+      status: "PENDING_PAYMENT",
+      items: [
+        {
+          id: "item-1",
+          productCode: "PAKET_A",
+          descriptionSnapshot: "Paket PAKET_A x1",
+          unitPriceMinor: 250_000n,
+          quantity: 1,
+          totalMinor: 250_000n,
+          promotionCode: null,
+        },
+      ],
+    };
+    const replayPayment: CheckoutPayment = {
+      id: "payment-existing",
+      tenantId: "tenant-1",
+      orderId: "order-existing",
+      provider: "midtrans",
+      providerTransactionId: "existing-tx",
+      amountMinor: 250_000n,
+      currency: "IDR",
+      method: "QRIS",
+      status: "PENDING",
+      expiresAt: null,
+      redirectUrl: "https://app.midtrans.com/qris/existing-tx",
+    };
+    const ports = checkoutPorts({
+      transactions: {
+        createOrder: vi.fn(),
+        attachPayment: vi.fn(),
+        findByOrderId: vi.fn(),
+        findByIdempotencyKey: vi.fn().mockResolvedValue({
+          order: replayOrder,
+          payment: replayPayment,
+        }),
+      },
+    });
+
+    const result = await createCheckout(
+      OWNER,
+      {
+        productCode: "PAKET_A",
+        quantity: 1,
+        currency: "IDR",
+        idempotencyKey: "attempt-token-00000001",
+      },
+      ports,
+      NOW,
+    );
+
+    expect(result.order.id).toBe("order-existing");
+    expect(result.payment.id).toBe("payment-existing");
+    expect(result.redirectUrl).toBe(
+      "https://app.midtrans.com/qris/existing-tx",
+    );
+    expect(ports.pricing.findPackagePrice).not.toHaveBeenCalled();
+    expect(ports.provider.create).not.toHaveBeenCalled();
+    expect(ports.transactions.createOrder).not.toHaveBeenCalled();
+    expect(ports.transactions.attachPayment).not.toHaveBeenCalled();
+  });
+
+  it("refuses a repeated token with a different order shape", async () => {
+    const replayOrder: CheckoutOrder = {
+      id: "order-existing",
+      tenantId: "tenant-1",
+      userId: "user-1",
+      orderNumber: "WS-9F2K7QZ4AB",
+      currency: "IDR",
+      subtotalMinor: 250_000n,
+      discountMinor: 0n,
+      taxMinor: 0n,
+      totalMinor: 250_000n,
+      status: "PENDING_PAYMENT",
+      items: [
+        {
+          id: "item-1",
+          productCode: "PAKET_A",
+          descriptionSnapshot: "Paket PAKET_A x1",
+          unitPriceMinor: 250_000n,
+          quantity: 1,
+          totalMinor: 250_000n,
+          promotionCode: null,
+        },
+      ],
+    };
+    const ports = checkoutPorts({
+      transactions: {
+        createOrder: vi.fn(),
+        attachPayment: vi.fn(),
+        findByOrderId: vi.fn(),
+        findByIdempotencyKey: vi.fn().mockResolvedValue({
+          order: replayOrder,
+          payment: null,
+        }),
+      },
+    });
+
+    await expect(
+      createCheckout(
+        OWNER,
+        {
+          productCode: "PAKET_A",
+          quantity: 2,
+          currency: "IDR",
+          idempotencyKey: "attempt-token-00000001",
+        },
+        ports,
+        NOW,
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(ports.provider.create).not.toHaveBeenCalled();
+  });
+
+  it("does not create a second order when the previous attempt has no payment", async () => {
+    const replayOrder: CheckoutOrder = {
+      id: "order-existing",
+      tenantId: "tenant-1",
+      userId: "user-1",
+      orderNumber: "WS-9F2K7QZ4AB",
+      currency: "IDR",
+      subtotalMinor: 250_000n,
+      discountMinor: 0n,
+      taxMinor: 0n,
+      totalMinor: 250_000n,
+      status: "PENDING_PAYMENT",
+      items: [
+        {
+          id: "item-1",
+          productCode: "PAKET_A",
+          descriptionSnapshot: "Paket PAKET_A x1",
+          unitPriceMinor: 250_000n,
+          quantity: 1,
+          totalMinor: 250_000n,
+          promotionCode: null,
+        },
+      ],
+    };
+    const ports = checkoutPorts({
+      transactions: {
+        createOrder: vi.fn(),
+        attachPayment: vi.fn(),
+        findByOrderId: vi.fn(),
+        findByIdempotencyKey: vi.fn().mockResolvedValue({
+          order: replayOrder,
+          payment: null,
+        }),
+      },
+    });
+
+    await expect(
+      createCheckout(
+        OWNER,
+        {
+          productCode: "PAKET_A",
+          quantity: 1,
+          currency: "IDR",
+          idempotencyKey: "attempt-token-00000001",
+        },
+        ports,
+        NOW,
+      ),
+    ).rejects.toMatchObject({ code: "UNAVAILABLE" });
+    expect(ports.transactions.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("carries the attempt token to order creation", async () => {
+    const ports = checkoutPorts();
+
+    await createCheckout(
+      OWNER,
+      {
+        productCode: "PAKET_A",
+        quantity: 1,
+        currency: "IDR",
+        idempotencyKey: "attempt-token-00000001",
+      },
+      ports,
+      NOW,
+    );
+
+    expect(ports.transactions.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: "attempt-token-00000001" }),
+    );
+  });
+
+  it("rejects a malformed attempt token before touching pricing", async () => {
+    const ports = checkoutPorts();
+
+    await expect(
+      createCheckout(
+        OWNER,
+        {
+          productCode: "PAKET_A",
+          quantity: 1,
+          currency: "IDR",
+          idempotencyKey: "short",
+        },
+        ports,
+        NOW,
+      ),
+    ).rejects.toMatchObject({ code: "INVALID" });
+    expect(ports.pricing.findPackagePrice).not.toHaveBeenCalled();
+  });
 });
 
 describe("findCheckoutPayment", () => {
@@ -378,8 +596,12 @@ describe("findCheckoutPayment", () => {
 // Editor
 // ---------------------------------------------------------------------------
 
-function editorPorts(overrides: Partial<EditorLoadPort> = {}): {
+function editorPorts(
+  overrides: Partial<EditorLoadPort> = {},
+  entitled = true,
+): {
   editor: EditorLoadPort;
+  entitlements: { hasPublishEntitlement: ReturnType<typeof vi.fn> };
 } {
   return {
     editor: {
@@ -421,7 +643,11 @@ function editorPorts(overrides: Partial<EditorLoadPort> = {}): {
         publicationId: "publication-1",
         publicationVersion: 5,
       }),
+      setActive: vi.fn().mockResolvedValue({ kind: "paused" }),
       ...overrides,
+    },
+    entitlements: {
+      hasPublishEntitlement: vi.fn().mockResolvedValue(entitled),
     },
   };
 }
@@ -538,6 +764,25 @@ describe("publishInvitation", () => {
     });
   });
 
+  it("requires an active entitlement before publishing", async () => {
+    const ports = editorPorts({}, false);
+
+    await expect(
+      publishInvitation(
+        OWNER,
+        { invitationId: "invitation-1", snapshot: {}, baseVersion: 4 },
+        ports,
+      ),
+    ).rejects.toMatchObject({ code: "ENTITLEMENT_REQUIRED" });
+
+    expect(ports.entitlements.hasPublishEntitlement).toHaveBeenCalledWith({
+      tenantId: "tenant-1",
+      invitationId: "invitation-1",
+      at: expect.any(Date),
+    });
+    expect(ports.editor.publish).not.toHaveBeenCalled();
+  });
+
   it("surfaces a stale draft rather than publishing over it", async () => {
     const ports = editorPorts({
       publish: vi.fn().mockResolvedValue({ kind: "stale", currentVersion: 8 }),
@@ -564,6 +809,51 @@ describe("publishInvitation", () => {
         ports,
       ),
     ).rejects.toMatchObject({ code: "UNAVAILABLE" });
+  });
+});
+
+describe("setInvitationActive", () => {
+  it("pauses without depending on a live entitlement", async () => {
+    const ports = editorPorts(
+      { setActive: vi.fn().mockResolvedValue({ kind: "paused" }) },
+      false,
+    );
+
+    await expect(
+      setInvitationActive(
+        OWNER,
+        { invitationId: "invitation-1", active: false },
+        ports,
+      ),
+    ).resolves.toEqual({ kind: "paused" });
+    expect(ports.entitlements.hasPublishEntitlement).not.toHaveBeenCalled();
+  });
+
+  it("requires an entitlement before showing the invitation again", async () => {
+    const ports = editorPorts({}, false);
+
+    await expect(
+      setInvitationActive(
+        OWNER,
+        { invitationId: "invitation-1", active: true },
+        ports,
+      ),
+    ).rejects.toMatchObject({ code: "ENTITLEMENT_REQUIRED" });
+    expect(ports.editor.setActive).not.toHaveBeenCalled();
+  });
+
+  it("resumes when the entitlement is active", async () => {
+    const ports = editorPorts({
+      setActive: vi.fn().mockResolvedValue({ kind: "resumed" }),
+    });
+
+    await expect(
+      setInvitationActive(
+        OWNER,
+        { invitationId: "invitation-1", active: true },
+        ports,
+      ),
+    ).resolves.toEqual({ kind: "resumed" });
   });
 });
 

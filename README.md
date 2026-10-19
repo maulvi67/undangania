@@ -35,6 +35,14 @@ No agent may deploy production, alter authentication/payment/infrastructure cont
 
 See `LOCAL_SETUP_TESTING_GUIDE.md` for the complete local infrastructure, database, run, test, validation, agent, and troubleshooting workflow.
 
+## Production infrastructure setup
+
+Run `bash scripts/setup-cloudflare-r2-railway.sh` to wire Cloudflare (DNS/CDN),
+the private R2 bucket with CORS for direct uploads, Neon, Upstash, and the
+Railway Singapore service. It is interactive, records values in a gitignored
+`.env`, and provisions nothing on your behalf. The written reference is in
+`docs/deployment/railway.md` and `docs/deployment/cloudflare.md`.
+
 ## Route inventory
 
 See `docs/URL_INVENTORY.md` for the full list of customer and admin application routes, access requirements, and query parameters.

@@ -474,6 +474,8 @@ export const guestHouseholdCreateSchema = z.object({
   displayName: z.string().trim().min(1).max(GUEST_HOUSEHOLD_NAME_MAX),
   maximumPax: z.number().int().min(1).max(GUEST_MAXIMUM_PAX_CEILING),
   members: z.array(guestMemberInputSchema).min(1),
+  eventIds: z.array(z.string().min(1)).min(1),
+  tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
 });
 
 export type GuestHouseholdCreateInput = z.infer<
@@ -507,6 +509,8 @@ export const guestHouseholdUpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(GUEST_HOUSEHOLD_NAME_MAX),
   maximumPax: z.number().int().min(1).max(GUEST_MAXIMUM_PAX_CEILING),
   members: z.array(guestMemberInputSchema).min(1),
+  eventIds: z.array(z.string().min(1)).min(1),
+  tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
 });
 
 export type GuestHouseholdUpdateInput = z.infer<
@@ -526,6 +530,8 @@ export const guestImportRowSchema = z.object({
     .array(z.string().trim().min(1).max(GUEST_MEMBER_NAME_MAX))
     .min(1),
   maximumPax: z.number().int().min(1).max(GUEST_MAXIMUM_PAX_CEILING),
+  eventNames: z.array(z.string().trim().min(1).max(150)).max(20).default([]),
+  tag: z.string().trim().max(40).default(""),
 });
 
 export const guestImportRowsSchema = z.array(guestImportRowSchema);

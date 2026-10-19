@@ -1,6 +1,11 @@
-import { PrismaEditorRepository, isJsonValue } from "@wedding/database";
+import {
+  PrismaEditorRepository,
+  PrismaEntitlementRepository,
+  isJsonValue,
+} from "@wedding/database";
 import type {
   EditorDocument,
+  EditorEntitlementPort,
   EditorLoadPort,
   EditorPorts,
   EditorTemplate,
@@ -110,9 +115,18 @@ function editorPort(): EditorLoadPort {
         baseVersion: input.baseVersion,
       });
     },
+
+    setActive: (scope, input) => repository.setActive(scope, input),
+  };
+}
+
+function entitlementPort(): EditorEntitlementPort {
+  const repository = new PrismaEntitlementRepository();
+  return {
+    hasPublishEntitlement: (input) => repository.hasActiveForInvitation(input),
   };
 }
 
 export function getEditorPorts(): EditorPorts {
-  return { editor: editorPort() };
+  return { editor: editorPort(), entitlements: entitlementPort() };
 }

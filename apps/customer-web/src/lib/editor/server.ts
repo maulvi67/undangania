@@ -3,6 +3,8 @@ import {
   loadEditorDocument,
   publishInvitation,
   saveEditorDocument,
+  setInvitationActive,
+  EntitlementRequiredError,
   StaleVersionError,
   UnavailableError,
   InvalidInputError,
@@ -144,6 +146,7 @@ export type EditorLoadOutcome =
       kind: "ok";
       document: EditorDocument;
       template: EditorTemplate;
+      status: string;
     }>
   | Readonly<{ kind: "forbidden" }>
   | Readonly<{ kind: "unavailable" }>;
@@ -181,6 +184,7 @@ export async function loadEditorForSession(
     return {
       kind: "ok",
       document: document.data,
+      status: loaded.invitation.status,
       template: {
         id: loaded.template.id,
         version: loaded.template.version,
@@ -202,6 +206,7 @@ export type EditorPublishOutcome =
   | Readonly<{ kind: "stale" }>
   | Readonly<{ kind: "invalid" }>
   | Readonly<{ kind: "forbidden" }>
+  | Readonly<{ kind: "entitlement-required" }>
   | Readonly<{ kind: "provider-unavailable" }>;
 
 /**
@@ -241,9 +246,42 @@ export async function publishEditorForSession(
       slug: session.workspace.invitationSlug ?? "",
     };
   } catch (error) {
+    if (error instanceof EntitlementRequiredError)
+      return { kind: "entitlement-required" };
     if (error instanceof StaleVersionError) return { kind: "stale" };
     // Completion rules the editor already surfaced are reported as invalid so the
     // panel can re-list them rather than claiming an outage.
+    if (error instanceof InvalidInputError) return { kind: "invalid" };
+    if (error instanceof NotFoundError) return { kind: "forbidden" };
+    if (error instanceof UnavailableError)
+      return { kind: "provider-unavailable" };
+    return { kind: "provider-unavailable" };
+  }
+}
+
+export type EditorLifecycleOutcome =
+  | Readonly<{ kind: "paused" }>
+  | Readonly<{ kind: "resumed" }>
+  | Readonly<{ kind: "invalid" }>
+  | Readonly<{ kind: "forbidden" }>
+  | Readonly<{ kind: "entitlement-required" }>
+  | Readonly<{ kind: "provider-unavailable" }>;
+
+/** Pauses or reactivates the session's own invitation. */
+export async function setEditorInvitationActive(
+  session: Extract<EditorSessionResolution, { kind: "ok" }>,
+  active: boolean,
+): Promise<EditorLifecycleOutcome> {
+  try {
+    const result = await setInvitationActive(
+      tenantContextFor(session.workspace),
+      { invitationId: session.invitationId, active },
+      getEditorPorts(),
+    );
+    return { kind: result.kind };
+  } catch (error) {
+    if (error instanceof EntitlementRequiredError)
+      return { kind: "entitlement-required" };
     if (error instanceof InvalidInputError) return { kind: "invalid" };
     if (error instanceof NotFoundError) return { kind: "forbidden" };
     if (error instanceof UnavailableError)

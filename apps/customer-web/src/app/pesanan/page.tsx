@@ -19,6 +19,7 @@ const NAV = [
   { href: "/tamu", label: "Tamu" },
   { href: "/rsvp", label: "RSVP" },
   { href: "/buku-tamu", label: "Buku tamu" },
+  { href: "/notifikasi", label: "Notifikasi" },
   { href: "/pesanan", label: "Pesanan", current: true },
 ] as const;
 

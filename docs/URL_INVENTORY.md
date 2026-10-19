@@ -47,6 +47,7 @@ Semua route memakai data asli dari database; tidak ada data dummy. Halaman yang 
 | `/rsvp` | Daftar RSVP | — |
 | `/buku-tamu` | Moderasi buku tamu | — |
 | `/pesanan` | Riwayat pesanan | — |
+| `/notifikasi` | Status pengiriman email transaksional workspace | — |
 | `/checkout` | Checkout pembelian template | `template={id}` (wajib), `state=` state desain (mis. `provider-unavailable`, `offline`) |
 | `/checkout/status` | Status pembayaran pesanan; tombol “Periksa kembali status” merekonsiliasi status terbaru dari penyedia QRIS | `order={nomorPesanan}` |
 

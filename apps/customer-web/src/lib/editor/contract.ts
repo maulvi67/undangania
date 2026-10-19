@@ -317,6 +317,7 @@ export type EditorLoadResult =
       kind: "ok";
       document: EditorDocument;
       template: EditorTemplate;
+      invitationStatus: string;
       initialSaveState: EditorSaveState;
       initialUploadState: EditorMediaState | null;
     }

@@ -33,6 +33,8 @@ import {
 import { saveEditorDocument } from "../../lib/editor/transport";
 import {
   publishInvitationAction,
+  setInvitationActiveAction,
+  type InvitationLifecycleOutcome,
   type PublishOutcome,
 } from "../../lib/editor/publish-action";
 import { EditorHeader } from "./editor-header";
@@ -73,9 +75,7 @@ export function EditorRouteView({
       </main>
     );
   }
-  return (
-    <EditorShell result={result} initialSection={initialSection} />
-  );
+  return <EditorShell result={result} initialSection={initialSection} />;
 }
 
 function EditorShell({
@@ -104,6 +104,12 @@ function EditorShell({
   const [publishOutcome, setPublishOutcome] = useState<PublishOutcome | null>(
     null,
   );
+  const [invitationStatus, setInvitationStatus] = useState(
+    result.invitationStatus,
+  );
+  const [lifecyclePending, setLifecyclePending] = useState(false);
+  const [lifecycleOutcome, setLifecycleOutcome] =
+    useState<InvitationLifecycleOutcome | null>(null);
   const [conflict, setConflict] = useState<{
     local: EditorDocument;
     server: EditorDocument;
@@ -412,12 +418,12 @@ function EditorShell({
     publishingRef.current = true;
     setPublishing(true);
     try {
-      setPublishOutcome(
-        await publishInvitationAction({
-          baseVersion: baseDocumentRef.current.version,
-          templateId: result.template.id,
-        }),
-      );
+      const outcome = await publishInvitationAction({
+        baseVersion: baseDocumentRef.current.version,
+        templateId: result.template.id,
+      });
+      setPublishOutcome(outcome);
+      if (outcome.kind === "published") setInvitationStatus("PUBLISHED");
     } catch {
       setPublishOutcome({ kind: "unavailable" });
     } finally {
@@ -425,6 +431,29 @@ function EditorShell({
       setPublishing(false);
     }
   }, [result.template.id]);
+
+  const setActive = useCallback(
+    async (active: boolean) => {
+      if (lifecyclePending) return;
+      setLifecyclePending(true);
+      setLifecycleOutcome(null);
+      setPublishOutcome(null);
+      try {
+        const outcome = await setInvitationActiveAction({
+          active,
+          templateId: result.template.id,
+        });
+        setLifecycleOutcome(outcome);
+        if (outcome.kind === "paused") setInvitationStatus("PAUSED");
+        if (outcome.kind === "resumed") setInvitationStatus("PUBLISHED");
+      } catch {
+        setLifecycleOutcome({ kind: "unavailable" });
+      } finally {
+        setLifecyclePending(false);
+      }
+    },
+    [lifecyclePending, result.template.id],
+  );
 
   const model = toInvitationViewModel(document.content);
   const readiness = publicationReadiness(
@@ -513,9 +542,13 @@ function EditorShell({
           ) : null}
           <PublicationReadiness
             readiness={readiness}
+            status={invitationStatus}
             onSelect={setActiveSection}
             onPublish={() => void publish()}
+            onSetActive={(active) => void setActive(active)}
             pending={publishing}
+            lifecyclePending={lifecyclePending}
+            lifecycleOutcome={lifecycleOutcome}
             outcome={publishOutcome}
           />
           <div className="ed-mobile-section-picker">

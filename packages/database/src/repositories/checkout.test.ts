@@ -35,6 +35,7 @@ const orderRow = {
       unitPriceMinor: 250000n,
       quantity: 1,
       totalMinor: 250000n,
+      configurationSnapshot: {},
     },
   ],
 };
@@ -50,6 +51,7 @@ const paymentRow = {
   method: "QRIS",
   status: "PENDING",
   expiresAt: null,
+  redirectUrl: null,
 };
 
 describe("generateOrderNumber", () => {
@@ -473,6 +475,60 @@ describe("PrismaCheckoutOrderRepository", () => {
     expect(data).not.toHaveProperty("weddingId");
   });
 
+  it("persists the checkout attempt token", async () => {
+    const create = vi.fn().mockResolvedValue(orderRow);
+    const repository = new PrismaCheckoutOrderRepository({
+      order: { create, findFirst: vi.fn() },
+      orderItem: { create: vi.fn().mockResolvedValue({ id: "item-1" }) },
+    });
+
+    await repository.createOrder({
+      scope: SCOPE,
+      orderNumber: "WS-AB12CD34EF",
+      currency: "IDR",
+      subtotalMinor: 250000n,
+      discountMinor: 0n,
+      taxMinor: 0n,
+      totalMinor: 250000n,
+      idempotencyKey: "attempt-token-00000001",
+      item: {
+        productType: "INVITATION_PACKAGE",
+        productCode: "PAKET-PREMIUM",
+        descriptionSnapshot: "Paket Premium",
+        unitPriceMinor: 250000n,
+        quantity: 1,
+        totalMinor: 250000n,
+        configurationSnapshot: {},
+      },
+    });
+
+    const data = create.mock.calls[0]?.[0]?.data as Record<string, unknown>;
+    expect(data.checkoutIdempotencyKey).toBe("attempt-token-00000001");
+  });
+
+  it("finds a replayed order by tenant, user, and attempt token", async () => {
+    const findFirst = vi.fn().mockResolvedValue(orderRow);
+    const repository = new PrismaCheckoutOrderRepository({
+      order: { create: vi.fn(), findFirst },
+      orderItem: { create: vi.fn() },
+    });
+
+    const order = await repository.findByIdempotencyKey(
+      SCOPE,
+      "attempt-token-00000001",
+    );
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        tenantId: "tenant-1",
+        userId: "user-1",
+        checkoutIdempotencyKey: "attempt-token-00000001",
+      },
+      select: expect.anything(),
+    });
+    expect(order?.id).toBe("order-1");
+  });
+
   it("requires tenant and user scope when reading an order back", async () => {
     const findFirst = vi.fn().mockResolvedValue(orderRow);
     const repository = new PrismaCheckoutOrderRepository({
@@ -511,6 +567,7 @@ describe("PrismaCheckoutPaymentRepository", () => {
       method: "QRIS",
       amountMinor: 250000n,
       currency: "IDR",
+      redirectUrl: "https://app.midtrans.com/qris/b1e9d0f2",
     });
 
     expect(orderFindFirst).toHaveBeenCalledWith({
@@ -530,6 +587,7 @@ describe("PrismaCheckoutPaymentRepository", () => {
         provider: "midtrans",
         providerTransactionId: "b1e9d0f2",
         status: "PENDING",
+        redirectUrl: "https://app.midtrans.com/qris/b1e9d0f2",
       }),
       select: expect.anything(),
     });

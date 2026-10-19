@@ -103,6 +103,7 @@ type NavItem = Readonly<{
 const NAV_ITEMS: readonly NavItem[] = [
   { label: "Dashboard", icon: Heart, href: "/dashboard" },
   { label: "Pesanan Saya", icon: CreditCard, href: "/pesanan" },
+  { label: "Notifikasi", icon: Bell, href: "/notifikasi" },
   { label: "Undangan Saya", icon: Edit3, href: "/editor" },
   { label: "Pilih Template", icon: LayoutGrid, href: "/templates" },
   { label: "Data Acara", icon: CalendarDays, href: "/editor?section=events" },
@@ -145,6 +146,7 @@ const MODERATION_LABELS: Record<GuestbookModerationStatus, string> = {
   APPROVED: "Ditampilkan",
   REJECTED: "Ditolak",
   HIDDEN: "Disembunyikan",
+  DELETED: "Dihapus",
 };
 
 function moderationVariant(status: GuestbookModerationStatus): string {

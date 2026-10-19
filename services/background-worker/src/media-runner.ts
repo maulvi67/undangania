@@ -1,4 +1,7 @@
-import { PrismaMediaAssetRepository, type MediaAssetDto } from "@wedding/database";
+import {
+  PrismaMediaAssetRepository,
+  type MediaAssetDto,
+} from "@wedding/database";
 import {
   ConflictError,
   MediaProcessingRetryableError,
@@ -54,16 +57,30 @@ export type MediaProcessingProviders = Readonly<{
  * antivirus verdict is available. `MEDIA_DERIVATIVE_WRITER` accepts `none` (the
  * default) and generates no resized variants. Any other value fails closed, so a
  * typo cannot silently advance an unchecked asset to `READY`.
+ *
+ * In production the stand-ins are refused unless the deployment states the risk
+ * explicitly. Without that guard a production worker with no configured provider
+ * would mark every upload `READY` after signature inspection alone, which is
+ * indistinguishable from a scanner that found nothing. Operators either configure
+ * a real vendor or set the matching override for an approved environment.
  */
 export function createMediaProvidersFromEnv(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): MediaProcessingProviders {
+  const isProduction =
+    (env.NODE_ENV ?? "").trim().toLowerCase() === "production";
+
   const scanner = (env.MEDIA_MALWARE_SCANNER ?? "passthrough")
     .trim()
     .toLowerCase();
   if (scanner !== "passthrough") {
     throw new MediaRunnerUnavailableError(
       `Unsupported media malware scanner provider: ${scanner}`,
+    );
+  }
+  if (isProduction && !isEnabled(env.MEDIA_ALLOW_UNSCANNED_UPLOADS)) {
+    throw new MediaRunnerUnavailableError(
+      "MEDIA_MALWARE_SCANNER=passthrough is refused in production. Configure a real scanner or set MEDIA_ALLOW_UNSCANNED_UPLOADS=true to accept uploads without an antivirus verdict.",
     );
   }
 
@@ -75,11 +92,21 @@ export function createMediaProvidersFromEnv(
       `Unsupported media derivative writer provider: ${derivatives}`,
     );
   }
+  if (isProduction && !isEnabled(env.MEDIA_ALLOW_MISSING_DERIVATIVES)) {
+    throw new MediaRunnerUnavailableError(
+      "MEDIA_DERIVATIVE_WRITER=none is refused in production. Configure a real derivative writer or set MEDIA_ALLOW_MISSING_DERIVATIVES=true to serve originals only.",
+    );
+  }
 
   return {
     scanner: { scan: async () => ({ verdict: "clean" }) },
     derivatives: { generate: async () => undefined },
   };
+}
+
+/** Only an explicit `true` accepts the production risk; typos still fail closed. */
+function isEnabled(value: string | undefined): boolean {
+  return value?.trim().toLowerCase() === "true";
 }
 
 function objectPrefixReaderFor(storage: StoragePort): MediaObjectPrefixReader {

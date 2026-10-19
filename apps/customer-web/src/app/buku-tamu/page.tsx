@@ -22,6 +22,7 @@ const NAV = [
   { href: "/tamu", label: "Tamu" },
   { href: "/rsvp", label: "RSVP" },
   { href: "/buku-tamu", label: "Buku tamu", current: true },
+  { href: "/notifikasi", label: "Notifikasi" },
 ] as const;
 
 export default async function GuestbookPage() {

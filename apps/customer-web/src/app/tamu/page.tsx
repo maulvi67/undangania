@@ -29,6 +29,7 @@ const NAV = [
   { href: "/tamu", label: "Tamu", current: true },
   { href: "/rsvp", label: "RSVP" },
   { href: "/buku-tamu", label: "Buku tamu" },
+  { href: "/notifikasi", label: "Notifikasi" },
 ] as const;
 
 type GuestPageProps = {

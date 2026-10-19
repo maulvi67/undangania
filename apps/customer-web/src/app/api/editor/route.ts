@@ -76,6 +76,7 @@ export async function GET(request: Request) {
     kind: "ok",
     document: loaded.document,
     template: loaded.template,
+    invitationStatus: loaded.status,
     initialSaveState: "saved",
     initialUploadState: null,
   });

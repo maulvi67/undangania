@@ -16,7 +16,10 @@ draft/public separation; one active publication.
 DRAFT → READY → PUBLISHED ↔ PAUSED → EXPIRED → ARCHIVED.
 
 ## Use cases
-edit, preview, publish, pause, republish.
+edit, preview, publish, pause, reactivate. The editor exposes pause and
+reactivate against the existing immutable snapshot. Reactivating requires an
+active entitlement; pausing does not, so taking a page down never depends on a
+billing state.
 
 ## Validation
 required content, entitlement, slug.

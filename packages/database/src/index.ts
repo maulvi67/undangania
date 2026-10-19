@@ -55,6 +55,12 @@ export {
   PrismaQrisNotificationTransaction,
 } from "./repositories/qris-notification";
 export {
+  PrismaNotificationStatusRepository,
+  adaptNotificationStatusClient,
+  type NotificationStatusDto,
+  type NotificationStatusScope,
+} from "./repositories/notification-status";
+export {
   adaptOutboxConsumerClient,
   claimOutboxEvents,
   consumeOutboxBatch,
@@ -134,6 +140,13 @@ export {
   type EditorTransactionClient,
   type EditorTransactionPort,
 } from "./repositories/invitation-editor";
+export {
+  adaptEntitlementClient,
+  PrismaEntitlementRepository,
+  type EntitlementRepository,
+  type EntitlementRepositoryClient,
+  type EntitlementScope,
+} from "./repositories/entitlement";
 export {
   combineEventStartsAt,
   fromYmd,
@@ -281,8 +294,12 @@ export {
   type GuestbookRowDto,
   type OversightClient,
   type OversightScope,
+  type RsvpExportOptions,
+  type RsvpExportRowDto,
   type RsvpOversightDto,
   type RsvpOversightRowDto,
+  type RsvpOverrideInput,
+  type RsvpOverrideResult,
   type RsvpResponseValue,
 } from "./repositories/oversight";
 export {

@@ -12,6 +12,7 @@ import {
   loadEditorForSession,
   publishEditorForSession,
   resolveEditorSession,
+  setEditorInvitationActive,
 } from "./server";
 import { invalidatePublicInvitation } from "../public-invitation/publication-cache";
 
@@ -35,7 +36,47 @@ export type PublishOutcome =
   | Readonly<{ kind: "not-ready"; readiness: PublicationReadiness }>
   | Readonly<{ kind: "stale"; readiness: PublicationReadiness | null }>
   | Readonly<{ kind: "forbidden" }>
+  | Readonly<{ kind: "entitlement-required"; checkoutUrl: string }>
   | Readonly<{ kind: "unavailable" }>;
+
+export type InvitationLifecycleOutcome =
+  | Readonly<{ kind: "paused" | "resumed" }>
+  | Readonly<{ kind: "forbidden" | "invalid" | "unavailable" }>
+  | Readonly<{ kind: "entitlement-required"; checkoutUrl: string }>;
+
+export async function setInvitationActiveAction(input: {
+  active: boolean;
+  templateId: string;
+}): Promise<InvitationLifecycleOutcome> {
+  const session = await resolveEditorSession(
+    editorTemplateIdFromSearch(input.templateId),
+  );
+  if (session.kind !== "ok") return { kind: "forbidden" };
+
+  const result = await setEditorInvitationActive(session, input.active);
+  switch (result.kind) {
+    case "paused":
+    case "resumed": {
+      const slug = session.workspace.invitationSlug;
+      if (slug !== null) {
+        await invalidatePublicInvitation(slug);
+        revalidatePath(`/invite/${slug}`);
+      }
+      return { kind: result.kind };
+    }
+    case "entitlement-required":
+      return {
+        kind: "entitlement-required",
+        checkoutUrl: `/checkout?template=${encodeURIComponent(input.templateId)}`,
+      };
+    case "invalid":
+      return { kind: "invalid" };
+    case "forbidden":
+      return { kind: "forbidden" };
+    default:
+      return { kind: "unavailable" };
+  }
+}
 
 export async function publishInvitationAction(input: {
   baseVersion: number;
@@ -90,6 +131,11 @@ export async function publishInvitationAction(input: {
       return { kind: "stale", readiness };
     case "forbidden":
       return { kind: "forbidden" };
+    case "entitlement-required":
+      return {
+        kind: "entitlement-required",
+        checkoutUrl: `/checkout?template=${encodeURIComponent(input.templateId)}`,
+      };
     case "provider-unavailable":
     default:
       return { kind: "unavailable" };

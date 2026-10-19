@@ -52,6 +52,8 @@ export type CheckoutOrder = Readonly<{
     unitPriceMinor: bigint;
     quantity: number;
     totalMinor: bigint;
+    /** Promotion snapshot used to prove a replay matches the original request. */
+    promotionCode: string | null;
   }>[];
 }>;
 
@@ -66,6 +68,8 @@ export type CheckoutPayment = Readonly<{
   method: string;
   status: string;
   expiresAt: Date | null;
+  /** Provider-hosted page, present once the charge succeeded. */
+  redirectUrl: string | null;
 }>;
 
 export type CheckoutPromotionRule = Readonly<{
@@ -90,6 +94,8 @@ export interface CheckoutTransactionPort {
     discountMinor: bigint;
     taxMinor: bigint;
     totalMinor: bigint;
+    /** Present when the caller supplied an attempt token for deduplication. */
+    idempotencyKey?: string;
     item: Readonly<{
       productType: string;
       productCode: string;
@@ -110,11 +116,24 @@ export interface CheckoutTransactionPort {
     currency: string;
     expiresAt?: Date | null;
     promotionId?: string;
+    redirectUrl?: string | null;
   }): Promise<CheckoutPayment | null>;
   findByOrderId(
     scope: CheckoutScope,
     orderId: string,
   ): Promise<CheckoutPayment | null>;
+  /**
+   * Finds the order already created for a checkout attempt token. Returns the
+   * payment when the earlier attempt reached the provider, so a retry can answer
+   * with the same order instead of charging again.
+   */
+  findByIdempotencyKey(
+    scope: CheckoutScope,
+    idempotencyKey: string,
+  ): Promise<Readonly<{
+    order: CheckoutOrder;
+    payment: CheckoutPayment | null;
+  }> | null>;
 }
 
 /** Port: catalog pricing. */
@@ -164,6 +183,12 @@ export type CreateCheckoutInput = Readonly<{
   currency: string;
   promotionCode?: string;
   locale?: "id" | "en";
+  /**
+   * Client attempt token. Required in practice for the customer-web checkout:
+   * it makes a retried or concurrent request land on the same order instead of
+   * creating a second one and charging twice.
+   */
+  idempotencyKey?: string;
 }>;
 
 export type CreateCheckoutResult = Readonly<{
@@ -174,6 +199,7 @@ export type CreateCheckoutResult = Readonly<{
 
 const MAX_QUANTITY = 100;
 const DEFAULT_CURRENCY = "IDR";
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{16,128}$/;
 
 /**
  * Applies a promotion rule to a subtotal. Clamped so a malformed rule can never
@@ -240,6 +266,56 @@ export async function createCheckout(
     userId: tenant.actorId,
   };
 
+  const rawIdempotencyKey = input.idempotencyKey?.trim();
+  const idempotencyKey =
+    rawIdempotencyKey === undefined || rawIdempotencyKey === ""
+      ? undefined
+      : rawIdempotencyKey;
+  if (
+    idempotencyKey !== undefined &&
+    !IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)
+  ) {
+    throw new InvalidInputError("Token pembayaran tidak valid.");
+  }
+
+  if (idempotencyKey !== undefined) {
+    const replay = await ports.transactions.findByIdempotencyKey(
+      scope,
+      idempotencyKey,
+    );
+    if (replay !== null) {
+      const item = replay.order.items[0];
+      const requestedPromotion =
+        input.promotionCode === undefined || input.promotionCode.trim() === ""
+          ? null
+          : input.promotionCode.trim().toUpperCase();
+      if (
+        item === undefined ||
+        item.productCode !== input.productCode ||
+        item.quantity !== input.quantity ||
+        item.promotionCode !== requestedPromotion ||
+        replay.order.currency !== currency
+      ) {
+        throw new ConflictError(
+          "Permintaan pembayaran berbeda dari pesanan sebelumnya.",
+        );
+      }
+      if (replay.payment === null || replay.payment.redirectUrl === null) {
+        // The first attempt created the order but never captured a charge. Do not
+        // mint a second order under the same token; the caller may start a fresh
+        // attempt with a new token.
+        throw new UnavailableError(
+          "Pembayaran sebelumnya belum selesai. Silakan periksa status pesanan.",
+        );
+      }
+      return {
+        order: replay.order,
+        payment: replay.payment,
+        redirectUrl: replay.payment.redirectUrl,
+      };
+    }
+  }
+
   const unitPriceMinor = await ports.pricing.findPackagePrice({
     productCode: input.productCode,
     currency,
@@ -284,6 +360,7 @@ export async function createCheckout(
     discountMinor,
     taxMinor,
     totalMinor,
+    ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
     item: {
       productType: "PACKAGE",
       productCode: input.productCode,
@@ -323,6 +400,7 @@ export async function createCheckout(
     method: "QRIS",
     amountMinor: totalMinor,
     currency,
+    redirectUrl: charge.redirectUrl,
     ...(promotion === null ? {} : { promotionId: promotion.id }),
   });
   if (payment === null) {

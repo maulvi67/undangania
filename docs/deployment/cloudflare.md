@@ -9,12 +9,13 @@ Railway.
 ```text
 example.com       -> Railway (proxied)
 www.example.com   -> Railway (proxied, redirect to apex if preferred)
-assets.example.com-> R2 custom domain (proxied)
+assets.example.com-> R2 custom domain (optional; not used by the current app)
 ```
 
 The application origin is proxied so TLS termination, WAF, and caching apply.
-`assets.example.com` is bound to the R2 bucket as a custom domain; it is the only
-host that serves media.
+Media delivery is described below: the bucket stays private and the app signs
+short-lived read URLs, so a public media hostname is not part of the current
+data model.
 
 ## TLS
 
@@ -23,10 +24,44 @@ certificates are managed by Cloudflare/Railway, not committed to this repository
 
 ## Media domain
 
-R2 is exposed through the `assets.example.com` custom domain. The application
-stores an **object key** (`weddings/{weddingId}/gallery/{uuid}.webp`) in the
-database and signs short-lived read URLs at render time; it never stores or
-exposes a permanent public URL or the bucket credentials.
+The R2 bucket stays private. The application stores an **object key**
+(`{tenantId}/{weddingId}/media/{uuid}.{ext}`) in the database and signs a
+short-lived read URL at render time (5 minutes by default). It never stores a
+permanent public URL and never exposes bucket credentials.
+
+`STORAGE_PUBLIC_URL` is not read by the application, so a public custom domain
+is not required for media to work. Bind `assets.example.com` to R2 only for
+assets that are intentionally public and immutable (for example template
+artwork); do not point it at the wedding-media bucket, because signed URLs are
+what keep unlisted media unlisted.
+
+## R2 CORS
+
+Uploads go from the browser straight to R2 after Railway signs a PUT, so the
+bucket needs a CORS policy for the application origin:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://example.com", "http://localhost:3000"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+`PUT` is the direct upload; `GET`/`HEAD` cover signed reads performed by browser
+code. The presigned URL signs `content-type;host`, so the browser must send
+exactly the `Content-Type` the server signed, which is why `Content-Type` is the
+only allowed header. The signature travels in the query string, so no
+`Authorization` header is involved. R2 answers the preflight itself, so `OPTIONS`
+is not listed.
+
+Add every origin the app is served from (apex, `www`, any preview host). A
+missing origin surfaces as a CORS failure in the browser console, not as a
+server error.
 
 ## Cache policy
 

@@ -46,10 +46,18 @@ function toImportRows(
   householdName: string;
   memberNames: readonly string[];
   maximumPax: number;
+  eventNames: readonly string[];
+  tag: string;
 }[] {
   const byName = new Map<
     string,
-    { householdName: string; memberNames: string[]; maximumPax: number }
+    {
+      householdName: string;
+      memberNames: string[];
+      maximumPax: number;
+      eventNames: Set<string>;
+      tag: string;
+    }
   >();
   for (const row of preview.rows) {
     const accepted =
@@ -64,10 +72,15 @@ function toImportRows(
         householdName: row.householdName.trim(),
         memberNames: [row.guestName.trim()],
         maximumPax: row.maximumPax ?? 1,
+        eventNames: new Set(row.eventNames),
+        tag: row.tag.trim(),
       });
       continue;
     }
     existing.memberNames.push(row.guestName.trim());
+    for (const eventName of row.eventNames) existing.eventNames.add(eventName);
+    if (existing.tag === "" && row.tag.trim() !== "")
+      existing.tag = row.tag.trim();
     // The largest figure wins: a household is imported once, and taking the smaller
     // of two stated allowances would silently drop someone the couple listed.
     existing.maximumPax = Math.max(existing.maximumPax, row.maximumPax ?? 1);
@@ -78,6 +91,8 @@ function toImportRows(
     // The allowance can never be smaller than the members actually named, which is
     // a rule the form enforces too.
     maximumPax: Math.max(entry.maximumPax, entry.memberNames.length),
+    eventNames: [...entry.eventNames],
+    tag: entry.tag,
   }));
 }
 

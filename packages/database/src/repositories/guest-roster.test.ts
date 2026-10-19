@@ -11,6 +11,8 @@ function householdRow(overrides: Record<string, unknown> = {}) {
     maximumPax: 4,
     tokenVersion: 1,
     status: "ACTIVE",
+    tags: [],
+    eventAccess: [],
     updatedAt: new Date("2026-09-11T08:00:00.000Z"),
     _count: { guests: 2 },
     guests: [
@@ -44,6 +46,11 @@ function client(overrides: Record<string, unknown> = {}) {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       ...((overrides.guest as object) ?? {}),
+    },
+    guestEventAccess: {
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      ...((overrides.guestEventAccess as object) ?? {}),
     },
     auditEvent: {
       create: vi.fn().mockResolvedValue({ id: "audit-1" }),
@@ -94,6 +101,8 @@ describe("PrismaGuestRosterRepository.loadOverview", () => {
           displayName: "Keluarga Rahman",
           maximumPax: 4,
           memberCount: 2,
+          tags: [],
+          eventIds: ["e-1"],
           linkStatus: "ACTIVE",
           updatedAt: new Date("2026-09-11T08:00:00.000Z"),
         },
@@ -102,6 +111,8 @@ describe("PrismaGuestRosterRepository.loadOverview", () => {
           displayName: "Keluarga Wulandari",
           maximumPax: 2,
           memberCount: 3,
+          tags: [],
+          eventIds: ["e-1"],
           linkStatus: "ACTIVE",
           updatedAt: new Date("2026-09-11T08:00:00.000Z"),
         },
@@ -123,6 +134,7 @@ describe("PrismaGuestRosterRepository.loadOverview", () => {
       where: {
         tenantId: "t-1",
         weddingId: "w-1",
+        status: { not: "DELETED" },
         wedding: { tenantId: "t-1" },
       },
       orderBy: [{ displayName: "asc" }, { id: "asc" }],
@@ -328,6 +340,7 @@ describe("PrismaGuestRosterRepository.update", () => {
         id: "hh-1",
         tenantId: "t-1",
         weddingId: "w-1",
+        status: { not: "DELETED" },
         wedding: { tenantId: "t-1" },
       },
       data: { displayName: "Nama Baru" },
@@ -464,6 +477,7 @@ describe("PrismaGuestRosterRepository.exportRoster", () => {
         id: { in: ["hh-1"] },
         tenantId: "t-1",
         weddingId: "w-1",
+        status: { not: "DELETED" },
         wedding: { tenantId: "t-1" },
       },
       orderBy: [{ displayName: "asc" }, { id: "asc" }],
@@ -503,5 +517,72 @@ describe("PrismaGuestRosterRepository.exportRoster", () => {
       }),
     ).resolves.toBe(null);
     expect(auditCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("PrismaGuestRosterRepository organization", () => {
+  it("stores tags and event access when creating a household", async () => {
+    const c = client({
+      weddingEvent: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: "e-1", title: "Akad Nikah" }]),
+      },
+    });
+
+    await new PrismaGuestRosterRepository(c).create(SCOPE, {
+      displayName: "Keluarga Baru",
+      maximumPax: 2,
+      members: [{ displayName: "Tamu", category: "ADULT" }],
+      eventIds: ["e-1"],
+      tags: ["Keluarga besar"],
+    });
+
+    const args = calls<{ data: Record<string, unknown> }>(
+      c.guestHousehold.create,
+    )[0]?.[0];
+    expect(args?.data.tags).toEqual(["Keluarga besar"]);
+    expect(c.guestEventAccess.createMany).toHaveBeenCalledWith({
+      data: [{ tenantId: "t-1", householdId: "hh-1", eventId: "e-1" }],
+    });
+  });
+
+  it("refuses an event id that belongs to another wedding", async () => {
+    const c = client({
+      weddingEvent: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ id: "e-1", title: "Akad Nikah" }]),
+      },
+    });
+
+    await expect(
+      new PrismaGuestRosterRepository(c).create(SCOPE, {
+        displayName: "Keluarga Baru",
+        maximumPax: 2,
+        members: [{ displayName: "Tamu", category: "ADULT" }],
+        eventIds: ["e-other"],
+      }),
+    ).resolves.toBe(null);
+    expect(c.guestHousehold.create).not.toHaveBeenCalled();
+  });
+
+  it("soft-deletes a household while keeping history", async () => {
+    const c = client();
+
+    await expect(
+      new PrismaGuestRosterRepository(c).delete(SCOPE, "hh-1"),
+    ).resolves.toBe(true);
+
+    expect(c.guestHousehold.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "hh-1",
+        tenantId: "t-1",
+        weddingId: "w-1",
+        status: { not: "DELETED" },
+        wedding: { tenantId: "t-1" },
+      },
+      data: { status: "DELETED" },
+    });
   });
 });

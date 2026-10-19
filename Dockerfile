@@ -23,6 +23,13 @@ COPY services ./services
 RUN npm ci
 
 FROM deps AS builder
+# Railway injects service variables at build time only when the Dockerfile
+# declares them as ARG. `NEXT_PUBLIC_*` is inlined into the bundle during
+# `next build`, so the public origin must be present here, not just at runtime.
+# The default keeps an unconfigured local build on the same localhost fallback
+# the app already uses.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 # Builds the app and every workspace package it depends on, in dependency order.
 RUN npx --no-install turbo run build --filter=@wedding/customer-web
 

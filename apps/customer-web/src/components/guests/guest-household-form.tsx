@@ -92,8 +92,10 @@ export function GuestHouseholdForm({
     else if (parsedPax < namedMembers)
       result.maximumPax =
         "Maksimal pax tidak boleh lebih kecil dari jumlah tamu yang sudah ditambahkan.";
+    if (eventIds.size === 0)
+      result.events = "Pilih setidaknya satu acara untuk rumah tangga ini.";
     return result;
-  }, [displayName, maximumPax, members]);
+  }, [displayName, eventIds, maximumPax, members]);
   const updateMember = (id: string, patch: Partial<MemberDraft>) => {
     setMembers((current) =>
       current.map((member) =>
@@ -132,6 +134,8 @@ export function GuestHouseholdForm({
     const body = {
       displayName: displayName.trim(),
       maximumPax: Number(maximumPax),
+      eventIds: [...eventIds],
+      tags: tag.trim() === "" ? [] : [tag.trim()],
       members: members
         .filter((member) => member.name.trim() !== "")
         .map((member) => ({
@@ -274,14 +278,12 @@ export function GuestHouseholdForm({
         <fieldset
           className="gst-event-fieldset"
           aria-describedby="gst-events-note"
-          disabled
         >
           <legend>
             Akses acara <span className="ui-field__req">(wajib)</span>
           </legend>
           <p className="gst-form__hint" id="gst-events-note">
-            Belum dapat disimpan. Setiap rumah tangga saat ini dapat
-            mengonfirmasi semua acara di workspace ini.
+            Tamu hanya dapat melihat dan mengonfirmasi acara yang dipilih.
           </p>
           {events.map((event) => (
             <Checkbox
@@ -309,7 +311,7 @@ export function GuestHouseholdForm({
             { value: "", label: "Tanpa tag" },
             ...tags.map((item) => ({ value: item.label, label: item.label })),
           ]}
-          hint="Belum dapat disimpan. Penyaringan berdasarkan tag belum tersedia."
+          hint="Tag dipakai untuk menyaring daftar tamu di halaman Tamu."
         />
       </section>
 

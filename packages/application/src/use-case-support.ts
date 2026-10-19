@@ -36,6 +36,7 @@ export type UseCaseErrorCode =
   | "INVALID"
   | "UNAVAILABLE"
   | "PROVIDER_UNAVAILABLE"
+  | "ENTITLEMENT_REQUIRED"
   | "ENTITLEMENT_LIMIT_REACHED"
   | "NOT_IMPLEMENTED";
 
@@ -88,6 +89,15 @@ export class ProviderUnavailableError extends UseCaseError {
   public constructor(message = "The upstream provider is unavailable.") {
     super("PROVIDER_UNAVAILABLE", message);
     this.name = "ProviderUnavailableError";
+  }
+}
+
+export class EntitlementRequiredError extends UseCaseError {
+  public constructor(
+    message = "An active entitlement is required for this action.",
+  ) {
+    super("ENTITLEMENT_REQUIRED", message);
+    this.name = "EntitlementRequiredError";
   }
 }
 

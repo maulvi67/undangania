@@ -22,6 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
   APPROVED: "Ditampilkan",
   REJECTED: "Ditolak",
   HIDDEN: "Disembunyikan",
+  DELETED: "Dihapus",
 };
 
 const STATUS_TONES: Record<string, "olive" | "blush" | "gold" | "neutral"> = {
@@ -29,6 +30,7 @@ const STATUS_TONES: Record<string, "olive" | "blush" | "gold" | "neutral"> = {
   APPROVED: "olive",
   REJECTED: "blush",
   HIDDEN: "neutral",
+  DELETED: "blush",
 };
 
 function formatDate(value: Date): string {
@@ -77,7 +79,9 @@ export function GuestbookModerationView({
           ? "Ucapan ditampilkan pada undangan."
           : decision === "REJECTED"
             ? "Ucapan ditolak dan tidak ditampilkan."
-            : "Ucapan disembunyikan.",
+            : decision === "DELETED"
+              ? "Ucapan dihapus dari undangan."
+              : "Ucapan disembunyikan.",
       );
     } finally {
       setPendingId(null);
@@ -184,6 +188,14 @@ export function GuestbookModerationView({
                       onClick={() => void decide(row.id, "HIDDEN")}
                     >
                       Sembunyikan
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      disabled={pendingId === row.id || current === "DELETED"}
+                      onClick={() => void decide(row.id, "DELETED")}
+                    >
+                      Hapus
                     </Button>
                   </div>
                 ) : null}

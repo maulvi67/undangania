@@ -122,6 +122,8 @@ describe("GuestImportWizard", () => {
         householdName: "Keluarga Budi Santoso",
         memberNames: ["Budi Santoso"],
         maximumPax: 4,
+        eventNames: ["Akad Nikah", "Resepsi"],
+        tag: "Keluarga besar",
       },
     ]);
     expect(screen.getByRole("heading", { name: "Impor selesai" })).toBeTruthy();
@@ -146,6 +148,8 @@ describe("GuestImportWizard", () => {
         householdName: "Keluarga Rahman",
         memberNames: ["Ahmad Rahman", "Siti Rahman", "Naya Rahman"],
         maximumPax: 4,
+        eventNames: ["Resepsi"],
+        tag: "Keluarga",
       },
     ]);
   });
@@ -168,6 +172,8 @@ describe("GuestImportWizard", () => {
         householdName: "Keluarga Kecil",
         memberNames: ["Anak Satu", "Anak Dua"],
         maximumPax: 2,
+        eventNames: ["Resepsi"],
+        tag: "",
       },
     ]);
   });
@@ -188,6 +194,8 @@ describe("GuestImportWizard", () => {
         householdName: "Keluarga Pantas",
         memberNames: ["Maya Pantas"],
         maximumPax: 2,
+        eventNames: ["Resepsi"],
+        tag: "Teman",
       },
     ]);
   });

@@ -47,6 +47,7 @@ export {
   assertAnyRole,
   ConflictError,
   EntitlementLimitReachedError,
+  EntitlementRequiredError,
   InvalidInputError,
   isCalendarDate,
   isNonEmptyText,
@@ -84,12 +85,15 @@ export {
   loadEditorDocument,
   publishInvitation,
   saveEditorDocument,
+  setInvitationActive,
   type EditorDocument,
+  type EditorEntitlementPort,
   type EditorInvitation,
   type EditorLoadPort,
   type EditorPorts,
   type EditorScope,
   type EditorTemplate,
+  type InvitationLifecycleResult,
   type PublishResult,
 } from "./editor";
 export {

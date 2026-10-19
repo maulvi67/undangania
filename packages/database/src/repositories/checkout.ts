@@ -52,6 +52,7 @@ const createdOrderSelect = {
       unitPriceMinor: true,
       quantity: true,
       totalMinor: true,
+      configurationSnapshot: true,
     },
     orderBy: { id: "asc" },
   },
@@ -107,6 +108,7 @@ const paymentSelect = {
   method: true,
   status: true,
   expiresAt: true,
+  redirectUrl: true,
 } as const satisfies Prisma.PaymentSelect;
 
 type PaymentRow = Prisma.PaymentGetPayload<{ select: typeof paymentSelect }>;
@@ -255,6 +257,7 @@ export type CheckoutOrderItemDto = Readonly<{
   unitPriceMinor: bigint;
   quantity: number;
   totalMinor: bigint;
+  promotionCode: string | null;
 }>;
 
 export type CheckoutOrderDto = Readonly<{
@@ -282,6 +285,7 @@ export type CheckoutPaymentDto = Readonly<{
   method: string | null;
   status: string;
   expiresAt: Date | null;
+  redirectUrl: string | null;
 }>;
 
 export type CheckoutValidationCode =
@@ -332,6 +336,7 @@ export interface CheckoutOrderRepository {
     discountMinor: bigint;
     taxMinor: bigint;
     totalMinor: bigint;
+    idempotencyKey?: string;
     item: Readonly<{
       productType: string;
       productCode: string;
@@ -345,6 +350,11 @@ export interface CheckoutOrderRepository {
   findOrder(
     scope: CheckoutScope,
     orderId: string,
+  ): Promise<CheckoutOrderDto | null>;
+  /** Finds the order minted for a checkout attempt token, scoped to its owner. */
+  findByIdempotencyKey(
+    scope: CheckoutScope,
+    idempotencyKey: string,
   ): Promise<CheckoutOrderDto | null>;
 }
 
@@ -364,6 +374,7 @@ export interface CheckoutPaymentRepository {
     currency: string;
     expiresAt?: Date | null;
     promotionId?: string;
+    redirectUrl?: string | null;
   }): Promise<CheckoutPaymentDto | null>;
   /** Existing payment for an order, so a retry cannot charge twice. */
   findByOrderId(
@@ -453,8 +464,21 @@ function toCheckoutOrderDto(row: CreatedOrderRow): CheckoutOrderDto {
       unitPriceMinor: item.unitPriceMinor,
       quantity: item.quantity,
       totalMinor: item.totalMinor,
+      promotionCode: promotionCodeFromSnapshot(item.configurationSnapshot),
     })),
   };
+}
+
+function promotionCodeFromSnapshot(snapshot: unknown): string | null {
+  if (
+    typeof snapshot !== "object" ||
+    snapshot === null ||
+    Array.isArray(snapshot)
+  ) {
+    return null;
+  }
+  const code = (snapshot as Record<string, unknown>).promotionCode;
+  return typeof code === "string" && code.length > 0 ? code : null;
 }
 
 function toCheckoutPaymentDto(row: PaymentRow): CheckoutPaymentDto {
@@ -469,6 +493,7 @@ function toCheckoutPaymentDto(row: PaymentRow): CheckoutPaymentDto {
     method: row.method,
     status: row.status,
     expiresAt: row.expiresAt,
+    redirectUrl: row.redirectUrl,
   };
 }
 
@@ -634,6 +659,7 @@ export class PrismaCheckoutOrderRepository implements CheckoutOrderRepository {
     discountMinor: bigint;
     taxMinor: bigint;
     totalMinor: bigint;
+    idempotencyKey?: string;
     item: Readonly<{
       productType: string;
       productCode: string;
@@ -659,6 +685,9 @@ export class PrismaCheckoutOrderRepository implements CheckoutOrderRepository {
         taxMinor: input.taxMinor,
         totalMinor: input.totalMinor,
         status: "PENDING_PAYMENT",
+        ...(input.idempotencyKey === undefined
+          ? {}
+          : { checkoutIdempotencyKey: input.idempotencyKey }),
       },
       select: createdOrderSelect,
     });
@@ -696,6 +725,22 @@ export class PrismaCheckoutOrderRepository implements CheckoutOrderRepository {
 
     return row === null ? null : toCheckoutOrderDto(row);
   }
+
+  public async findByIdempotencyKey(
+    scope: CheckoutScope,
+    idempotencyKey: string,
+  ): Promise<CheckoutOrderDto | null> {
+    const row = await this.client.order.findFirst({
+      where: {
+        tenantId: scope.tenantId,
+        userId: scope.userId,
+        checkoutIdempotencyKey: idempotencyKey,
+      },
+      select: createdOrderSelect,
+    });
+
+    return row === null ? null : toCheckoutOrderDto(row);
+  }
 }
 
 export class PrismaCheckoutPaymentRepository implements CheckoutPaymentRepository {
@@ -711,6 +756,7 @@ export class PrismaCheckoutPaymentRepository implements CheckoutPaymentRepositor
     currency: string;
     expiresAt?: Date | null;
     promotionId?: string;
+    redirectUrl?: string | null;
   }): Promise<CheckoutPaymentDto | null> {
     // Parent-ownership pre-check. `Payment` carries `tenantId` but has no
     // tenant relation of its own, so ownership is proven through the order.
@@ -737,6 +783,9 @@ export class PrismaCheckoutPaymentRepository implements CheckoutPaymentRepositor
         ...(input.expiresAt === undefined || input.expiresAt === null
           ? {}
           : { expiresAt: input.expiresAt }),
+        ...(input.redirectUrl === undefined || input.redirectUrl === null
+          ? {}
+          : { redirectUrl: input.redirectUrl }),
       },
       select: paymentSelect,
     });
