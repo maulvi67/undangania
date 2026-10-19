@@ -8,29 +8,56 @@ media is served from Cloudflare R2, never from these services.
 ## Service topology
 
 Every service builds from the repository root, because npm workspaces resolve
-every package from the single root lockfile. Each service points Railway
-config-as-code at its own file; the path is set per service in
-**Settings > Config-as-code**, so a single `railway.json` cannot describe the
-whole project.
+every package from the single root lockfile. The whole project is described by
+one Infrastructure as Code file, `.railway/railway.ts`.
 
-| Service | Dockerfile | Config file | Port | Health path |
-| --- | --- | --- | --- | --- |
-| customer-web | `Dockerfile` | `railway.json` | 3000 | `/api/health` |
-| admin-dashboard | `docker/admin-dashboard.Dockerfile` | `railway.admin.json` | 3001 | `/api/health` |
-| backend-api | `docker/backend-api.Dockerfile` | `railway.backend.json` | 4000 | `/health` |
-| background-worker | `docker/background-worker.Dockerfile` | `railway.worker.json` | none | process exits |
-| notification-relay | `docker/notification-relay.Dockerfile` | `railway.relay.json` | 4100 | `/health` |
+| Service | Dockerfile | Port | Health path |
+| --- | --- | --- | --- |
+| customer-web | `Dockerfile` | 3000 | `/api/health` |
+| admin-dashboard | `docker/admin-dashboard.Dockerfile` | 3001 | `/api/health` |
+| backend-api | `docker/backend-api.Dockerfile` | 4000 | `/health` |
+| background-worker | `docker/background-worker.Dockerfile` | none | process exits |
+| notification-relay | `docker/notification-relay.Dockerfile` | 4100 | `/health` |
 
 The worker has no HTTP listener: its liveness signal is the process staying
 alive, so its config omits `healthcheckPath` and restarts `ON_FAILURE`.
 
-All configs set `build.builder: DOCKERFILE` and the repository-root build
+Each service sets `build.builder: DOCKERFILE` and the repository-root build
 context. `deploy.restartPolicyType: ON_FAILURE` keeps a crashed service from
-looping forever on a configuration error.
+looping forever on a configuration error. The file omits `source`, so the GitHub
+repository and branch stay managed in the Railway dashboard.
 
-Alternatively, deploy from GitHub with the Dockerfile builder and let Railway
-read the config file; do not invent build commands that duplicate the repository
-scripts.
+### Plan and apply
+
+The Railway CLI evaluates the authoring file against the linked environment:
+
+```text
+railway login
+railway link
+railway config plan
+railway config apply
+```
+
+`plan` is a preview; `apply` changes the environment only after confirmation. Do
+not add `railway.json` or `railway.toml` back: a service managed by Config as
+Code blocks IaC, and the two systems cannot manage the same service.
+
+### Migrating from Config as Code
+
+This repository previously used five `railway*.json` files. They have been
+replaced by `.railway/railway.ts` and removed. If the linked services still read
+the old files, switch ownership before the first IaC apply:
+
+```text
+railway config migrate status
+railway config migrate cutover
+railway config plan
+railway config apply
+```
+
+`cutover` records the previous config-file paths so `railway config migrate undo`
+can restore them. Push the deletion of the legacy files only after cutover; the
+platform keeps reading them until then.
 
 ## First-time setup
 
@@ -47,8 +74,9 @@ It records what it captures in a gitignored `.env` so it can resume, and pushes
 the same values to the linked Railway service. It provisions nothing itself.
 
 After the first deploy, create the remaining four services in the same project
-and region, set each one's config-as-code path from the table above, then add the
-variables from the scoping section. The relay must be deployed before
+and region, then add the variables from the scoping section. Run
+`railway config plan` and `railway config apply` so `.railway/railway.ts` owns
+the build and deploy settings. The relay must be deployed before
 `EMAIL_PROVIDER=relay` is enabled on the callers, or verification email fails
 closed with `PROVIDER_UNAVAILABLE`.
 

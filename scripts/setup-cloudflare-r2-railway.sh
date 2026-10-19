@@ -429,7 +429,7 @@ open_url "https://railway.com/new"
 step "New Project → Deploy from a GitHub repo → select this repository."
 step "Open the service → Settings → Source → confirm the Dockerfile builder."
 step "Settings → Region → Singapore."
-note "railway.json pins the Dockerfile and the /api/health healthcheck."
+note ".railway/railway.ts pins the Dockerfile and the /api/health healthcheck."
 say ""
 if command -v railway >/dev/null 2>&1; then
   if railway_linked; then
@@ -670,7 +670,7 @@ fi
 # ──────────────────────────────────────────────────────────────────────────
 
 stage "Railway · deploy and smoke test"
-say "railway.json builds the root Dockerfile and probes /api/health."
+say ".railway/railway.ts builds the root Dockerfile and probes /api/health."
 say ""
 if confirm "Deploy from this machine with 'railway up'?"; then
   if railway_linked; then
