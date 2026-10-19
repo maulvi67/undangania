@@ -13,6 +13,9 @@ ARG NODE_VERSION=20
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo
 
 FROM base AS deps
@@ -30,6 +33,9 @@ FROM deps AS builder
 # the app already uses.
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+# Generate the Prisma client first: the schema lives in packages/database/prisma,
+# so the @prisma/client postinstall does not find it during `npm ci`.
+RUN npm run db:generate
 # Builds the app and every workspace package it depends on, in dependency order.
 RUN npx --no-install turbo run build --filter=@wedding/customer-web
 
