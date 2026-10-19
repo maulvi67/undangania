@@ -40,7 +40,7 @@ RUN npm run db:generate
 RUN npx --no-install turbo run build --filter=@wedding/customer-web
 
 FROM base AS runner
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 RUN groupadd --system --gid 1001 nodejs \

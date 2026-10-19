@@ -19,7 +19,7 @@ COPY . .
 RUN npm ci && npm run db:generate
 
 FROM base AS runner
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV PORT=4000
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=deps --chown=node:node /app/package.json /app/package-lock.json ./

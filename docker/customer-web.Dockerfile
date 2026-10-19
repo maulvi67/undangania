@@ -23,7 +23,7 @@ RUN npm ci
 
 FROM base AS builder
 COPY --from=deps /app ./
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 # Default matches the application's own local fallback; staging and production
 # must pass the real public origin.
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -31,7 +31,7 @@ ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build -w @wedding/customer-web
 
 FROM base AS runner
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 COPY --from=builder --chown=node:node /app/apps/customer-web/.next/standalone ./

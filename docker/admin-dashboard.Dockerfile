@@ -20,11 +20,11 @@ RUN npm ci
 
 FROM base AS builder
 COPY --from=deps /app ./
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 RUN npm run build -w @wedding/admin-dashboard
 
 FROM base AS runner
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 COPY --from=builder --chown=node:node /app/apps/admin-dashboard/.next/standalone ./

@@ -16,6 +16,6 @@ RUN apt-get update \
 FROM base AS migrate
 COPY . .
 RUN npm ci
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 USER node
 CMD ["npm", "run", "migrate:deploy", "-w", "@wedding/database"]
