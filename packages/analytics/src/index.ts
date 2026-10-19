@@ -466,6 +466,90 @@ export async function reportAnalyticsEvents(
   };
 }
 
+export type AnalyticsViewsByDay = Readonly<{
+  /** Calendar day in the report's IANA time zone, `YYYY-MM-DD`. */
+  date: string;
+  views: number;
+}>;
+
+export type AnalyticsViewsByDayReport = Readonly<{
+  startDate: string;
+  endDate: string;
+  total: number;
+  /** Highest daily count, for scaling a chart without re-deriving it in the UI. */
+  peak: number;
+  days: readonly AnalyticsViewsByDay[];
+}>;
+
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function dayFormatter(timeZone: string): Intl.DateTimeFormat {
+  const cached = dayFormatters.get(timeZone);
+  if (cached !== undefined) return cached;
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  dayFormatters.set(timeZone, formatter);
+  return formatter;
+}
+
+/**
+ * Calendar day of an instant in an IANA time zone. `en-US` is used only as a
+ * digit source; the parts are reassembled so the result never depends on the
+ * locale's date order or separators.
+ */
+export function analyticsDayKey(instant: Date, timeZone: string): string {
+  const parts = dayFormatter(timeZone).formatToParts(instant);
+  const part = (type: "year" | "month" | "day"): string =>
+    parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+/**
+ * Daily `invitation_viewed` counts over a caller-supplied list of calendar days.
+ *
+ * The caller owns the window, so the series is always the same shape: zero-filled,
+ * oldest-first, and independent of how many events exist. An event outside
+ * `dayKeys` is ignored rather than folded into a neighbouring day, which keeps a
+ * time-zone boundary from inflating a bucket. Bucketing uses `occurredAt`, so a
+ * delayed write does not move a view to the day it was ingested.
+ */
+export function summarizeInvitationViewsByDay(
+  events: readonly AnalyticsEventRecord[],
+  options: Readonly<{ dayKeys: readonly string[]; timeZone: string }>,
+): AnalyticsViewsByDayReport {
+  if (events.length > ANALYTICS_REPORT_MAX_EVENTS) {
+    throw new AnalyticsReportLimitError();
+  }
+
+  const counts = new Map<string, number>();
+  for (const key of options.dayKeys) counts.set(key, 0);
+
+  for (const event of events) {
+    if (event.name !== "invitation_viewed") continue;
+    const key = analyticsDayKey(event.occurredAt, options.timeZone);
+    const current = counts.get(key);
+    if (current === undefined) continue;
+    counts.set(key, current + 1);
+  }
+
+  const days = options.dayKeys.map((date) => ({
+    date,
+    views: counts.get(date) ?? 0,
+  }));
+
+  return {
+    startDate: options.dayKeys[0] ?? "",
+    endDate: options.dayKeys[options.dayKeys.length - 1] ?? "",
+    total: days.reduce((sum, day) => sum + day.views, 0),
+    peak: days.reduce((max, day) => (day.views > max ? day.views : max), 0),
+    days,
+  };
+}
+
 const analyticsStoredPayloadSchema = z
   .object({
     eventId: z

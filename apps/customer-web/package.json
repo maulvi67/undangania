@@ -12,7 +12,9 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@wedding/analytics": "*",
     "@wedding/application": "*",
+    "@wedding/cache": "*",
     "@wedding/database": "*",
     "@wedding/notifications": "*",
     "@wedding/storage": "*",

@@ -42,6 +42,7 @@ import {
   type QrisNotificationTransactionPort,
 } from "@wedding/payments";
 import { z } from "zod";
+import { backendOptionsFromEnv } from "./backend-options";
 
 export const DEFAULT_PORT = 4000;
 export const MAX_WEBHOOK_BODY_BYTES = 64 * 1024;
@@ -959,5 +960,5 @@ function isMainModule(): boolean {
 }
 
 if (isMainModule()) {
-  startServer();
+  startServer(undefined, backendOptionsFromEnv(process.env));
 }

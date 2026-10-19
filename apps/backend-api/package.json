@@ -18,7 +18,8 @@
     "tsx": "^4.20.0",
     "zod": "^4.0.0",
     "@wedding/application": "*",
-    "@wedding/contracts": "*"
+    "@wedding/contracts": "*",
+    "@wedding/cache": "*"
   },
   "devDependencies": {}
 }

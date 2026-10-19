@@ -5,6 +5,7 @@ import {
   type PublicPublication,
 } from "@wedding/database";
 import { createStoragePortFromEnv, type StoragePort } from "@wedding/storage";
+import { readPublicPublication } from "./publication-cache";
 import {
   invitationViewModelSchema,
   type InvitationViewModel,
@@ -152,7 +153,11 @@ async function findActivePublication(
   slug: string,
 ): Promise<PublicPublication | null> {
   try {
-    return await new PrismaPublicationReaderRepository().findActiveBySlug(slug);
+    return await readPublicPublication({
+      slug,
+      load: () =>
+        new PrismaPublicationReaderRepository().findActiveBySlug(slug),
+    });
   } catch {
     // A database outage must not surface as a 500 on a public page; the caller
     // renders the same not-found it would for an unpublished slug.

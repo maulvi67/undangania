@@ -13,13 +13,11 @@ import {
   type InvitationLifecycle,
   type StatusTone,
 } from "./contract";
-import {
-  formatIdrMinor,
-  type PaymentStatusState,
-} from "../checkout/contract";
+import { formatIdrMinor, type PaymentStatusState } from "../checkout/contract";
 import { todayYmd } from "../onboarding/contract";
 import type { OrderListLoad } from "../checkout/orders";
 import type { GuestbookOverviewLoad } from "../oversight/server";
+import type { VisitStatsLoad } from "./visit-stats-contract";
 import {
   TIER_LABELS,
   formatIdr,
@@ -190,9 +188,7 @@ export function buildDashboardViewModel(
             invitationData.activeUntil === null
               ? null
               : formatInvitationDate(invitationData.activeUntil),
-          eventDateLabel: formatInvitationDate(
-            aggregate.workspace.weddingDate,
-          ),
+          eventDateLabel: formatInvitationDate(aggregate.workspace.weddingDate),
         };
 
   const rsvpData = aggregate.rsvp.status === "ok" ? aggregate.rsvp.data : null;
@@ -269,10 +265,7 @@ export function buildDashboardViewModel(
 /* -------------------------------------------------------------------------- */
 
 export type GuestbookModerationStatus =
-  | "PENDING"
-  | "APPROVED"
-  | "REJECTED"
-  | "HIDDEN";
+  "PENDING" | "APPROVED" | "REJECTED" | "HIDDEN";
 
 export type GuestbookMessageView = Readonly<{
   id: string;
@@ -384,6 +377,67 @@ export function buildOrdersPanel(load: OrderListLoad): OrdersPanelState {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Visit statistics                                                           */
+/* -------------------------------------------------------------------------- */
+
+export type VisitStatsDayView = Readonly<{
+  /** Calendar day, `YYYY-MM-DD`; the row key and the accessible date. */
+  date: string;
+  /** Short Indonesian label for the axis and the table, e.g. `17 Sep`. */
+  label: string;
+  views: number;
+}>;
+
+export type VisitStatsPanelState =
+  | Readonly<{
+      kind: "ok";
+      total: number;
+      peak: number;
+      days: readonly VisitStatsDayView[];
+    }>
+  | Readonly<{ kind: "unauthenticated" }>
+  | Readonly<{ kind: "unavailable" }>;
+
+/** Formatted from a UTC-noon instant so the label never shifts a day. */
+const VISIT_DAY_FORMAT = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+
+function visitDayLabel(date: string): string {
+  const [yearText, monthText, dayText] = date.split("-");
+  if (
+    yearText === undefined ||
+    monthText === undefined ||
+    dayText === undefined
+  ) {
+    return date;
+  }
+  const instant = new Date(
+    Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText), 12),
+  );
+  if (!Number.isFinite(instant.getTime())) return date;
+  return VISIT_DAY_FORMAT.format(instant);
+}
+
+export function buildVisitStatsPanel(
+  load: VisitStatsLoad,
+): VisitStatsPanelState {
+  if (load.kind !== "ok") return { kind: load.kind };
+  return {
+    kind: "ok",
+    total: load.data.total,
+    peak: load.data.peak,
+    days: load.data.days.map((day) => ({
+      date: day.date,
+      label: visitDayLabel(day.date),
+      views: day.views,
+    })),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
 /* Template recommendations                                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -415,7 +469,8 @@ export function buildTemplateCards(
     name: template.name,
     category: template.category,
     character: template.designCharacter,
-    priceLabel: template.priceIdr === null ? null : formatIdr(template.priceIdr),
+    priceLabel:
+      template.priceIdr === null ? null : formatIdr(template.priceIdr),
     tierLabel: TIER_LABELS[template.tier],
     art:
       ART_BY_PALETTE[template.theme.palette] ??

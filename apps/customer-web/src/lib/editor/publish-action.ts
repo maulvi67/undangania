@@ -13,6 +13,7 @@ import {
   publishEditorForSession,
   resolveEditorSession,
 } from "./server";
+import { invalidatePublicInvitation } from "../public-invitation/publication-cache";
 
 /**
  * Publishes the invitation at the session's own address.
@@ -71,7 +72,11 @@ export async function publishInvitationAction(input: {
 
   switch (result.kind) {
     case "published": {
-      if (result.slug !== "") revalidatePath(`/invite/${result.slug}`);
+      if (result.slug !== "") {
+        // The active publication row changed, so the cached public read is stale.
+        await invalidatePublicInvitation(result.slug);
+        revalidatePath(`/invite/${result.slug}`);
+      }
       return {
         kind: "published",
         publicUrl: result.slug === "" ? "" : `/invite/${result.slug}`,

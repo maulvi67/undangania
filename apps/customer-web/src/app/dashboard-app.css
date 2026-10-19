@@ -1444,6 +1444,123 @@
   margin: 11px 0 0;
 }
 
+.prototype-chart-summary {
+  margin: 15px 0 0;
+  color: var(--prototype-muted);
+  font-size: 10px;
+}
+
+.prototype-chart-summary strong {
+  color: var(--prototype-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.prototype-chart-bars {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.prototype-chart-bar {
+  display: grid;
+  height: 100%;
+  min-width: 0;
+  flex: 1 1 0;
+  grid-template-rows: 1fr auto;
+  gap: 5px;
+}
+
+.prototype-chart-bar__track {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #f5eeeb;
+}
+
+.prototype-chart-bar__fill {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #cd8a8b 0%, #b95363 100%);
+}
+
+.prototype-chart-bar__label {
+  min-height: 11px;
+  overflow: hidden;
+  color: var(--prototype-muted);
+  font-size: 8px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.prototype-chart-details {
+  margin-top: 14px;
+  border-top: 1px solid var(--prototype-border);
+  padding-top: 10px;
+}
+
+.prototype-chart-details summary {
+  border-radius: 6px;
+  color: var(--prototype-rose);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.prototype-chart-details summary:focus-visible {
+  outline: 3px solid rgb(185 83 99 / 35%);
+  outline-offset: 2px;
+}
+
+.prototype-chart-table-wrap {
+  max-height: 210px;
+  margin-top: 9px;
+  overflow-y: auto;
+}
+
+.prototype-chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.prototype-chart-table th,
+.prototype-chart-table td {
+  border-bottom: 1px solid #f2ebe8;
+  padding: 5px 6px;
+  text-align: left;
+}
+
+.prototype-chart-table thead th {
+  position: sticky;
+  top: 0;
+  color: var(--prototype-muted);
+  background: var(--prototype-surface);
+  font-weight: 650;
+}
+
+.prototype-chart-table tbody th {
+  font-weight: 500;
+}
+
+.prototype-chart-table td {
+  text-align: right;
+}
+
+.prototype-chart-table tfoot th,
+.prototype-chart-table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+.prototype-chart-table tfoot td {
+  text-align: right;
+}
+
 .prototype-countdown-card {
   background: linear-gradient(160deg, #fff 0%, #fffaf7 100%);
 }

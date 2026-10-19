@@ -9,7 +9,9 @@ import {
   buildGuestbookPanel,
   buildOrdersPanel,
   buildTemplateCards,
+  buildVisitStatsPanel,
 } from "../../lib/dashboard/view-model";
+import { loadVisitStatsForSession } from "../../lib/dashboard/visit-stats";
 import { loadGuestbookOverview } from "../../lib/oversight/server";
 import "../dashboard-app.css";
 
@@ -28,10 +30,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [dashboard, guestbook, orders] = await Promise.all([
+  const [dashboard, guestbook, orders, visitStats] = await Promise.all([
     loadDashboardForSession(),
     loadGuestbookOverview(),
     loadOrderList(),
+    loadVisitStatsForSession(),
   ]);
 
   const dashboardState: DashboardAppProps["dashboard"] =
@@ -47,6 +50,7 @@ export default async function DashboardPage() {
       guestbook={buildGuestbookPanel(guestbook)}
       orders={buildOrdersPanel(orders)}
       templates={buildTemplateCards(getActiveTemplates())}
+      visitStats={buildVisitStatsPanel(visitStats)}
     />
   );
 }

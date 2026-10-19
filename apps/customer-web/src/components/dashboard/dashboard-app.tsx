@@ -61,7 +61,12 @@ import type {
   OrderView,
   OrdersPanelState,
   TemplateCardView,
+  VisitStatsPanelState,
 } from "../../lib/dashboard/view-model";
+import {
+  VISIT_STATS_DEFAULT_PERIOD,
+  VISIT_STATS_PERIODS,
+} from "../../lib/dashboard/visit-stats-contract";
 
 /**
  * Customer dashboard.
@@ -83,6 +88,7 @@ export type DashboardAppProps = {
   guestbook: GuestbookPanelState;
   orders: OrdersPanelState;
   templates: readonly TemplateCardView[];
+  visitStats: VisitStatsPanelState;
 };
 
 type DialogName = "share" | "preview" | "steps" | "message" | "confirm-reject";
@@ -426,6 +432,7 @@ export function DashboardApp({
   guestbook,
   orders,
   templates,
+  visitStats,
 }: DashboardAppProps) {
   const reduceMotion = useReducedMotion() === true;
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -1812,23 +1819,7 @@ export function DashboardApp({
                             />
                           </div>
                         )}
-                        <div className="prototype-chart-heading">
-                          <div>
-                            <strong>Kunjungan undangan</strong>
-                            <span>Jumlah kunjungan harian undangan Anda</span>
-                          </div>
-                        </div>
-                        <figure
-                          className="prototype-chart"
-                          aria-label="Grafik kunjungan undangan"
-                        >
-                          <p className="prototype-section-note">
-                            <AlertCircle size={15} /> Grafik kunjungan belum
-                            tersedia. Statistik kunjungan per hari belum dapat
-                            ditampilkan; angka RSVP di atas selalu diperbarui
-                            dari data tamu Anda.
-                          </p>
-                        </figure>
+                        <VisitStatsChart state={visitStats} />
                       </Card>
 
                       <Card className="prototype-span-4 prototype-countdown-card">
@@ -2359,6 +2350,131 @@ const QUICK_ACTIONS = [
   color: string;
   href: string | null;
 }>;
+
+function VisitStatsChart({ state }: { state: VisitStatsPanelState }) {
+  const [period, setPeriod] = useState<number>(VISIT_STATS_DEFAULT_PERIOD);
+
+  if (state.kind !== "ok") {
+    return (
+      <p className="prototype-section-note">
+        <AlertCircle size={15} />{" "}
+        {state.kind === "unauthenticated"
+          ? "Masuk untuk melihat statistik kunjungan undangan."
+          : "Statistik kunjungan belum dapat dimuat. Muat ulang halaman ini untuk mencoba lagi."}
+      </p>
+    );
+  }
+
+  const series = state.days.slice(-period);
+  const total = series.reduce((sum, day) => sum + day.views, 0);
+  const peak = series.reduce(
+    (max, day) => (day.views > max ? day.views : max),
+    0,
+  );
+  const peakDay =
+    peak === 0 ? null : (series.find((day) => day.views === peak) ?? null);
+  // With a 30-day window the axis cannot hold every label; every nth day keeps
+  // the run readable without dropping the newest one, which is always shown.
+  const labelStep = Math.max(1, Math.ceil(series.length / 8));
+
+  return (
+    <>
+      <div className="prototype-chart-heading">
+        <div>
+          <strong>Kunjungan undangan</strong>
+          <span>Jumlah kunjungan harian undangan Anda</span>
+        </div>
+        <div
+          className="prototype-period-filter"
+          role="group"
+          aria-label="Rentang waktu grafik kunjungan"
+        >
+          {VISIT_STATS_PERIODS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={option === period ? "is-active" : ""}
+              aria-pressed={option === period}
+              onClick={() => setPeriod(option)}
+            >
+              {option} hari
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <p className="prototype-section-note">
+          <AlertCircle size={15} /> Belum ada kunjungan tercatat dalam {period}{" "}
+          hari terakhir. Angka muncul setelah tamu membuka undangan Anda.
+        </p>
+      ) : (
+        <>
+          <p className="prototype-chart-summary">
+            Total <strong>{formatNumber(total)}</strong> kunjungan
+            {peakDay === null
+              ? null
+              : ` · tertinggi ${formatNumber(peak)} pada ${peakDay.label}`}
+          </p>
+          <figure className="prototype-chart" aria-hidden="true">
+            <div className="prototype-chart-bars">
+              {series.map((day, index) => (
+                <div className="prototype-chart-bar" key={day.date}>
+                  <span className="prototype-chart-bar__track">
+                    <span
+                      className="prototype-chart-bar__fill"
+                      style={{
+                        height:
+                          day.views === 0
+                            ? "0%"
+                            : `${Math.max(6, Math.round((day.views / peak) * 100))}%`,
+                      }}
+                    />
+                  </span>
+                  <span className="prototype-chart-bar__label">
+                    {index % labelStep === 0 || index === series.length - 1
+                      ? day.label
+                      : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </figure>
+          <details className="prototype-chart-details">
+            <summary>Tabel agregat {period} hari terakhir</summary>
+            <div className="prototype-chart-table-wrap">
+              <table className="prototype-chart-table">
+                <caption className="ui-visually-hidden">
+                  Jumlah kunjungan undangan per hari, {period} hari terakhir
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Tanggal</th>
+                    <th scope="col">Kunjungan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...series].reverse().map((day) => (
+                    <tr key={day.date}>
+                      <th scope="row">{day.label}</th>
+                      <td>{formatNumber(day.views)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total</th>
+                    <td>{formatNumber(total)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </details>
+        </>
+      )}
+    </>
+  );
+}
 
 function StatMetric({
   icon: Icon,
