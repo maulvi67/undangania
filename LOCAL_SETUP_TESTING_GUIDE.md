@@ -876,22 +876,24 @@ docker compose logs -f postgres
 
 ### Prisma tidak membaca `.env`
 
-Jalankan dari root repository dan pastikan `DATABASE_URL` tersedia:
+Script `db:*` di root repository menjalankan Prisma dari root, sehingga `.env` di
+root otomatis terbaca. Selalu jalankan dari root repository:
 
 ```bash
-set -a
-. ./.env
-set +a
 npm run db:validate
+npm run db:generate
 ```
 
-Pada PowerShell:
+Jika memanggil Prisma langsung dengan `npx`, jalankan juga dari root dan berikan
+path schema secara eksplisit, karena Prisma hanya membaca `.env` dari direktori
+kerja saat ini (bukan dari direktori `packages/database`):
 
-```powershell
-Get-Content .env | ForEach-Object {
-  if ($_ -match '^(.*?)=(.*)$') { Set-Item -Path "Env:$($matches[1])" -Value $matches[2] }
-}
+```bash
+npx prisma validate --schema packages/database/prisma/schema.prisma
 ```
+
+Perintah langsung dari dalam `packages/database` tidak memuat `.env` root. Gunakan
+script npm package tersebut (`npm run validate`) yang meneruskan eksekusi ke root.
 
 ### Workspace package tidak ditemukan
 

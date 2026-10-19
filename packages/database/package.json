@@ -12,10 +12,10 @@
     }
   },
   "scripts": {
-    "generate": "prisma generate",
-    "validate": "prisma validate",
-    "migrate:dev": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
+    "generate": "cd ../.. && prisma generate --schema packages/database/prisma/schema.prisma",
+    "validate": "cd ../.. && prisma validate --schema packages/database/prisma/schema.prisma",
+    "migrate:dev": "cd ../.. && prisma migrate dev --schema packages/database/prisma/schema.prisma",
+    "migrate:deploy": "cd ../.. && prisma migrate deploy --schema packages/database/prisma/schema.prisma",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
