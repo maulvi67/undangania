@@ -34,13 +34,25 @@ FROM deps AS builder
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 # Generate the Prisma client first: the schema lives in packages/database/prisma,
-# so the @prisma/client postinstall does not find it during `npm ci`.
-RUN npm run db:generate
+# so the @prisma/client postinstall does not find it during `npm ci`. Fail here,
+# readably, if the stub that postinstall leaves behind is still in place —
+# otherwise the same mistake surfaces hundreds of times as TS2694 inside the
+# build, far from its cause.
+RUN npm run db:generate \
+  && if [ ! -f node_modules/.prisma/client/index.d.ts ] \
+       || grep -q "export declare const PrismaClient: any" node_modules/.prisma/client/index.d.ts; then \
+       echo "ERROR: @prisma/client is missing or ungenerated at node_modules/.prisma/client" >&2; \
+       exit 1; \
+     fi
 # Builds the app and every workspace package it depends on, in dependency order.
 RUN npx --no-install turbo run build --filter=@wedding/customer-web
 
 FROM base AS runner
-ENV NODE_ENV=development
+# Next's generated `server.js` assigns `NODE_ENV = "production"` before it loads
+# any application code, so the process is already production either way. Declare
+# it so the image environment tells the truth instead of advertising a mode the
+# server immediately overrides.
+ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 RUN groupadd --system --gid 1001 nodejs \
