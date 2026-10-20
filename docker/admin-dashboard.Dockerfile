@@ -34,8 +34,9 @@ ENV NODE_ENV=production
 # here, readably, if the stub is still in place — otherwise the same mistake
 # surfaces dozens of times as TS2694 inside `next build`.
 RUN npm run db:generate \
-  && if grep -q "export declare const PrismaClient: any" node_modules/.prisma/client/index.d.ts; then \
-       echo "ERROR: prisma generate left the uninitialized @prisma/client stub" >&2; \
+  && if [ ! -f node_modules/.prisma/client/index.d.ts ] \
+       || grep -q "export declare const PrismaClient: any" node_modules/.prisma/client/index.d.ts; then \
+       echo "ERROR: @prisma/client is missing or ungenerated at node_modules/.prisma/client" >&2; \
        exit 1; \
      fi
 RUN npm run build -w @wedding/admin-dashboard

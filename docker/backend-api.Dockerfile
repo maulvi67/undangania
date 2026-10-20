@@ -22,8 +22,9 @@ COPY . .
 # stub survived instead of at the first query in production.
 RUN npm ci \
   && npm run db:generate \
-  && if grep -q "export declare const PrismaClient: any" node_modules/.prisma/client/index.d.ts; then \
-       echo "ERROR: prisma generate left the uninitialized @prisma/client stub" >&2; \
+  && if [ ! -f node_modules/.prisma/client/index.d.ts ] \
+       || grep -q "export declare const PrismaClient: any" node_modules/.prisma/client/index.d.ts; then \
+       echo "ERROR: @prisma/client is missing or ungenerated at node_modules/.prisma/client" >&2; \
        exit 1; \
      fi
 

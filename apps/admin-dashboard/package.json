@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "prisma generate --schema ../../packages/database/prisma/schema.prisma",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
