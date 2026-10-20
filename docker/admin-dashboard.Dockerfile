@@ -16,10 +16,7 @@ RUN apt-get update \
 
 FROM base AS deps
 COPY . .
-# The schema lives in packages/database/prisma, so @prisma/client's postinstall
-# cannot find it and falls back to an empty stub. Generate the real client here:
-# `next build` typechecks the workspace packages against it.
-RUN npm ci && npm run db:generate
+RUN npm ci
 
 FROM base AS builder
 COPY --from=deps /app ./
@@ -27,7 +24,10 @@ COPY --from=deps /app ./
 # build a development-mode bundle. The standalone server then forces production
 # at runtime, so the two must match.
 ENV NODE_ENV=production
-RUN npm run build -w @wedding/admin-dashboard
+# The schema lives in packages/database/prisma, so @prisma/client's postinstall
+# cannot find it on its own and its install-time stub has no model types.
+# Generate in this stage, immediately before the type check that reads it.
+RUN npm run db:generate && npm run build -w @wedding/admin-dashboard
 
 FROM base AS runner
 ENV NODE_ENV=production

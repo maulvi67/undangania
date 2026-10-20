@@ -19,10 +19,7 @@ RUN apt-get update \
 
 FROM base AS deps
 COPY . .
-# The schema lives in packages/database/prisma, so @prisma/client's postinstall
-# cannot find it and falls back to an empty stub. Generate the real client here:
-# `next build` typechecks the workspace packages against it.
-RUN npm ci && npm run db:generate
+RUN npm ci
 
 FROM base AS builder
 COPY --from=deps /app ./
@@ -34,7 +31,10 @@ ENV NODE_ENV=production
 # must pass the real public origin.
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-RUN npm run build -w @wedding/customer-web
+# The schema lives in packages/database/prisma, so @prisma/client's postinstall
+# cannot find it on its own and its install-time stub has no model types.
+# Generate in this stage, immediately before the type check that reads it.
+RUN npm run db:generate && npm run build -w @wedding/customer-web
 
 FROM base AS runner
 ENV NODE_ENV=production
