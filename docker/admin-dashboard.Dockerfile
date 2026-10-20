@@ -16,15 +16,21 @@ RUN apt-get update \
 
 FROM base AS deps
 COPY . .
-RUN npm ci
+# The schema lives in packages/database/prisma, so @prisma/client's postinstall
+# cannot find it and falls back to an empty stub. Generate the real client here:
+# `next build` typechecks the workspace packages against it.
+RUN npm ci && npm run db:generate
 
 FROM base AS builder
 COPY --from=deps /app ./
-ENV NODE_ENV=development
+# Next only fills in a default NODE_ENV; an explicit "development" here would
+# build a development-mode bundle. The standalone server then forces production
+# at runtime, so the two must match.
+ENV NODE_ENV=production
 RUN npm run build -w @wedding/admin-dashboard
 
 FROM base AS runner
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 COPY --from=builder --chown=node:node /app/apps/admin-dashboard/.next/standalone ./

@@ -15,7 +15,8 @@ RUN apt-get update \
 
 FROM base AS migrate
 COPY . .
+# Install before setting NODE_ENV so the Prisma CLI (a devDependency) is present.
 RUN npm ci
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 USER node
 CMD ["npm", "run", "migrate:deploy", "-w", "@wedding/database"]

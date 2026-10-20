@@ -14,7 +14,7 @@ COPY . .
 RUN npm ci
 
 FROM base AS runner
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 ENV PORT=4100
 ENV HOSTNAME=0.0.0.0
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
