@@ -12,29 +12,40 @@
 FROM node:24-slim AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-# Prisma's query engine needs the system OpenSSL that Debian slim omits.
+# Prisma's query engine links against the system OpenSSL that Debian slim omits,
+# and the engine download during `npm ci` verifies TLS against a system CA
+# bundle that the Node images do not install either.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
 COPY . .
 RUN npm ci
 
-FROM base AS builder
-COPY --from=deps /app ./
+# Inherit the install stage instead of copying `/app` between stages, so the
+# builder compiles against exactly the tree `npm ci` produced.
+FROM deps AS builder
 # Next only fills in a default NODE_ENV; an explicit "development" here would
-# build a development-mode bundle. The standalone server then forces production
-# at runtime, so the two must match.
+# build a development-mode bundle while the standalone server forces production
+# at runtime. The two must match.
 ENV NODE_ENV=production
 # Default matches the application's own local fallback; staging and production
 # must pass the real public origin.
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-# The schema lives in packages/database/prisma, so @prisma/client's postinstall
-# cannot find it on its own and its install-time stub has no model types.
-# Generate in this stage, immediately before the type check that reads it.
-RUN npm run db:generate && npm run build -w @wedding/customer-web
+# The schema lives in packages/database/prisma, so `@prisma/client`'s own
+# postinstall cannot find it and leaves its uninitialized stub behind. Every
+# Prisma model type this app compiles against comes from the generated file, so
+# generate it before the type check and fail here, readably, if the stub is
+# still in place — otherwise the same mistake surfaces dozens of times as
+# TS2694 inside `next build`.
+RUN npm run db:generate \
+  && if grep -q "export declare const PrismaClient: any" node_modules/.prisma/client/index.d.ts; then \
+       echo "ERROR: prisma generate left the uninitialized @prisma/client stub" >&2; \
+       exit 1; \
+     fi
+RUN npm run build -w @wedding/customer-web
 
 FROM base AS runner
 ENV NODE_ENV=production
